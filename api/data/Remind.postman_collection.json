@@ -1,0 +1,38 @@
+{
+	"info": {
+		"_postman_id": "f1b22b22-583a-4bc0-8559-2aefe2a1bb12",
+		"name": "Remind",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "48183986"
+	},
+	"item": [
+		{
+			"name": "login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"camila.nogueira.cf@gmail.com\",\r\n    // paciente: rafael.duarte87@gmail.com\r\n    // psicologo: camila.nogueira.cf@gmail.com\r\n    \"password\": \"123456\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
