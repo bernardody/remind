@@ -29,6 +29,7 @@ CREATE TABLE users (
 	cpf VARCHAR(11) NOT NULL,
 	phone VARCHAR(11) NOT NULL,
 	password VARCHAR(255) NOT NULL,
+	type VARCHAR(15) NOT NULL,
 	created_at DATE NOT NULL,
 	updated_at DATE NOT NULL,
 	active BOOLEAN NOT NULL
