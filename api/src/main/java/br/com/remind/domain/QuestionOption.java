@@ -38,6 +38,7 @@ public class QuestionOption {
     @NotNull
     private LocalDate created_at;
 
+    @NotNull
     private LocalDate updated_at;
 
     @NotNull

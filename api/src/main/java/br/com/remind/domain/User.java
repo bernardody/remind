@@ -1,5 +1,6 @@
 package br.com.remind.domain;
 
+import br.com.remind.enums.UserType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -42,8 +43,13 @@ public class User {
     private String password;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
+    private UserType type;
+
+    @NotNull
     private LocalDate created_at;
 
+    @NotNull
     private LocalDate updated_at;
 
     @NotNull
