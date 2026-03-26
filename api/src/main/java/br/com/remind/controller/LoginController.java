@@ -3,7 +3,7 @@ package br.com.remind.controller;
 import br.com.remind.controller.request.login.LoginRequest;
 import br.com.remind.controller.response.login.LoginResponse;
 import br.com.remind.domain.User;
-import br.com.remind.service.SearchUserService;
+import br.com.remind.service.login.SearchUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

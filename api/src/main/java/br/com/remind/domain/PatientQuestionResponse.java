@@ -1,7 +1,6 @@
 package br.com.remind.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -26,8 +25,8 @@ public class PatientQuestionResponse {
 
     @NotNull
     @ManyToOne
-    @JoinColumn(name = "id_questionnaire_response", nullable = false)
-    private QuestionnaireResponse questionnaireResponse;
+    @JoinColumn(name = "id_questionnaire_answer", nullable = false)
+    private QuestionnaireAnswer questionnaireResponse;
 
     @NotNull
     @ManyToOne
