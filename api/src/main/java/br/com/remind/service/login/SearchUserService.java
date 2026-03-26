@@ -1,4 +1,4 @@
-package br.com.remind.service;
+package br.com.remind.service.login;
 
 import br.com.remind.controller.response.user.UserResponse;
 import br.com.remind.repository.UserRepository;
