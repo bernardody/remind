@@ -1,7 +1,6 @@
 package br.com.remind.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -18,8 +17,8 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 @EqualsAndHashCode(of = "id")
 @ToString(of = "id")
 @Entity
-@Table(name = "questionnaire_responses")
-public class QuestionnaireResponse {
+@Table(name = "questionnaire_answers")
+public class QuestionnaireAnswer {
 
     @Id
     @GeneratedValue(strategy = IDENTITY)

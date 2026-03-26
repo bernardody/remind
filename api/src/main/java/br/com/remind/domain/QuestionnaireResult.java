@@ -1,7 +1,6 @@
 package br.com.remind.domain;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -27,8 +26,8 @@ public class QuestionnaireResult {
 
     @NotNull
     @OneToOne
-    @JoinColumn(name = "id_questionnaire_response", nullable = false, unique = true)
-    private QuestionnaireResponse questionnaireResponse;
+    @JoinColumn(name = "id_questionnaire_answer", nullable = false, unique = true)
+    private QuestionnaireAnswer questionnaireResponse;
 
     @NotNull
     private BigDecimal average;

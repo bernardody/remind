@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS questionnaires CASCADE;
 DROP TABLE IF EXISTS scales CASCADE;
 DROP TABLE IF EXISTS questions CASCADE;
 DROP TABLE IF EXISTS question_options CASCADE;
-DROP TABLE IF EXISTS questionnaire_responses CASCADE;
+DROP TABLE IF EXISTS questionnaire_answers CASCADE;
 DROP TABLE IF EXISTS patient_question_responses CASCADE;
 DROP TABLE IF EXISTS questionnaire_results CASCADE;
 
@@ -99,7 +99,7 @@ CREATE TABLE question_options (
 );
 ALTER TABLE question_options ADD CONSTRAINT fk_question_options_id_question FOREIGN KEY (id_question) REFERENCES questions(id);
 
-CREATE TABLE questionnaire_responses (
+CREATE TABLE questionnaire_answers (
 	id BIGINT PRIMARY KEY NOT NULL,
 	id_patient BIGINT NOT NULL,
 	id_questionnaire BIGINT NOT NULL,
@@ -108,28 +108,28 @@ CREATE TABLE questionnaire_responses (
 	updated_at DATE NOT NULL,
 	active BOOLEAN NOT NULL
 );
-ALTER TABLE questionnaire_responses ADD CONSTRAINT fk_questionnaire_responses_id_patient FOREIGN KEY (id_patient) REFERENCES patients(id);
-ALTER TABLE questionnaire_responses ADD CONSTRAINT fk_questionnaire_responses_id_questionnaire FOREIGN KEY (id_questionnaire) REFERENCES questionnaires(id);
+ALTER TABLE questionnaire_answers ADD CONSTRAINT fk_questionnaire_answers_id_patient FOREIGN KEY (id_patient) REFERENCES patients(id);
+ALTER TABLE questionnaire_answers ADD CONSTRAINT fk_questionnaire_answers_id_questionnaire FOREIGN KEY (id_questionnaire) REFERENCES questionnaires(id);
 
 CREATE TABLE patient_question_responses (
 	id BIGINT PRIMARY KEY NOT NULL,
-	id_questionnaire_response BIGINT NOT NULL,
+	id_questionnaire_answer BIGINT NOT NULL,
 	id_question BIGINT NOT NULL,
 	id_question_option BIGINT NOT NULL,
 	created_at DATE NOT NULL,
 	updated_at DATE NOT NULL,
 	active BOOLEAN NOT NULL
 );
-ALTER TABLE patient_question_responses ADD CONSTRAINT fk_patient_question_responses_id_questionnaire_response FOREIGN KEY (id_questionnaire_response) REFERENCES questionnaire_responses(id);
+ALTER TABLE patient_question_responses ADD CONSTRAINT fk_patient_question_responses_id_questionnaire_answer FOREIGN KEY (id_questionnaire_answer) REFERENCES questionnaire_answers(id);
 ALTER TABLE patient_question_responses ADD CONSTRAINT fk_patient_question_responses_id_question FOREIGN KEY (id_question) REFERENCES questions(id);
 ALTER TABLE patient_question_responses ADD CONSTRAINT fk_patient_question_responses_id_question_option FOREIGN KEY (id_question_option) REFERENCES question_options(id);
 
 CREATE TABLE questionnaire_results (
 	id BIGINT PRIMARY KEY NOT NULL,
-	id_questionnaire_response BIGINT NOT NULL,
+	id_questionnaire_answer BIGINT NOT NULL,
 	average DECIMAL(18,2) NOT NULL,
 	created_at DATE NOT NULL,
 	updated_at DATE NOT NULL,
 	active BOOLEAN NOT NULL
 );
-ALTER TABLE questionnaire_results ADD CONSTRAINT fk_questionnaire_results_id_questionnaire_response FOREIGN KEY (id_questionnaire_response) REFERENCES questionnaire_responses(id);
+ALTER TABLE questionnaire_results ADD CONSTRAINT fk_questionnaire_results_id_questionnaire_answer FOREIGN KEY (id_questionnaire_answer) REFERENCES questionnaire_answers(id);
