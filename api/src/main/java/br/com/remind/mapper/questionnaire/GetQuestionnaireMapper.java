@@ -7,10 +7,12 @@ import br.com.remind.domain.Question;
 import br.com.remind.domain.QuestionOption;
 import br.com.remind.domain.Questionnaire;
 import br.com.remind.mapper.question.QuestionMapper;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
+@Component
 public class GetQuestionnaireMapper {
 
     public static GetQuestionnaireResponse toResponse(Questionnaire questionnaire, List<Question> questions, Map<Long, List<QuestionOption>> optionsByQuestion) {

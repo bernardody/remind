@@ -5,9 +5,11 @@ import br.com.remind.controller.response.question.QuestionResponse;
 import br.com.remind.domain.Question;
 import br.com.remind.domain.QuestionOption;
 import br.com.remind.mapper.option.OptionMapper;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class QuestionMapper {
     public static QuestionResponse toResponse(
             Question question,
