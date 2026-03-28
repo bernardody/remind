@@ -2,7 +2,9 @@ package br.com.remind.mapper.user;
 
 import br.com.remind.controller.response.user.UserResponse;
 import br.com.remind.domain.User;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ListUserMapper {
     public static UserResponse toResponse(User entity) {
         return UserResponse.builder()
