@@ -3,9 +3,12 @@ package br.com.remind.controller;
 import br.com.remind.controller.request.patient.InsertPatientRequest;
 import br.com.remind.controller.response.patient.InsertPatientResponse;
 import br.com.remind.controller.response.patient.ListPatientResponse;
+import br.com.remind.controller.request.patient.UpdatePatientRequest;
+import br.com.remind.controller.response.patient.UpdatePatientResponse;
 import br.com.remind.service.patient.DeletePatientService;
 import br.com.remind.service.patient.InsertPatientService;
 import br.com.remind.service.patient.ListPatientService;
+import br.com.remind.service.patient.UpdatePatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +23,7 @@ public class PatientController {
     private final ListPatientService listPatientService;
     private final InsertPatientService insertPatientService;
     private final DeletePatientService deletePatientService;
+    private final UpdatePatientService updatePatientService;
 
     @GetMapping
     public Page<ListPatientResponse> listPatient(Pageable pageable) {
@@ -29,6 +33,12 @@ public class PatientController {
     @PostMapping
     public InsertPatientResponse insertPatient(@RequestBody @Valid InsertPatientRequest request) {
         return insertPatientService.insert(request);
+    }
+
+    @PutMapping("/{id}")
+    public UpdatePatientResponse updatePatient(@PathVariable Long id,
+                                               @RequestBody @Valid UpdatePatientRequest request) {
+        return updatePatientService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
