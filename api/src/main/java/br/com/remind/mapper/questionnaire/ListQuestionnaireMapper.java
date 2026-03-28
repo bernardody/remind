@@ -2,7 +2,9 @@ package br.com.remind.mapper.questionnaire;
 
 import br.com.remind.controller.response.questionnaire.QuestionnaireResponse;
 import br.com.remind.domain.Questionnaire;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ListQuestionnaireMapper {
 
     public static QuestionnaireResponse toResponse(Questionnaire entity) {
