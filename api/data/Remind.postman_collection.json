@@ -67,6 +67,284 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "responder questionario",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"responses\": [\r\n        { \"questionId\": 1,  \"questionOptionId\": 3  },\r\n        { \"questionId\": 2,  \"questionOptionId\": 8  },\r\n        { \"questionId\": 3,  \"questionOptionId\": 11 },\r\n        { \"questionId\": 4,  \"questionOptionId\": 18 },\r\n        { \"questionId\": 5,  \"questionOptionId\": 23 },\r\n        { \"questionId\": 6,  \"questionOptionId\": 27 },\r\n        { \"questionId\": 7,  \"questionOptionId\": 33 },\r\n        { \"questionId\": 8,  \"questionOptionId\": 36 },\r\n        { \"questionId\": 9,  \"questionOptionId\": 43 },\r\n        { \"questionId\": 10, \"questionOptionId\": 48 },\r\n        { \"questionId\": 11, \"questionOptionId\": 52 }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/questionarios/1/responder",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "questionarios",
+                "1",
+                "responder"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "listar pacientes que responderam o questionario",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/questionarios/1/pacientes",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "questionarios",
+                "1",
+                "pacientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ver respostas dos pacientes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/questionarios/1/pacientes/1/respostas",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "questionarios",
+                "1",
+                "pacientes",
+                "1",
+                "respostas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ver resultado do questionario",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/questionarios/1/pacientes/1/resultado",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "questionarios",
+                "1",
+                "pacientes",
+                "1",
+                "resultado"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pacientes",
+      "item": [
+        {
+          "name": "listar pacientes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/pacientes",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "pacientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "cadastrar pacientes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Luis Rafael Macedo\",\r\n    \"email\": \"luis.macedo@gmail.com\",\r\n    \"cpf\": \"04137298097\",\r\n    \"phone\": \"51981567763\",\r\n    \"password\": \"123456\",\r\n    \"birthDate\": \"2009-01-25\",\r\n    \"gender\": \"M\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/pacientes",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "pacientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "editar paciente",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Luis Raphael Macedo\",\r\n    \"phone\": \"51981567764\",\r\n    \"birthDate\": \"2008-01-25\",\r\n    \"gender\": \"F\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/pacientes/7",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "pacientes",
+                "7"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deletar paciente",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/pacientes/7",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "pacientes",
+                "7"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
