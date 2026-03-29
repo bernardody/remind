@@ -5,7 +5,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Long> {
+import java.util.Optional;
 
+public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Long> {
+    Optional<Questionnaire> findByIdAndActiveTrue(Long id);
     Page<Questionnaire> findAllByActiveTrue(Pageable pageable);
 }

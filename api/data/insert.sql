@@ -50,7 +50,6 @@ INSERT INTO questions (id_questionnaire, id_scale, text, order_number, created_a
 (1, 2, 'Com que frequência você sente que seus amigos online realmente compreendem você?', 1, '2026-02-17', '2026-02-17', true),
 (1, 2, 'Você se sente isolado(a), mesmo ao interagir nas redes sociais?', 1, '2026-02-17', '2026-02-17', true),
 (1, 2, 'Com que frequência você recorre às redes sociais quando está se sentindo sozinho(a)?', 1, '2026-02-17', '2026-02-17', true),
-(1, 2, 'Com que frequência você recorre às redes sociais quando está se sentindo sozinho(a)?', 1, '2026-02-17', '2026-02-17', true),
 (1, 3, 'O uso das redes sociais já causou conflitos com pessoas próximas a você.', 1, '2026-02-17', '2026-02-17', true),
 (1, 3, 'Eu me irrito facilmente se alguém interfere no meu uso das redes sociais.', 1, '2026-02-17', '2026-02-17', true),
 (1, 3, 'Já percebi que as redes sociais afetam a qualidade dos meus relacionamentos pessoais.', 1, '2026-02-17', '2026-02-17', true);
