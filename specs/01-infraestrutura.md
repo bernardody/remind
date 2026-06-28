@@ -6,8 +6,8 @@ Colocar o backend Spring Boot em produção no VPS da Hostinger, com banco Postg
 
 ## Pré-requisitos (verificar antes de começar)
 
-- [ ] Acesso SSH ao VPS (IP, usuário root ou sudo, senha ou chave)
-- [ ] Domínio apontando para o IP do VPS (registro A no DNS da Hostinger — painel hPanel > DNS Zone)
+- [ ] Acesso SSH ao VPS (IP `76.13.161.182`, usuário root ou sudo, senha ou chave)
+- [ ] Domínio apontando para o IP do VPS — registro A `api` → `76.13.161.182` no **registro.br** (painel do registro.br > Editar Zona DNS). O domínio `remindapp.com.br` está no registro.br, então o DNS é gerenciado lá, **não** no hPanel da Hostinger
 - [ ] Porta 80 e 443 abertas no firewall do hPanel (Hostinger > VPS > Firewall)
 - [ ] Repositório no GitHub com acesso de admin (para criar Secrets)
 - [ ] Java 21 e Maven instalados localmente para validar o build antes de subir
@@ -20,7 +20,7 @@ Colocar o backend Spring Boot em produção no VPS da Hostinger, com banco Postg
 
 ```bash
 # Conectar ao VPS
-ssh root@<IP_DO_VPS>
+ssh root@76.13.161.182
 
 # Atualizar pacotes
 apt update && apt upgrade -y
@@ -197,7 +197,7 @@ http {
     # Redireciona HTTP → HTTPS
     server {
         listen 80;
-        server_name api.remind.com.br;  # Substituir pelo domínio real
+        server_name api.remindapp.com.br;
 
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
@@ -211,7 +211,7 @@ http {
     # HTTPS — proxy para o Spring Boot
     server {
         listen 443 ssl;
-        server_name api.remind.com.br;  # Substituir pelo domínio real
+        server_name api.remindapp.com.br;
 
         ssl_certificate     /etc/nginx/certs/fullchain.pem;
         ssl_certificate_key /etc/nginx/certs/privkey.pem;
@@ -254,15 +254,15 @@ apt install -y certbot
 certbot certonly \
   --webroot \
   --webroot-path /var/lib/docker/volumes/app_certbot-www/_data \
-  -d api.remind.com.br \
+  -d api.remindapp.com.br \
   --email remindappbr@gmail.com \
   --agree-tos \
   --non-interactive
 
 # Copiar certificados para o diretório montado no nginx
 mkdir -p /home/remind/app/nginx/certs
-cp /etc/letsencrypt/live/api.remind.com.br/fullchain.pem /home/remind/app/nginx/certs/
-cp /etc/letsencrypt/live/api.remind.com.br/privkey.pem   /home/remind/app/nginx/certs/
+cp /etc/letsencrypt/live/api.remindapp.com.br/fullchain.pem /home/remind/app/nginx/certs/
+cp /etc/letsencrypt/live/api.remindapp.com.br/privkey.pem   /home/remind/app/nginx/certs/
 
 # Subir tudo
 docker compose up -d
@@ -276,8 +276,8 @@ crontab -e
 
 # Linha a adicionar (roda dia 1 de cada mês às 3h)
 0 3 1 * * certbot renew --quiet && \
-  cp /etc/letsencrypt/live/api.remind.com.br/fullchain.pem /home/remind/app/nginx/certs/ && \
-  cp /etc/letsencrypt/live/api.remind.com.br/privkey.pem   /home/remind/app/nginx/certs/ && \
+  cp /etc/letsencrypt/live/api.remindapp.com.br/fullchain.pem /home/remind/app/nginx/certs/ && \
+  cp /etc/letsencrypt/live/api.remindapp.com.br/privkey.pem   /home/remind/app/nginx/certs/ && \
   docker compose -f /home/remind/app/docker-compose.yml exec nginx nginx -s reload
 ```
 
@@ -314,7 +314,7 @@ Ir em: `github.com/bernardody/remind > Settings > Secrets and variables > Action
 
 | Secret | Valor |
 |---|---|
-| `VPS_HOST` | IP do VPS Hostinger |
+| `VPS_HOST` | `76.13.161.182` (IP do VPS Hostinger) |
 | `VPS_USER` | `remind` |
 | `VPS_SSH_KEY` | Chave SSH privada (ver abaixo como gerar) |
 | `DB_USER` | `remind_user` |
@@ -326,7 +326,7 @@ Ir em: `github.com/bernardody/remind > Settings > Secrets and variables > Action
 ssh-keygen -t ed25519 -C "github-actions-remind" -f ~/.ssh/remind_deploy -N ""
 
 # Conteúdo da chave PÚBLICA vai para o VPS
-ssh-copy-id -i ~/.ssh/remind_deploy.pub remind@<IP_DO_VPS>
+ssh-copy-id -i ~/.ssh/remind_deploy.pub remind@76.13.161.182
 # ou manualmente: cat ~/.ssh/remind_deploy.pub >> /home/remind/.ssh/authorized_keys
 
 # Conteúdo da chave PRIVADA vai para o Secret VPS_SSH_KEY no GitHub
@@ -371,7 +371,7 @@ jobs:
 Execute nesta ordem:
 
 1. Criar os arquivos da Parte 2 no repositório local e fazer commit/push
-2. Configurar DNS do domínio no hPanel da Hostinger (registro A)
+2. Configurar DNS no **registro.br**: registro A `api` → `76.13.161.182` (Editar Zona DNS). Validar com `nslookup api.remindapp.com.br` antes de prosseguir
 3. Preparar o VPS (Partes 1.1 e 1.2)
 4. Clonar repositório no VPS (1.3)
 5. Criar o arquivo `.env` no VPS (Parte 4)
@@ -397,7 +397,7 @@ docker compose logs api --tail=50
 docker compose logs db --tail=20
 
 # Fora do VPS: testar o endpoint de login via HTTPS
-curl -X POST https://api.remind.com.br/login \
+curl -X POST https://api.remindapp.com.br/login \
   -H "Content-Type: application/json" \
   -d '{"email":"psicologo1@remind.com","password":"123456"}'
 
