@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://db:5432/remind
+    url: ${DB_URL:jdbc:postgresql://db:5432/remind}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
   jpa:
