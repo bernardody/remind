@@ -1,439 +1,127 @@
-# Spec 01 — Infraestrutura: VPS Hostinger + Docker + Nginx + SSL + CI/CD
+# Spec 01 — Infraestrutura: Deploy do backend via EasyPanel
+
+> **Nota histórica:** a primeira versão desta spec previa um stack próprio com
+> `docker-compose` + Nginx + Certbot no VPS. Esse plano foi **abandonado** porque o
+> VPS da Hostinger já roda um **EasyPanel com Traefik** ocupando as portas 80/443
+> (junto de n8n, Chatwoot, Evolution API e outras automações que não podem ser
+> removidas). Como dois proxies reversos não dividem as portas 80/443, o backend
+> foi integrado à infra que já existia. Este documento descreve o que está **de
+> fato em produção**.
 
 ## Objetivo
 
-Colocar o backend Spring Boot em produção no VPS da Hostinger, com banco PostgreSQL isolado, HTTPS via Let's Encrypt e deploy automático via GitHub Actions a cada push na branch `main`.
+Backend Spring Boot em produção no VPS Hostinger, com HTTPS (Let's Encrypt via
+Traefik) e deploy automático a cada push na branch `main`.
 
-## Pré-requisitos (verificar antes de começar)
+## Visão geral da arquitetura
 
-- [ ] Acesso SSH ao VPS (IP `76.13.161.182`, usuário root ou sudo, senha ou chave)
-- [ ] Domínio apontando para o IP do VPS — registro A `api` → `76.13.161.182` no **registro.br** (painel do registro.br > Editar Zona DNS). O domínio `remindapp.com.br` está no registro.br, então o DNS é gerenciado lá, **não** no hPanel da Hostinger
-- [ ] Porta 80 e 443 abertas no firewall do hPanel (Hostinger > VPS > Firewall)
-- [ ] Repositório no GitHub com acesso de admin (para criar Secrets)
-- [ ] Java 21 e Maven instalados localmente para validar o build antes de subir
+```
+Internet
+   │  443 (HTTPS)
+   ▼
+Traefik (EasyPanel)  ──►  api.remindapp.com.br   ──►  container API (Spring Boot :8080)
+   │                                                      │
+   │                                                      ▼
+   └──►  painel.remindapp.com.br ──► EasyPanel        Postgres (remind_db:5432)
+```
+
+- **VPS**: Hostinger, IP `76.13.161.182`, Ubuntu, Docker (Swarm, gerenciado pelo EasyPanel).
+- **DNS**: gerenciado no **registro.br** (domínio `remindapp.com.br`), não no hPanel.
+  - `api.remindapp.com.br`  → A → `76.13.161.182`
+  - `painel.remindapp.com.br` → A → `76.13.161.182`
+- **SSL**: Let's Encrypt automático pelo Traefik (renovação automática, sem cron).
+- **Firewall** (hPanel + ufw): libera apenas 22, 80 e 443. A porta 3000 do EasyPanel
+  fica fechada — o painel é acessado por `https://painel.remindapp.com.br`.
 
 ---
 
-## Parte 1 — Configuração inicial do VPS
-
-### 1.1 Primeiro acesso e hardening básico
-
-```bash
-# Conectar ao VPS
-ssh root@76.13.161.182
-
-# Atualizar pacotes
-apt update && apt upgrade -y
-
-# Criar usuário não-root para operações do dia a dia
-adduser remind
-usermod -aG sudo remind
-
-# Copiar chave SSH para o novo usuário (se usou chave para o root)
-rsync --archive --chown=remind:remind ~/.ssh /home/remind
-
-# Configurar firewall básico
-ufw allow OpenSSH
-ufw allow 80
-ufw allow 443
-ufw enable
-```
-
-### 1.2 Instalar Docker e Docker Compose
-
-```bash
-# Instalar dependências
-apt install -y ca-certificates curl gnupg
-
-# Adicionar repositório oficial do Docker
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-apt update
-apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Permitir que o usuário remind rode Docker sem sudo
-usermod -aG docker remind
-
-# Verificar instalação
-docker --version
-docker compose version
-```
-
-### 1.3 Clonar o repositório no VPS
-
-```bash
-su - remind
-
-# Criar diretório de deploy
-mkdir -p /home/remind/app
-cd /home/remind/app
-
-# Clonar o repositório (HTTPS — não precisa de chave SSH no servidor)
-git clone https://github.com/bernardody/remind .
-```
-
----
-
-## Parte 2 — Arquivos a criar no repositório
-
-Estes arquivos devem ser criados localmente e commitados. O CI/CD vai usá-los.
-
-### 2.1 `api/Dockerfile`
-
-Build em dois estágios: o primeiro compila com Maven, o segundo roda com JRE leve.
-
-```dockerfile
-# Estágio 1: build
-FROM maven:3.9.9-eclipse-temurin-21 AS build
-WORKDIR /app
-COPY pom.xml .
-# Baixa dependências em camada separada (cache no Docker)
-RUN mvn dependency:go-offline -B
-COPY src ./src
-RUN mvn package -DskipTests -B
-
-# Estágio 2: runtime
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-### 2.2 `api/src/main/resources/application-prod.yaml`
-
-Perfil de produção que lê variáveis de ambiente. O `application.yaml` base continua válido para desenvolvimento local.
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://db:5432/remind
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-
-server:
-  error:
-    include-message: never  # Não expor stack traces em produção
-```
-
-### 2.3 `docker-compose.yml` (raiz do repositório)
-
-Três serviços: banco, API e proxy reverso.
-
-```yaml
-services:
-  db:
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: remind
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./api/data/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./api/data/insert.sql:/docker-entrypoint-initdb.d/02-insert.sql:ro
-    networks:
-      - internal
-    # Banco NÃO exposto para fora — só acessível internamente
-
-  api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    restart: always
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-    depends_on:
-      db:
-        condition: service_started
-    networks:
-      - internal
-      - external
-
-  nginx:
-    image: nginx:1.27-alpine
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-      - certbot-www:/var/www/certbot:ro
-    depends_on:
-      - api
-    networks:
-      - external
-
-volumes:
-  pgdata:
-  certbot-www:
-
-networks:
-  internal:
-    driver: bridge
-  external:
-    driver: bridge
-```
-
-### 2.4 `nginx/nginx.conf`
-
-```nginx
-events {}
-
-http {
-    # Redireciona HTTP → HTTPS
-    server {
-        listen 80;
-        server_name api.remindapp.com.br;
-
-        location /.well-known/acme-challenge/ {
-            root /var/www/certbot;
-        }
-
-        location / {
-            return 301 https://$host$request_uri;
-        }
-    }
-
-    # HTTPS — proxy para o Spring Boot
-    server {
-        listen 443 ssl;
-        server_name api.remindapp.com.br;
-
-        ssl_certificate     /etc/nginx/certs/fullchain.pem;
-        ssl_certificate_key /etc/nginx/certs/privkey.pem;
-        ssl_protocols       TLSv1.2 TLSv1.3;
-        ssl_ciphers         HIGH:!aNULL:!MD5;
-
-        # Headers de segurança
-        add_header Strict-Transport-Security "max-age=31536000" always;
-        add_header X-Frame-Options DENY;
-        add_header X-Content-Type-Options nosniff;
-
-        location / {
-            proxy_pass         http://api:8080;
-            proxy_set_header   Host $host;
-            proxy_set_header   X-Real-IP $remote_addr;
-            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header   X-Forwarded-Proto $scheme;
-        }
-    }
-}
-```
-
----
-
-## Parte 3 — SSL com Let's Encrypt
-
-Feito uma única vez no servidor, antes do primeiro deploy completo.
-
-```bash
-# No VPS, como remind
-cd /home/remind/app
-
-# Subir apenas o nginx em modo HTTP (sem SSL ainda) para validar o domínio
-docker compose up -d nginx
-
-# Instalar Certbot
-apt install -y certbot
-
-# Obter certificado (desafio webroot — nginx precisa estar rodando na porta 80)
-certbot certonly \
-  --webroot \
-  --webroot-path /var/lib/docker/volumes/app_certbot-www/_data \
-  -d api.remindapp.com.br \
-  --email remindappbr@gmail.com \
-  --agree-tos \
-  --non-interactive
-
-# Copiar certificados para o diretório montado no nginx
-mkdir -p /home/remind/app/nginx/certs
-cp /etc/letsencrypt/live/api.remindapp.com.br/fullchain.pem /home/remind/app/nginx/certs/
-cp /etc/letsencrypt/live/api.remindapp.com.br/privkey.pem   /home/remind/app/nginx/certs/
-
-# Subir tudo
-docker compose up -d
-```
-
-### 3.1 Renovação automática do certificado
-
-```bash
-# Adicionar ao crontab do usuário remind
-crontab -e
-
-# Linha a adicionar (roda dia 1 de cada mês às 3h)
-0 3 1 * * certbot renew --quiet && \
-  cp /etc/letsencrypt/live/api.remindapp.com.br/fullchain.pem /home/remind/app/nginx/certs/ && \
-  cp /etc/letsencrypt/live/api.remindapp.com.br/privkey.pem   /home/remind/app/nginx/certs/ && \
-  docker compose -f /home/remind/app/docker-compose.yml exec nginx nginx -s reload
-```
-
----
-
-## Parte 4 — Arquivo `.env` no VPS
-
-Este arquivo **nunca entra no repositório** (adicionar ao `.gitignore`).
-
-```bash
-# /home/remind/app/.env
-DB_USER=remind_user
-DB_PASSWORD=<senha_forte_gerada>
-```
-
-Gerar senha forte:
-```bash
-openssl rand -base64 32
-```
-
-Adicionar ao `.gitignore` na raiz do repositório:
-```
-.env
-nginx/certs/
-```
-
----
-
-## Parte 5 — CI/CD com GitHub Actions
-
-### 5.1 Secrets a cadastrar no GitHub
-
-Ir em: `github.com/bernardody/remind > Settings > Secrets and variables > Actions > New repository secret`
-
-| Secret | Valor |
-|---|---|
-| `VPS_HOST` | `76.13.161.182` (IP do VPS Hostinger) |
-| `VPS_USER` | `remind` |
-| `VPS_SSH_KEY` | Chave SSH privada (ver abaixo como gerar) |
-| `DB_USER` | `remind_user` |
-| `DB_PASSWORD` | Mesma senha do `.env` |
-
-**Gerar chave SSH para o GitHub Actions:**
-```bash
-# Na sua máquina local
-ssh-keygen -t ed25519 -C "github-actions-remind" -f ~/.ssh/remind_deploy -N ""
-
-# Conteúdo da chave PÚBLICA vai para o VPS
-ssh-copy-id -i ~/.ssh/remind_deploy.pub remind@76.13.161.182
-# ou manualmente: cat ~/.ssh/remind_deploy.pub >> /home/remind/.ssh/authorized_keys
-
-# Conteúdo da chave PRIVADA vai para o Secret VPS_SSH_KEY no GitHub
-cat ~/.ssh/remind_deploy
-```
-
-### 5.2 `.github/workflows/deploy.yml`
-
-```yaml
-name: Deploy to Production
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /home/remind/app
-            git pull origin main
-            echo "DB_USER=${{ secrets.DB_USER }}" > .env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-            docker compose up -d --build
-            docker compose ps
-```
-
-> O workflow conecta ao VPS via SSH, atualiza o código, recria o `.env` com os secrets do GitHub e sobe os containers. O `--build` reconstrói a imagem da API se o código mudou.
-
----
-
-## Parte 6 — Sequência de execução (primeira vez)
-
-Execute nesta ordem:
-
-1. Criar os arquivos da Parte 2 no repositório local e fazer commit/push
-2. Configurar DNS no **registro.br**: registro A `api` → `76.13.161.182` (Editar Zona DNS). Validar com `nslookup api.remindapp.com.br` antes de prosseguir
-3. Preparar o VPS (Partes 1.1 e 1.2)
-4. Clonar repositório no VPS (1.3)
-5. Criar o arquivo `.env` no VPS (Parte 4)
-6. Emitir certificado SSL (Parte 3)
-7. Fazer o primeiro `docker compose up -d --build` manualmente no VPS para validar
-8. Configurar Secrets no GitHub (Parte 5.1)
-9. Criar o arquivo `deploy.yml` e fazer push — a partir daí o CI/CD cuida do resto
-
----
-
-## Parte 7 — Verificação
-
-Após o primeiro deploy, confirmar que tudo funciona:
-
-```bash
-# No VPS: verificar se os containers estão rodando
-docker compose ps
-
-# Verificar logs da API (deve terminar com "Started RemindApplication")
-docker compose logs api --tail=50
-
-# Verificar logs do banco
-docker compose logs db --tail=20
-
-# Fora do VPS: testar o endpoint de login via HTTPS
-curl -X POST https://api.remindapp.com.br/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"psicologo1@remind.com","password":"123456"}'
-
-# Deve retornar um JWT token
-```
-
----
-
-## Resumo dos arquivos a criar no repositório
+## Arquivos no repositório usados pelo deploy
 
 ```
 remind/
 ├── api/
-│   ├── Dockerfile                                     # CRIAR
+│   ├── Dockerfile                                     # build multi-stage (Maven → JRE Alpine)
 │   └── src/main/resources/
-│       ├── application.yaml                           # manter (dev local)
-│       └── application-prod.yaml                      # CRIAR
-├── nginx/
-│   └── nginx.conf                                     # CRIAR
-├── .github/
-│   └── workflows/
-│       └── deploy.yml                                 # CRIAR
-├── docker-compose.yml                                 # CRIAR
-└── .gitignore                                         # ATUALIZAR (.env, nginx/certs/)
+│       ├── application.yaml                           # dev local
+│       └── application-prod.yaml                      # produção; lê DB_URL/DB_USER/DB_PASSWORD do ambiente
+└── .gitignore                                         # ignora .env
 ```
+
+`application-prod.yaml` lê a URL do banco de `${DB_URL:...}`, então o host do Postgres
+é injetado por variável de ambiente no EasyPanel (não fica fixo no código).
 
 ---
 
-## Decisões tomadas e por quê
+## Configuração no EasyPanel
 
-| Decisão | Razão |
-|---|---|
-| Build dentro do Docker (multi-stage) | CI/CD não precisa ter Java instalado; imagem final é leve (JRE Alpine ~100MB) |
-| PostgreSQL não exposto externamente | Reduz superfície de ataque; banco só acessível pelo container da API |
-| Perfil `prod` separado | Dev local continua funcionando com `localhost`; produção usa variáveis de ambiente |
-| `schema.sql` montado no Postgres como init script | Banco inicializa com o schema correto automaticamente na primeira subida |
-| `insert.sql` também no init | Dados de teste disponíveis em produção para validação inicial; remover depois do MVP |
-| Nginx como proxy | Termina SSL, adiciona headers de segurança, isola a porta 8080 |
-| `appleboy/ssh-action` no CI | Action consolidada, sem dependências extras; deploy simples via SSH + git pull |
+Projeto **`remind`** com dois serviços:
+
+### Serviço `db` (Postgres)
+- Template Postgres do EasyPanel.
+- Host interno: `remind_db` · porta `5432` · database `remind` · user `postgres`.
+- Credenciais geradas pelo EasyPanel (a senha vive só lá e nas env vars do app).
+
+### Serviço `api` (App)
+- **Source**: Git → `https://github.com/bernardody/remind.git` · branch `main` · **Build Path `/api`**.
+- **Build**: Dockerfile → `Dockerfile` (relativo ao Build Path).
+- **Environment**:
+  ```
+  SPRING_PROFILES_ACTIVE=prod
+  DB_URL=jdbc:postgresql://remind_db:5432/remind
+  DB_USER=postgres
+  DB_PASSWORD=<senha gerada pelo Postgres do EasyPanel>
+  ```
+- **Domains**: `api.remindapp.com.br` → Protocolo HTTP, **porta 8080**, HTTPS + SSL ativados.
+
+---
+
+## Inicialização do banco (uma vez)
+
+O perfil de produção usa `ddl-auto: validate`, ou seja, **a aplicação não cria
+tabelas** — o schema precisa existir antes. Importação manual, via SSH no VPS:
+
+```bash
+CID=$(docker ps -q --filter "name=remind_db")
+docker exec -i "$CID" psql -U postgres -d remind < api/data/schema.sql
+docker exec -i "$CID" psql -U postgres -d remind < api/data/insert.sql
+docker exec -i "$CID" psql -U postgres -d remind -c "\dt"   # conferir tabelas
+```
+
+> `insert.sql` carrega usuários fictícios para validação inicial — remover quando
+> houver dados reais.
+
+---
+
+## Deploy contínuo (CI/CD)
+
+Webhook do GitHub aciona o **Gatilho de Implantação** do EasyPanel:
+
+- EasyPanel → serviço `api` → seção "Gatilho de Implantação" fornece a URL.
+- No GitHub (`Settings → Webhooks`): Payload URL =
+  `https://painel.remindapp.com.br/api/deploy/<token>` (usar o **domínio HTTPS**,
+  não `IP:3000`, que está fechado), Content type `application/json`, evento `push`.
+- A cada push na `main`, o EasyPanel refaz o build e sobe a nova versão.
+
+---
+
+## Verificação
+
+```bash
+# HTTPS + login (retorna um JWT). Usuário válido vem do insert.sql:
+curl -X POST https://api.remindapp.com.br/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"camila.nogueira.cf@gmail.com","password":"123456"}'
+```
+
+`GET /` sem token retorna 401 (Spring Security) — comportamento esperado.
+
+---
+
+## Pendências conhecidas
+
+- **Bug**: login com credenciais erradas retorna **500** em vez de 401
+  (`GlobalExceptionHandler` trata `BadCredentialsException` como `RuntimeException`).
+- **Dados de teste**: remover `insert.sql` de produção após o MVP.
+- **Backup**: ativar agendamento de backup do Postgres no EasyPanel.
+- **Limpeza opcional**: o repo é público, então o token na URL de Source do EasyPanel
+  poderia ser removido.
