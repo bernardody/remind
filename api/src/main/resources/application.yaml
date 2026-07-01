@@ -16,3 +16,7 @@ jwt:
     key: classpath:authz.pub
   private:
     key: classpath:authz.pem
+
+google:
+  # OAuth 2.0 Client ID do Google usado como audiência esperada do ID token (REQ-002).
+  client-id: ${GOOGLE_CLIENT_ID:}

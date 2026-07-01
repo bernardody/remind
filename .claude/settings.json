@@ -1,0 +1,12 @@
+{
+  "enabledPlugins": {
+    "developer-kit@developer-kit": true,
+    "developer-kit-ai@developer-kit": true,
+    "developer-kit-java@developer-kit": true,
+    "developer-kit-specs@developer-kit": true,
+    "developer-kit-tools@developer-kit": true,
+    "developer-kit-project-management@developer-kit": true,
+    "github-spec-kit@developer-kit": true,
+    "skill-creator@claude-plugins-official": true
+  }
+}

@@ -4,16 +4,16 @@ INSERT INTO addresses (id, street, number, cep, neighborhood, city, created_at, 
 (103, 'Rua Bento Gonçalves', 789, '95020412', 'São Pelegrino', 'Caxias do Sul', '2025-10-05', '2025-10-05', true);
 
 
-INSERT INTO users (name, email, cpf, phone, password, type, created_at, updated_at, active) VALUES
-('Rafael Monteiro Duarte', 'rafael.duarte87@gmail.com', '51756699070', '9224732623', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', '2025-11-03', '2025-11-03', true),
-('Camila Ferreira Nogueira', 'camila.nogueira.cf@gmail.com', '38492017566', '9812345678', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PSYCHOLOGIST', '2025-12-15', '2025-12-15', true),
-('Lucas Martins Azevedo', 'lucas.azevedo.martins@gmail.com', '72910485632', '9897654321', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', '2025-10-28', '2025-10-28', true),
-('Beatriz Carvalho Lopes', 'beatriz.lopes.carvalho@gmail.com', '15893746205', '9771122334', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', '2025-09-19', '2025-09-19', true),
-('Felipe Gonçalves Ribeiro', 'felipe.ribeiro.gr@gmail.com', '60482917355', '9883344556', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', '2025-11-27', '2025-11-27', true),
-('Mariana Teixeira Freitas', 'mariana.freitas.teixeira@gmail.com', '93720518466', '9995566778', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PSYCHOLOGIST', '2025-08-12', '2025-08-12', true),
-('Eduardo Almeida Barros', 'eduardo.barros.almeida@gmail.com', '48261903715', '9667788990', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', '2025-12-02', '2025-12-02', true),
-('Juliana Correia Batista', 'juliana.batista.correia@gmail.com', '31590728461', '9558899001', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PSYCHOLOGIST', '2025-10-05', '2025-10-05', true),
-('Thiago Moreira Farias', 'thiago.farias.moreira@gmail.com', '86420197533', '9440011223', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', '2025-07-21', '2025-07-21', true);
+INSERT INTO users (name, email, cpf, phone, password, type, profile_complete, created_at, updated_at, active) VALUES
+('Rafael Monteiro Duarte', 'rafael.duarte87@gmail.com', '51756699070', '9224732623', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', true, '2025-11-03', '2025-11-03', true),
+('Camila Ferreira Nogueira', 'camila.nogueira.cf@gmail.com', '38492017566', '9812345678', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PSYCHOLOGIST', true, '2025-12-15', '2025-12-15', true),
+('Lucas Martins Azevedo', 'lucas.azevedo.martins@gmail.com', '72910485632', '9897654321', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', true, '2025-10-28', '2025-10-28', true),
+('Beatriz Carvalho Lopes', 'beatriz.lopes.carvalho@gmail.com', '15893746205', '9771122334', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', true, '2025-09-19', '2025-09-19', true),
+('Felipe Gonçalves Ribeiro', 'felipe.ribeiro.gr@gmail.com', '60482917355', '9883344556', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', true, '2025-11-27', '2025-11-27', true),
+('Mariana Teixeira Freitas', 'mariana.freitas.teixeira@gmail.com', '93720518466', '9995566778', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PSYCHOLOGIST', true, '2025-08-12', '2025-08-12', true),
+('Eduardo Almeida Barros', 'eduardo.barros.almeida@gmail.com', '48261903715', '9667788990', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', true, '2025-12-02', '2025-12-02', true),
+('Juliana Correia Batista', 'juliana.batista.correia@gmail.com', '31590728461', '9558899001', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PSYCHOLOGIST', true, '2025-10-05', '2025-10-05', true),
+('Thiago Moreira Farias', 'thiago.farias.moreira@gmail.com', '86420197533', '9440011223', '$2a$10$n39fOvjLehiGh/OUXoV01OPWy1Ilf4XTNAjm/Fo9sh2h8smlA50ze', 'PATIENT', true, '2025-07-21', '2025-07-21', true);
 
 
 INSERT INTO psychologists (id_user, id_address, created_at, updated_at, active) VALUES

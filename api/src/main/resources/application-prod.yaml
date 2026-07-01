@@ -7,6 +7,10 @@ spring:
     hibernate:
       ddl-auto: validate
 
+google:
+  # OAuth 2.0 Client ID do Google (audiência esperada do ID token) — definido por ambiente.
+  client-id: ${GOOGLE_CLIENT_ID}
+
 server:
   error:
     include-message: never  # Não expor stack traces em produção
