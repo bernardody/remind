@@ -33,18 +33,22 @@ public class User {
     @NotBlank
     private String email;
 
-    @NotBlank
     private String cpf;
 
-    @NotBlank
     private String phone;
 
-    @NotBlank
     private String password;
 
     @NotNull
     @Enumerated(EnumType.STRING)
     private UserType type;
+
+    @Column(unique = true)
+    private String googleSub;
+
+    @NotNull
+    @Builder.Default
+    private Boolean profileComplete = false;
 
     @NotNull
     private LocalDate created_at;

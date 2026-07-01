@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: ReMind — Login com Google (Psicólogo)
+  version: "1.0.0"
+  description: >
+    Autentica um psicólogo a partir de um ID token do Google. Cria conta pendente,
+    vincula a conta existente ou rejeita, conforme o email do token.
+paths:
+  /login/google:
+    post:
+      summary: Login/cadastro de psicólogo via ID token do Google
+      description: >
+        Recebe o ID token emitido pelo Google para a aplicação ReMind, valida
+        assinatura/emissor/audiência/expiração e `email_verified`, e emite o token de
+        acesso da aplicação. (REQ-001..REQ-008, REQ-012, REQ-014)
+      security: []   # endpoint público (permitAll)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleLoginRequest"
+      responses:
+        "200":
+          description: Autenticado. Token de acesso emitido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+              examples:
+                contaNovaPendente:
+                  summary: Email inexistente → conta pendente criada (REQ-006)
+                  value:
+                    accessToken: "eyJ..."
+                    expiresIn: 600
+                    type: "PSYCHOLOGIST"
+                    profileComplete: false
+                psicologoExistente:
+                  summary: Psicólogo existente → identidade Google vinculada (REQ-004, REQ-014)
+                  value:
+                    accessToken: "eyJ..."
+                    expiresIn: 600
+                    type: "PSYCHOLOGIST"
+                    profileComplete: true
+        "401":
+          description: >
+            ID token inválido, expirado ou com `email_verified=false`. Nenhuma conta é
+            criada ou vinculada. (REQ-003, REQ-NR001, REQ-NR002)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Email pertence a um paciente — acesso negado. (REQ-005, REQ-NR003)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Corpo ausente/malformado (`idToken` obrigatório).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: ID token (JWT) emitido pelo Google para a aplicação ReMind.
+    LoginResponse:
+      type: object
+      required: [accessToken, expiresIn, type, profileComplete]
+      properties:
+        accessToken:
+          type: string
+          description: JWT de acesso da aplicação (mesmo formato do login por senha). (REQ-007)
+        expiresIn:
+          type: integer
+          format: int64
+          example: 600
+        type:
+          type: string
+          enum: [PSYCHOLOGIST, PATIENT]
+        profileComplete:
+          type: boolean
+          description: Indica se o perfil ainda precisa ser completado. (REQ-008)
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        path: { type: string }

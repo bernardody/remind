@@ -51,6 +51,7 @@ public class InsertPatientService {
                 .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .type(UserType.PATIENT)
+                .profileComplete(true)
                 .created_at(LocalDate.now())
                 .updated_at(LocalDate.now())
                 .active(true)
