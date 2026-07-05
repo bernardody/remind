@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
 
 /* ──────────────────────────────────────────────────────────────────────────
    ReMind — design tokens
@@ -61,36 +60,6 @@
   --ring: #1a7a6e;
 }
 
-.dark {
-  --background: #1c2b2b;
-  --foreground: #f5f6f4;
-
-  --card: #233636;
-  --card-foreground: #f5f6f4;
-
-  --popover: #233636;
-  --popover-foreground: #f5f6f4;
-
-  --primary: #3da99b;
-  --primary-foreground: #0d1a1a;
-
-  --secondary: #2f4744;
-  --secondary-foreground: #eaf1ef;
-
-  --muted: #2a3d3d;
-  --muted-foreground: #9db3ae;
-
-  --accent: #2f4744;
-  --accent-foreground: #eaf1ef;
-
-  --destructive: #e06b58;
-  --destructive-foreground: #0d1a1a;
-
-  --border: #33484700;
-  --border: #344847;
-  --input: #344847;
-  --ring: #3da99b;
-}
 
 @theme inline {
   --color-snow: var(--brand-snow);

@@ -6,7 +6,6 @@ import { Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { NAV_ITEMS, ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +62,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <ThemeToggle />
           <Button variant="ghost" asChild>
             <Link href={ROUTES.login}>Login</Link>
           </Button>
@@ -73,7 +71,6 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1 lg:hidden">
-          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
