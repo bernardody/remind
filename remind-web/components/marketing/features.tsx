@@ -68,7 +68,7 @@ export function Features() {
                 <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <feature.icon className="size-6" />
                 </span>
-                <h3 className="mt-5 text-lg font-bold">{feature.title}</h3>
+                <h3 className="mt-5 text-2xl font-semibold">{feature.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {feature.description}
                 </p>

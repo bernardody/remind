@@ -43,7 +43,7 @@ export function Challenge() {
                 <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary/30 text-primary">
                   <card.icon className="size-6" />
                 </span>
-                <h3 className="mt-5 text-lg font-bold">{card.title}</h3>
+                <h3 className="mt-5 text-2xl font-semibold">{card.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {card.description}
                 </p>

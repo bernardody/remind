@@ -58,7 +58,7 @@ export function DemoForm() {
           <span className="inline-flex items-center rounded-full bg-primary-foreground/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider">
             Solicitar demonstração
           </span>
-          <h2 className="mt-5 text-balance text-3xl font-extrabold tracking-tight sm:text-4xl">
+          <h2 className="mt-5 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
             Veja o ReMind funcionando no seu fluxo de trabalho
           </h2>
           <p className="mt-4 text-pretty text-base leading-relaxed text-primary-foreground/85 sm:text-lg">
@@ -74,7 +74,7 @@ export function DemoForm() {
               <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <CheckCircle2 className="size-8" />
               </span>
-              <h3 className="text-xl font-bold">Solicitação recebida!</h3>
+              <h3 className="text-2xl font-semibold">Solicitação recebida!</h3>
               <p className="max-w-sm text-sm text-muted-foreground">
                 Obrigado pelo interesse. Nossa equipe entrará em contato pelo
                 e-mail informado para agendar sua demonstração.

@@ -55,7 +55,7 @@ export function HowItWorks() {
                 <span className="mt-4 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <step.icon className="size-5" />
                 </span>
-                <h3 className="mt-4 text-base font-bold">{step.title}</h3>
+                <h3 className="mt-4 text-2xl font-semibold">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {step.description}
                 </p>

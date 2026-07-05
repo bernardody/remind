@@ -29,7 +29,7 @@ export function Logo({
       {!symbolOnly && (
         <span
           className={cn(
-            "text-xl font-extrabold tracking-tight",
+            "text-xl font-extrabold tracking-tight text-primary",
             textClassName,
           )}
         >
