@@ -25,13 +25,13 @@ export const BRAND_COLORS = {
   graphite: "#1C2B2B",
 } as const;
 
-/** Itens do menu — âncoras para as seções da landing (RF-01). */
+/** Itens do menu — âncoras absolutas para as seções da landing (RF-01). */
 export const NAV_ITEMS = [
-  { label: "Início", href: "#inicio" },
-  { label: "Desafio", href: "#desafio" },
-  { label: "Solução", href: "#solucao" },
-  { label: "Como funciona", href: "#como-funciona" },
-  { label: "Recursos", href: "#recursos" },
+  { label: "Início", href: "/#inicio" },
+  { label: "Desafio", href: "/#desafio" },
+  { label: "Solução", href: "/#solucao" },
+  { label: "Como funciona", href: "/#como-funciona" },
+  { label: "Recursos", href: "/#recursos" },
   { label: "Sobre", href: "/sobre" },
 ] as const;
 
@@ -42,7 +42,7 @@ export const ROUTES = {
   contato: "/contato",
   privacidade: "/privacidade",
   termos: "/termos",
-  demoAnchor: "#agendamento",
+  demoAnchor: "/#agendamento",
 } as const;
 
 /**

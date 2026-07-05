@@ -71,7 +71,7 @@ export function Hero() {
                 className="border-white/60 text-white hover:border-white hover:bg-white/10"
                 asChild
               >
-                <Link href="#como-funciona">
+                <Link href="/#como-funciona">
                   <PlayCircle className="size-4" />
                   Ver como funciona
                 </Link>
