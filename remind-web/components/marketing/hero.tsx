@@ -15,7 +15,7 @@ export function Hero() {
     >
       {/* foto de fundo — coloque em public/hero-bg.jpg */}
       <Image
-        src="/hero-bg.jpg"
+        src="/brand/hero-bg.png"
         alt=""
         fill
         priority
