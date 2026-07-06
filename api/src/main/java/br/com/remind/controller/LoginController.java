@@ -3,22 +3,19 @@ package br.com.remind.controller;
 import br.com.remind.controller.request.login.LoginRequest;
 import br.com.remind.controller.response.login.LoginResponse;
 import br.com.remind.domain.User;
+import br.com.remind.service.login.AccessTokenService;
 import br.com.remind.service.login.SearchUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
-import java.util.Optional;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RequiredArgsConstructor
 @RestController
@@ -27,34 +24,31 @@ public class LoginController {
 
     private final SearchUserService searchUserService;
     private final PasswordEncoder passwordEncoder;
-    private final JwtEncoder jwtEncoder;
+    private final AccessTokenService accessTokenService;
 
     @PostMapping
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        Optional<User> optUser = searchUserService.searchByEmail(loginRequest.getEmail());
+        User usuario = searchUserService.searchByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Usuário ou senha incorretos!"));
 
-        if (optUser.isEmpty() || !isLoginCorreto(loginRequest.getPassword(), optUser.get().getPassword())) {
-            throw new BadCredentialsException("Usuário ou senha incorretos!");
+        // Conta criada via Google não possui senha (REQ-011): rejeitar antes de comparar.
+        if (usuario.getPassword() == null) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Esta conta utiliza login do Google.");
         }
 
-        User usuario = optUser.get();
+        if (!passwordEncoder.matches(loginRequest.getPassword(), usuario.getPassword())) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Usuário ou senha incorretos!");
+        }
 
-        long expiresIn = 600L;
+        String token = accessTokenService.generate(usuario).getTokenValue();
 
-        JwtClaimsSet jwt = JwtClaimsSet.builder()
-                .issuer("tcc")
-                .subject(usuario.getName())
-                .expiresAt(Instant.now().plusSeconds(expiresIn))
-                .issuedAt(Instant.now())
-                .claim("email", usuario.getEmail())
-                .build();
+        LoginResponse response = new LoginResponse(
+                token,
+                AccessTokenService.EXPIRES_IN,
+                usuario.getType(),
+                Boolean.TRUE.equals(usuario.getProfileComplete())
+        );
 
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(jwt)).getTokenValue();
-
-        return ResponseEntity.ok(new LoginResponse(token, expiresIn, usuario.getType()));
-    }
-
-    private boolean isLoginCorreto(String password, String savedPassowrd) {
-        return passwordEncoder.matches(password, savedPassowrd);
+        return ResponseEntity.ok(response);
     }
 }

@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: ReMind — Conclusão de Perfil do Psicólogo
+  version: "1.0.0"
+  description: >
+    Conclui o perfil de uma Conta Pendente criada via Google, informando os dados
+    obrigatórios (CPF, telefone e endereço). (REQ-010)
+paths:
+  /psychologists/me/profile:
+    put:
+      summary: Conclui o perfil do psicólogo autenticado
+      description: >
+        Recebe CPF, telefone e endereço, cria as linhas de Psychologist + Address e
+        marca a conta como completa (`profile_complete = TRUE`). (REQ-010)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteProfileRequest"
+      responses:
+        "200":
+          description: Perfil concluído; conta marcada como completa.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteProfileResponse"
+        "400":
+          description: Dados ausentes/inválidos (CPF, telefone ou endereço). Estado não é alterado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Token ausente ou inválido.
+        "403":
+          description: >
+            Token válido mas a operação não é permitida para o usuário (ex.: não é o
+            próprio perfil). Nota: contas incompletas SÃO autorizadas neste endpoint. (REQ-013)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CompleteProfileRequest:
+      type: object
+      required: [cpf, phone, street, number, cep, neighborhood, city]
+      properties:
+        cpf: { type: string, maxLength: 11 }
+        phone: { type: string, maxLength: 11 }
+        street: { type: string }
+        number: { type: integer }
+        cep: { type: string, maxLength: 8 }
+        neighborhood: { type: string }
+        city: { type: string }
+    CompleteProfileResponse:
+      type: object
+      properties:
+        profileComplete:
+          type: boolean
+          example: true
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        path: { type: string }
