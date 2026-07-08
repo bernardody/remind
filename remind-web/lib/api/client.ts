@@ -1,10 +1,18 @@
+import { signOut } from "next-auth/react";
+import { toast } from "sonner";
+
 import { ApiError, type Page, type PageParams } from "./types";
 
-const BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ??
-  process.env.API_URL ??
-  "http://localhost:8080"
-).replace(/\/$/, "");
+const isBrowser = typeof window !== "undefined";
+
+/**
+ * No browser, chamadas passam pelo BFF (`/api/proxy`, mesma origem) que
+ * anexa o Bearer a partir do cookie httpOnly — o token nunca chega ao
+ * cliente (R5). Server-side, chama o backend direto com `token` explícito.
+ */
+const BASE_URL = isBrowser
+  ? "/api/proxy"
+  : (process.env.API_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   /** Corpo serializado como JSON automaticamente. */
@@ -52,6 +60,14 @@ export async function apiFetch<T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  // R1: JWT de 10min sem refresh — 401 no meio da sessão vira logout
+  // centralizado (client-side; server-side quem decide é requireSession()).
+  if (res.status === 401 && isBrowser) {
+    toast.error("Sessão expirada. Faça login novamente.");
+    void signOut({ callbackUrl: "/login" });
+    throw new ApiError("Sessão expirada", 401);
+  }
 
   const raw = await res.text();
   const data = raw ? safeJson(raw) : null;

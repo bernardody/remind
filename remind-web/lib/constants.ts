@@ -2,6 +2,16 @@
  * Constantes de marca, navegação e conteúdo centralizado.
  * i18n (RF-24): pt-BR default; textos da landing centralizados aqui.
  */
+import {
+  BarChart3,
+  ClipboardList,
+  Home,
+  LayoutDashboard,
+  LineChart,
+  UserCircle,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 export const SITE = {
   name: "ReMind",
@@ -43,16 +53,56 @@ export const ROUTES = {
   privacidade: "/privacidade",
   termos: "/termos",
   demoAnchor: "/#agendamento",
+  psicologo: {
+    dashboard: "/psicologo/dashboard",
+    pacientes: "/psicologo/pacientes",
+    avaliacoes: "/psicologo/avaliacoes",
+    relatorios: "/psicologo/relatorios",
+    perfil: "/psicologo/perfil",
+  },
+  paciente: {
+    inicio: "/paciente/inicio",
+    resultados: "/paciente/resultados",
+    perfil: "/paciente/perfil",
+  },
 } as const;
+
+/** Home por perfil pós-login (RF-11) — usado no login e no middleware. */
+export const HOME_BY_USER_TYPE = {
+  PSYCHOLOGIST: ROUTES.psicologo.dashboard,
+  PATIENT: ROUTES.paciente.inicio,
+} as const;
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+/** Navegação da sidebar por perfil (RF-13..RF-20) — components/layout/sidebar-nav.tsx. */
+export const PSYCHOLOGIST_NAV: NavItem[] = [
+  { label: "Dashboard", href: ROUTES.psicologo.dashboard, icon: LayoutDashboard },
+  { label: "Pacientes", href: ROUTES.psicologo.pacientes, icon: Users },
+  { label: "Avaliações", href: ROUTES.psicologo.avaliacoes, icon: ClipboardList },
+  { label: "Relatórios", href: ROUTES.psicologo.relatorios, icon: BarChart3 },
+  { label: "Perfil", href: ROUTES.psicologo.perfil, icon: UserCircle },
+];
+
+export const PATIENT_NAV: NavItem[] = [
+  { label: "Início", href: ROUTES.paciente.inicio, icon: Home },
+  { label: "Resultados", href: ROUTES.paciente.resultados, icon: LineChart },
+  { label: "Perfil", href: ROUTES.paciente.perfil, icon: UserCircle },
+];
 
 /**
  * Faixas de risco (placeholder) — alinhar com backend quando expuser
- * score por escala + faixas (PRD §3 dep. #4).
+ * score por escala + faixas (PRD §3 dep. #4). Paleta ordinal de um único
+ * matiz (Spec 04 §4) — nunca semáforo verde/amarelo/vermelho.
  */
 export const RISK_BANDS = [
-  { label: "Baixo", min: 0, max: 2, color: "#1A7A6E" },
-  { label: "Moderado", min: 2, max: 3.5, color: "#E0A21F" },
-  { label: "Alto", min: 3.5, max: 5, color: "#C0432F" },
+  { label: "Baixo", min: 0, max: 2, color: "#7AB1A8" },
+  { label: "Moderado", min: 2, max: 3.5, color: "#1A7A6E" },
+  { label: "Alto", min: 3.5, max: 5, color: "#0B4A42" },
 ] as const;
 
 export type RiskBand = (typeof RISK_BANDS)[number];
