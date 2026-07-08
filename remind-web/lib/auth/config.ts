@@ -66,14 +66,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const body = LoginResponseSchema.safeParse(json);
         if (!body.success) return null;
 
+        // O JWT real do backend não tem claim `name` separado — `sub` É o
+        // nome do usuário (não um id). `email` é o único identificador
+        // estável disponível, por isso vira `id`.
         const claims = decodeJwtPayload(body.data.accessToken);
         return {
-          id: (claims.sub as string | undefined) ?? parsed.data.email,
+          id: parsed.data.email,
           email: (claims.email as string | undefined) ?? parsed.data.email,
-          name: claims.name as string | undefined,
+          name: claims.sub as string | undefined,
           accessToken: body.data.accessToken,
           type: body.data.type,
           expiresIn: body.data.expiresIn,
+          profileComplete: body.data.profileComplete,
         };
       },
     }),
@@ -84,6 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.accessToken = user.accessToken;
         token.userType = user.type;
         token.expiresAt = Date.now() + user.expiresIn * 1000;
+        token.profileComplete = user.profileComplete;
       }
       return token;
     },
@@ -91,6 +96,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.accessToken = token.accessToken ?? "";
       session.expiresAt = token.expiresAt ?? 0;
       session.user.type = token.userType ?? "PATIENT";
+      session.user.profileComplete = token.profileComplete ?? true;
       return session;
     },
   },

@@ -17,5 +17,9 @@ export const LoginResponseSchema = z.object({
   accessToken: z.string(),
   expiresIn: z.number(),
   type: UserTypeSchema,
+  // Login Google do psicólogo (spec 001-login-google-psicologo, backend):
+  // conta criada via Google nasce com perfil incompleto — demais endpoints
+  // retornam 403 até a conclusão (fora do escopo desta spec por ora).
+  profileComplete: z.boolean().default(true),
 });
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;

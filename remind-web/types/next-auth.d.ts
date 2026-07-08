@@ -5,6 +5,7 @@ declare module "next-auth" {
     accessToken: string;
     type: UserType;
     expiresIn: number;
+    profileComplete: boolean;
   }
 
   interface Session {
@@ -15,6 +16,7 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       type: UserType;
+      profileComplete: boolean;
     };
   }
 }
@@ -24,5 +26,6 @@ declare module "@auth/core/jwt" {
     accessToken?: string;
     userType?: UserType;
     expiresAt?: number;
+    profileComplete?: boolean;
   }
 }
