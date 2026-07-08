@@ -234,27 +234,7 @@ padding: 4px 12px;
 
 ---
 
-## 8. MODO CLARO E ESCURO
-
-### Modo Claro (padrão)
-| Elemento | Cor |
-|---|---|
-| Fundo | `#F5F6F4` |
-| Texto | `#1C2B2B` |
-| Primária | `#1A7A6E` |
-| Apoio | `#A8C5C0` |
-
-### Modo Escuro
-| Elemento | Cor |
-|---|---|
-| Fundo | `#1C2B2B` |
-| Texto | `#FFFFFF` |
-| Primária | `#1A7A6E` |
-| Apoio | `#A8C5C0` com opacidade 70% |
-
----
-
-## 9. ACESSIBILIDADE
+## 8. ACESSIBILIDADE
 
 | Combinação | Contraste | Status |
 |---|---|---|
@@ -268,7 +248,7 @@ padding: 4px 12px;
 
 ---
 
-## 10. FOTOGRAFIA E IMAGENS
+## 9. FOTOGRAFIA E IMAGENS
 
 Quando precisar sugerir ou usar imagens:
 
@@ -278,7 +258,7 @@ Quando precisar sugerir ou usar imagens:
 
 ---
 
-## 11. TOM VISUAL GERAL
+## 10. TOM VISUAL GERAL
 
 Toda interface ReMind deve transmitir simultaneamente:
 
@@ -291,7 +271,7 @@ A marca é **profissional sem ser fria**, **tecnológica sem ser asséptica**, *
 
 ---
 
-## 12. CHECKLIST ANTES DE ENTREGAR QUALQUER VISUAL
+## 11. CHECKLIST ANTES DE ENTREGAR QUALQUER VISUAL
 
 Antes de finalizar qualquer interface ou material visual para o ReMind, confirme:
 

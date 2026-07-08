@@ -48,7 +48,7 @@
 |---|---|
 | `remind-web/app/globals.css` | Import Tailwind v4 (`@import "tailwindcss"`); bloco `@theme` com CSS vars dos tokens: `--color-snow:#F5F6F4`, `--color-mist:#A8C5C0`, `--color-primary:#1A7A6E`, `--color-graphite:#1C2B2B`. Variantes dark (base Grafite Verde). Raios arredondados, sombras suaves. |
 | `remind-web/app/layout.tsx` | Root layout: carrega **Plus Jakarta Sans** via `next/font/google` (pesos 400/500/700/800), aplica vars de fonte, `<html lang="pt-BR">`, monta `<Providers>`, metadata base. |
-| `remind-web/app/providers.tsx` | `'use client'`: `QueryClientProvider` (TanStack Query) + `ThemeProvider` (next-themes, dark mode). |
+| `remind-web/app/providers.tsx` | `'use client'`: `QueryClientProvider` (TanStack Query) + `ThemeProvider` (next-themes, `forcedTheme="light"` — só modo claro, sem toggle). |
 | `remind-web/lib/utils.ts` | `cn()` (clsx + tailwind-merge). |
 | `remind-web/lib/constants.ts` | Constantes de marca, nav items, URLs, faixas de risco (placeholder). |
 
@@ -70,7 +70,7 @@ Init via `npx shadcn@latest init` mapeando cores aos tokens de marca.
 Copiar de `documentacao/idVisual/` para `remind-web/public/brand/`:
 logo completo (cor/dark/light), símbolo, ícones. Criar `public/favicon`, `public/og-image.png`.
 
-**Entrega Fase 0:** esqueleto navegável, design system aplicado, tema claro/escuro funcionando.
+**Entrega Fase 0:** esqueleto navegável, design system aplicado, tema claro (único) funcionando.
 
 ---
 

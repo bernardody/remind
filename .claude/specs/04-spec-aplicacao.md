@@ -78,7 +78,7 @@ Estratégia PRD §6: Auth.js Credentials + Route Handlers como proxy; token em c
 
 | Arquivo | O que conter |
 |---|---|
-| `app/(app)/layout.tsx` | Guarda de sessão + shell: sidebar + topbar; nav condicional por `type`; menu de usuário (nome, logout); toggle dark mode. |
+| `app/(app)/layout.tsx` | Guarda de sessão + shell: sidebar + topbar; nav condicional por `type`; menu de usuário (nome, logout). Modo claro apenas (sem toggle de tema — `ThemeProvider` roda com `forcedTheme="light"`, igual à Fase 0). |
 | `components/layout/sidebar.tsx` | Navegação por perfil. |
 | `components/layout/topbar.tsx` | Breadcrumb/título + ações + avatar. |
 | `components/layout/page-header.tsx` | Cabeçalho reutilizável de página. |
@@ -116,6 +116,23 @@ app/(app)/psicologo/
 `gauge.tsx` (escore geral), `domain-bars.tsx` (barras por domínio + nível Baixo/Moderado/Alto —
 usa faixas de risco quando existirem), `trend-line.tsx` (evolução temporal). Recharts.
 `features/patients/components/` e `features/results/components/` para tabelas/cards específicos.
+
+#### Escala de risco (Baixo/Moderado/Alto) — paleta
+
+Baixo/Moderado/Alto é uma variável **ordinal** (posição numa sequência), não categórica —
+por isso não leva cores "de semáforo" (verde/amarelo/vermelho), que fugiriam da paleta de 4
+cores do `id.md` e destoariam do resto da app. Usa-se uma **rampa de um único matiz** (o do
+Ciano Escuro `#1A7A6E`), variando só a luminosidade — validado com `validate_palette.js --ordinal`:
+
+| Nível | Hex | Uso |
+|---|---|---|
+| Baixo | `#7AB1A8` | tom claro do teal |
+| Moderado | `#1A7A6E` | Ciano Escuro (cor primária, sem alteração) |
+| Alto | `#0B4A42` | tom escuro do teal |
+
+Regras: **nunca só a cor** — todo indicador de nível vem acompanhado de ícone e/ou label textual
+(ex.: "Alto risco"), nunca cor isolada. Declarar como tokens (`--risk-low`, `--risk-mid`,
+`--risk-high`) junto aos demais tokens de marca, não hardcode nos componentes.
 
 ---
 
