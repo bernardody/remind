@@ -4,7 +4,21 @@
 > Cobre **Autenticação (Fase 2)**, **Dashboard do Psicólogo (Fase 3)**,
 > **Fluxo do Paciente (Fase 4)** e **Resultados & Analytics (Fase 5)**.
 > **Pré-requisito:** Fundação (Fase 0) da [Spec 03](03-spec-landing.md) já implementada.
-> **Status:** pronta para implementação. Contratos baseados no código real em `/api`.
+> **Status:** Fase 2 (Autenticação) e o shell da Fase 3 **implementados e em produção**.
+> Conteúdo real da Fase 3 (CRUD pacientes/avaliações/resultado), Fase 4 e Fase 5
+> ainda **pendentes** (telas hoje são placeholder). Contratos baseados no código real em `/api`.
+
+### Status de implementação (atualizado após deploy)
+
+| Parte | Status |
+|---|---|
+| Autenticação (Fase 2) — Auth.js, BFF proxy, middleware, tela de login | ✅ Implementado, testado com backend real, em produção |
+| Shell da aplicação (sidebar, topbar, page-header, loading/empty/error state) | ✅ Implementado, em produção |
+| Dashboard do Psicólogo — conteúdo real (Fase 3: tabela de pacientes, avaliações, resultado) | ⏳ Pendente — telas hoje são placeholder `EmptyState` |
+| Perfil (psicólogo/paciente) | ✅ Implementado (lê nome/email/tipo do JWT) |
+| Fluxo do Paciente (Fase 4: wizard de resposta) | ⏳ Pendente |
+| Resultados & Analytics (Fase 5: gauge, domain-bars, trend-line) | ⏳ Pendente |
+| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado |
 
 ---
 
@@ -15,7 +29,7 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 
 | Método | Rota | DTO resposta (campos reais) |
 |---|---|---|
-| POST | `/login` | `{ accessToken, expiresIn, type: "PSYCHOLOGIST"\|"PATIENT" }` |
+| POST | `/login` | `{ accessToken, expiresIn, type: "PSYCHOLOGIST"\|"PATIENT", profileComplete: boolean }` |
 | GET | `/pacientes` | `Page<{ id, name, email, phone, birthDate, gender(char), createdAt, active }>` |
 | POST | `/pacientes` | body: `{ name, email, cpf, phone, password, birthDate, gender }` |
 | PUT | `/pacientes/{id}` | `UpdatePatientResponse` |
@@ -29,7 +43,19 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 
 > ⚠️ **Resultado = só `average` global** (PRD §3 #4). Breakdown por escala/risco ainda não
 > existe → componentes preparados, degrade graceful.
-> ⚠️ **Login 500 em vez de 401** com credencial errada (PRD R6) → tratar 500 do `/login` como inválido.
+> ✅ **R6 corrigido no backend**: `LoginController` já lança `401` (`ResponseStatusException`)
+> para credencial errada ou conta só-Google, em vez do `500` documentado no PRD. O frontend
+> mantém o tratamento de "qualquer não-2xx = credencial inválida" como rede de segurança
+> defensiva (não custa nada e cobre erros 5xx genéricos), mas não é mais uma correção de bug
+> conhecido.
+> ⚠️ **JWT de acesso**: claims reais são `{ iss: "tcc", sub: <nome do usuário>, iat, exp, email }`
+> — **não existe claim `name`** separado; `sub` É o nome (não um id único). Usar `email` como
+> identificador estável no cliente (`session.user.id`).
+> ⚠️ **Login Google do psicólogo** (spec de backend `001-login-google-psicologo`, já
+> implementada em `/api`): complementa o login por senha. Contas criadas via Google nascem
+> com `profileComplete: false` e o token fica restrito (só perfil/conclusão de perfil; demais
+> endpoints retornam `403`) até a conclusão. Fora do escopo desta spec (sem UI de "Continuar
+> com o Google" ainda) — tratar como próxima spec quando o frontend for pedido.
 
 ---
 
@@ -38,66 +64,81 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 Estende o `lib/api/client.ts` da Fase 0. Cada feature: `schemas.ts` (Zod, valida resposta),
 `api.ts` (hooks TanStack Query), `components/`.
 
-| Arquivo | O que conter |
-|---|---|
-| `features/auth/schemas.ts` | `LoginRequest`, `LoginResponse`, enum `UserType`. |
-| `features/patients/schemas.ts` | `Patient`, `InsertPatient`, `UpdatePatient`, `PagePatient`. |
-| `features/patients/api.ts` | `usePatients(pageable)`, `useCreatePatient`, `useUpdatePatient`, `useDeletePatient` (com invalidação de cache). |
-| `features/questionnaires/schemas.ts` | `Questionnaire`, `QuestionnaireDetail`, `Question`, `Option`, `AnswerRequest`. |
-| `features/questionnaires/api.ts` | `useQuestionnaires`, `useQuestionnaire(id)`, `useAnswerQuestionnaire`, `useQuestionnairePatients(id)`. |
-| `features/results/schemas.ts` | `PatientAnswers`, `PatientResult`. |
-| `features/results/api.ts` | `usePatientAnswers(qid, pid)`, `usePatientResult(qid, pid)`. |
+| Arquivo | Status | O que conter |
+|---|---|---|
+| `features/auth/schemas.ts` | ✅ Feito | `LoginRequest`, `LoginResponse` (+ `profileComplete`), enum `UserType`. |
+| `features/patients/schemas.ts` | ⏳ Pendente | `Patient`, `InsertPatient`, `UpdatePatient`, `PagePatient`. |
+| `features/patients/api.ts` | ⏳ Pendente | `usePatients(pageable)`, `useCreatePatient`, `useUpdatePatient`, `useDeletePatient` (com invalidação de cache). |
+| `features/questionnaires/schemas.ts` | ⏳ Pendente | `Questionnaire`, `QuestionnaireDetail`, `Question`, `Option`, `AnswerRequest`. |
+| `features/questionnaires/api.ts` | ⏳ Pendente | `useQuestionnaires`, `useQuestionnaire(id)`, `useAnswerQuestionnaire`, `useQuestionnairePatients(id)`. |
+| `features/results/schemas.ts` | ⏳ Pendente | `PatientAnswers`, `PatientResult`. |
+| `features/results/api.ts` | ⏳ Pendente | `usePatientAnswers(qid, pid)`, `usePatientResult(qid, pid)`. |
 
 ---
 
-## 2. Autenticação (Fase 2) — BFF + cookie httpOnly
+## 2. Autenticação (Fase 2) — BFF + cookie httpOnly ✅ Implementado
 
 Estratégia PRD §6: Auth.js Credentials + Route Handlers como proxy; token em cookie httpOnly
-(não localStorage → mitiga XSS, R5).
+(não localStorage → mitiga XSS, R5). Implementado com **Auth.js v5** (`next-auth@5.0.0-beta`),
+testado ponta a ponta com o backend real (`camila.nogueira.cf@gmail.com`) e em produção (Vercel).
 
-### Arquivos a criar
+### Arquivos criados
 
-| Arquivo | RF | O que conter |
+| Arquivo | RF | O que contém |
 |---|---|---|
-| `lib/auth/config.ts` | — | Auth.js: Credentials provider chama `POST /login`; persiste `accessToken`/`type`/`expiresIn` no JWT da sessão (cookie httpOnly). |
-| `app/api/auth/[...nextauth]/route.ts` | RF-11 | Handlers Auth.js. |
-| `app/api/[...proxy]/route.ts` (BFF) | RF-12 | Proxy que anexa `Authorization: Bearer` (do cookie) às chamadas ao backend; em **401 (ou 500 no login)** sinaliza sessão expirada. |
-| `app/(auth)/layout.tsx` | — | Layout centrado, branding. |
-| `app/(auth)/login/page.tsx` | RF-11 | Form email+senha (RHF+Zod). Trata **500 como credencial inválida** (R6). Sucesso → redirect por `type` (`PSYCHOLOGIST`→`/psicologo/dashboard`, `PATIENT`→`/paciente/inicio`). |
-| `middleware.ts` | RF-12 | Protege `(app)/*`; redireciona não autenticado → `/login`; barra perfil errado por rota (psicólogo vs paciente). |
-| `lib/auth/session.ts` | — | Helpers `getSession`, `requireRole`. |
+| `lib/auth/config.ts` | — | Auth.js v5: Credentials provider chama `POST /login`; persiste `accessToken`/`type`/`expiresIn`/`profileComplete` no JWT da sessão (cookie httpOnly, `maxAge: 600`). `name` vem do claim `sub` do JWT (não existe claim `name`); `id` da sessão usa `email` (único identificador estável). |
+| `types/next-auth.d.ts` | — | Augmentação de tipos `User`/`Session`/`JWT` (Auth.js v5). |
+| `app/api/auth/[...nextauth]/route.ts` | RF-11 | Handlers Auth.js (`export const { GET, POST } = handlers`). |
+| `app/api/[...proxy]/route.ts` (BFF) | RF-12 | Proxy que anexa `Authorization: Bearer` (da sessão) às chamadas ao backend; `401` se sessão ausente/expirada. |
+| `app/(auth)/layout.tsx` | — | Split-screen: painel de marca (Grafite Verde, símbolo animado, motion) + slot do form. Logo mobile via `lg:hidden`. |
+| `app/(auth)/login/page.tsx` + `features/auth/components/{login-form,brand-panel}.tsx` | RF-11 | Form email+senha (RHF+Zod), toggle mostrar/ocultar senha, erro inline com shake (`prefers-reduced-motion` respeitado). Trata **qualquer não-2xx como credencial inválida** (rede de segurança pós-R6, ver §0). Sucesso → `getSession()` client + redirect por `type` (`HOME_BY_USER_TYPE`). |
+| `middleware.ts` | RF-12 | Protege `/psicologo/*` e `/paciente/*`; redireciona não autenticado → `/login` (preserva `callbackUrl`); barra perfil errado por rota (redireciona pro home do próprio perfil). |
+| `lib/auth/session.ts` | — | Helpers `getSession()`, `requireSession()` (checa `expiresAt`), `requireRole(type)`. |
+| `features/auth/components/profile-card.tsx` | RF-20 | Card de dados do usuário logado — usado nas telas `perfil/` de ambos os perfis. |
 
-> **Refresh ausente (R1):** sem refresh token no backend, 401 → logout + toast "sessão expirada,
-> faça login novamente". Centralizar no client/BFF. Quando o backend expuser refresh, trocar aqui.
-> **`/me` ausente:** usar `name`/`email`/`type` do JWT para header e escopo. Isolar em `session.ts`
-> para migração futura a `GET /me`.
+> **Refresh ausente (R1):** sem refresh token no backend, sessão expira em 10min (`maxAge: 600`
+> alinhado ao `expiresIn`). 401 do BFF em chamadas subsequentes → `signOut()` + toast "sessão
+> expirada" automático (ver `lib/api/client.ts`, §3).
+> **`/me` ausente:** `name`/`email`/`type` vêm do JWT (decodificado sem verificar assinatura,
+> seguro porque acabou de ser emitido pelo próprio backend na mesma chamada server-side).
+> Isolado em `lib/auth/config.ts` para migração futura a `GET /me`.
+> **Deploy:** variáveis de ambiente (`AUTH_SECRET`, `API_URL`, `NEXT_PUBLIC_API_URL`,
+> `NEXT_PUBLIC_SITE_URL`) configuradas no Vercel (produção) — necessárias em qualquer novo
+> ambiente/preview, senão o Auth.js quebra com erro de "server configuration".
 
 ---
 
-## 3. Shell da aplicação (`app/(app)/`)
+## 3. Shell da aplicação (`app/(app)/`) ✅ Implementado
 
-| Arquivo | O que conter |
+| Arquivo | O que contém |
 |---|---|
-| `app/(app)/layout.tsx` | Guarda de sessão + shell: sidebar + topbar; nav condicional por `type`; menu de usuário (nome, logout). Modo claro apenas (sem toggle de tema — `ThemeProvider` roda com `forcedTheme="light"`, igual à Fase 0). |
-| `components/layout/sidebar.tsx` | Navegação por perfil. |
-| `components/layout/topbar.tsx` | Breadcrumb/título + ações + avatar. |
-| `components/layout/page-header.tsx` | Cabeçalho reutilizável de página. |
-| `components/shared/{loading,empty,error}-state.tsx` | RF-21: skeletons, vazio e erro padronizados (usados em todas as telas). |
+| `app/(app)/layout.tsx` | `requireSession()` (guarda) + `AppShell`. Modo claro apenas (sem toggle de tema — `ThemeProvider` roda com `forcedTheme="light"`, igual à Fase 0). |
+| `components/layout/app-shell.tsx` | Composição: sidebar fixa desktop + `Sheet` mobile (Radix Dialog) + `Topbar` + `<main>`. Estado do menu mobile fica aqui (client component). |
+| `components/layout/sidebar-nav.tsx` | Nav por perfil (`PSYCHOLOGIST_NAV`/`PATIENT_NAV` em `lib/constants.ts`), item ativo via `usePathname()`. Sidebar em Grafite Verde (fundo escuro é uso previsto pelo `id.md` §1). |
+| `components/layout/topbar.tsx` | Trigger do menu mobile + dropdown de usuário (avatar com iniciais, nome/email, "Sair"). |
+| `components/layout/page-header.tsx` | Cabeçalho reutilizável de página (título + descrição + ações). |
+| `components/shared/{loading,empty,error}-state.tsx` | RF-21: skeleton (`components/ui/skeleton.tsx`), vazio e erro padronizados. |
+| `components/ui/{dropdown-menu,sheet}.tsx` | Primitivos shadcn novos (Radix `react-dropdown-menu`/`react-dialog`). Sem o plugin `tailwindcss-animate` — animações via keyframes próprios em `globals.css` (`--animate-popover-in`, `--animate-sheet-in-{left,right}`). |
+| `components/brand/logo.tsx` | Ganhou `variant="dark"` (símbolo + texto brancos, variação "Escura" do `id.md` §3) para uso em fundo escuro. |
 
 ---
 
 ## 4. Dashboard do Psicólogo (Fase 3)
 
+> **Status:** só o esqueleto de rotas existe hoje — todas as telas abaixo (exceto `perfil/`)
+> são placeholder (`PageHeader` + `EmptyState` "Em construção"), criadas junto do shell (§3)
+> pra sidebar não ter links quebrados. O conteúdo real desta seção é o próximo passo.
+
 ```
 app/(app)/psicologo/
-├── dashboard/page.tsx
-├── pacientes/page.tsx
-├── pacientes/[id]/page.tsx
-├── avaliacoes/page.tsx
-├── avaliacoes/[id]/page.tsx
-├── avaliacoes/[id]/pacientes/[pid]/page.tsx
-├── relatorios/page.tsx
-└── perfil/page.tsx
+├── dashboard/page.tsx      ⏳ placeholder
+├── pacientes/page.tsx      ⏳ placeholder
+├── pacientes/[id]/page.tsx ⏳ não criado
+├── avaliacoes/page.tsx     ⏳ placeholder
+├── avaliacoes/[id]/page.tsx ⏳ não criado
+├── avaliacoes/[id]/pacientes/[pid]/page.tsx ⏳ não criado
+├── relatorios/page.tsx     ⏳ placeholder
+└── perfil/page.tsx         ✅ real (ProfileCard, dados do JWT)
 ```
 
 | Tela | RF | O que conter |
@@ -109,7 +150,12 @@ app/(app)/psicologo/
 | `avaliacoes/[id]/` | RF-15 | Detalhe do questionário + lista de quem respondeu (`/questionarios/{id}/pacientes`). |
 | `avaliacoes/[id]/pacientes/[pid]/` | RF-16 | Respostas detalhadas (`/respostas`) + resultado (`/resultado`): escore via **gauge (Recharts)**. Componentes de breakdown por domínio **preparados mas ocultos/placeholder** até backend expor (R3). |
 | `relatorios/` | RF-17 | Evolução longitudinal / comparativos por escala — **condicionado a dados do backend**; placeholder com aviso "em breve" se indisponível. |
-| `perfil/` | RF-20 | Dados do usuário logado (do JWT) + segurança. |
+| `perfil/` | RF-20 | ✅ Dados do usuário logado (do JWT) via `ProfileCard`. Segurança (trocar senha etc.) ainda pendente — sem endpoint no backend. |
+
+> ⚠️ **Perfil incompleto (backend):** contas de psicólogo com `profileComplete: false`
+> (criadas via Google, ou seeds antigos sem a coluna migrada) têm o token restrito pelo
+> backend — endpoints além de perfil retornam `403`. Ao implementar as telas acima, tratar
+> esse caso (ex.: banner "complete seu perfil" + bloqueio), hoje fora do escopo desta spec.
 
 ### Componentes de visualização a criar (`components/charts/`)
 
@@ -138,12 +184,15 @@ Regras: **nunca só a cor** — todo indicador de nível vem acompanhado de íco
 
 ## 5. Fluxo do Paciente (Fase 4)
 
+> **Status:** mesma situação da Fase 3 — `inicio/` e `resultados/` são placeholder;
+> `perfil/` é real; o wizard de resposta (`questionarios/[id]/responder/`) ainda não existe.
+
 ```
 app/(app)/paciente/
-├── inicio/page.tsx
-├── questionarios/[id]/responder/page.tsx
-├── resultados/page.tsx
-└── perfil/page.tsx
+├── inicio/page.tsx                        ⏳ placeholder
+├── questionarios/[id]/responder/page.tsx  ⏳ não criado
+├── resultados/page.tsx                    ⏳ placeholder
+└── perfil/page.tsx                        ✅ real (ProfileCard, dados do JWT)
 ```
 
 | Tela | RF | O que conter |
@@ -176,25 +225,35 @@ quando houver série temporal. Até lá: exibir `average` global e manter compon
 | R3 Resultado só média | Componentes de domínio prontos, ocultos até backend; sem quebrar UI. |
 | R4 Sem OpenAPI → drift | Zod valida toda resposta em runtime; tipos derivam dos schemas. |
 | R5 XSS/token | Cookie httpOnly + BFF; nunca token no cliente. |
-| R6 Login 500 vs 401 | Login trata 500 como credencial inválida. |
+| R6 Login 500 vs 401 | ✅ Corrigido no backend (401 real). Frontend mantém "não-2xx = inválido" como rede de segurança. |
 | R7 LGPD | Não logar PII; mascarar dados sensíveis em telas/prints. |
-| R8 Backend evoluindo | `features/*/api.ts` isola contratos; mocks p/ telas dependentes (#5). |
+| R8 Backend evoluindo | `features/*/api.ts` isola contratos; mocks p/ telas dependentes (#5). Confirmado na prática: backend ganhou login Google + `profileComplete` sem aviso prévio — schemas Zod absorveram o campo novo sem quebrar. |
+| R9 (novo) Perfil incompleto (403) | Contas com `profileComplete: false` só acessam perfil no backend. Telas da Fase 3/4 precisam checar `session.user.profileComplete` antes de assumir acesso pleno. |
 
 ---
 
 ## 8. Resumo — arquivos desta spec
 
-**Criar:** `features/{auth,patients,questionnaires,results}/{schemas,api}.ts` + `components/`,
-`lib/auth/{config,session}.ts`, `app/api/auth/[...nextauth]/route.ts`, `app/api/[...proxy]/route.ts`,
-`middleware.ts`, `app/(auth)/{layout,login}`, `app/(app)/layout.tsx`,
-`components/layout/*`, `components/shared/*`, `components/charts/{gauge,domain-bars,trend-line}.tsx`,
-telas `app/(app)/psicologo/*` e `app/(app)/paciente/*`, `stores/wizard-store.ts`.
+**✅ Criados (Autenticação + Shell):** `features/auth/{schemas.ts,components/{login-form,brand-panel,profile-card}.tsx}`,
+`lib/auth/{config,session}.ts`, `types/next-auth.d.ts`, `app/api/auth/[...nextauth]/route.ts`,
+`app/api/[...proxy]/route.ts`, `middleware.ts`, `app/(auth)/{layout.tsx,login/page.tsx}`,
+`app/(app)/layout.tsx`, `components/layout/{app-shell,sidebar-nav,topbar,page-header}.tsx`,
+`components/shared/{loading,empty,error}-state.tsx`, `components/ui/{dropdown-menu,sheet,skeleton}.tsx`,
+stubs `app/(app)/psicologo/*` e `app/(app)/paciente/*` (placeholder, exceto `perfil/`).
 
-**Modificar:** `lib/api/client.ts` (interceptor 401/erro) e `lib/constants.ts` (nav por perfil)
-da Fase 0.
+**✅ Modificados:** `lib/api/client.ts` (base dupla server/browser + interceptor 401 →
+`signOut()`/toast), `lib/constants.ts` (rotas + nav por perfil + `RISK_BANDS` na paleta
+ordinal do §4), `app/providers.tsx` (`SessionProvider`, retry sem 4xx), `components/brand/logo.tsx`
+(`variant="dark"`). Removido `components/theme-toggle.tsx` (morto desde a remoção do dark mode).
+
+**⏳ Ainda por criar:** `features/{patients,questionnaires,results}/{schemas,api}.ts` + `components/`,
+`components/charts/{gauge,domain-bars,trend-line}.tsx`, conteúdo real das telas
+`app/(app)/psicologo/{dashboard,pacientes,avaliacoes,relatorios}` e `app/(app)/paciente/{inicio,resultados}`,
+`app/(app)/paciente/questionarios/[id]/responder/`, `stores/wizard-store.ts`.
 
 **Pré-requisitos de backend a pleitear (PRD §10):** refresh token, `GET /me`, score por escala +
-risco, endpoints escopados ao paciente, login 500→401, OpenAPI, CORS restrito.
+risco, endpoints escopados ao paciente, OpenAPI, CORS restrito (~~login 500→401~~ já corrigido).
 
-**Entrega:** login real, núcleo clínico do psicólogo (CRUD pacientes + avaliações + resultado),
-paciente respondendo fim-a-fim, base de analytics preparada.
+**Entrega até aqui:** login real (Auth.js + BFF) testado em produção, shell autenticado completo
+com nav por perfil. **Falta:** núcleo clínico do psicólogo (CRUD pacientes + avaliações + resultado),
+paciente respondendo fim-a-fim, base de analytics.

@@ -285,9 +285,10 @@ remind-web/
 | R3 | Resultado só com média global | Visualização rica (domínios/risco) sem dados | Componentes preparados; backend expõe score por escala; degrade graceful |
 | R4 | Sem OpenAPI → drift de tipos | Bugs de integração | Zod valida respostas; pleitear springdoc + codegen |
 | R5 | CORS `*` + token no cliente | Risco XSS se token em localStorage | BFF + cookie httpOnly; restringir CORS à origem do front |
-| R6 | Bug login 500 vs 401 | UX de erro confusa | Tratar 500 no fluxo de login como credencial inválida até correção |
+| R6 | ~~Bug login 500 vs 401~~ **Corrigido** | UX de erro confusa | ✅ Backend já retorna 401 real (Spec 04 §0); frontend mantém o tratamento defensivo mesmo assim |
 | R7 | Dados clínicos sensíveis (LGPD) | Conformidade/privacidade | Não logar PII; HTTPS; consentimento; mascarar dados em telas/prints |
-| R8 | Escopo backend ainda evoluindo | Retrabalho de frontend | Camada `features/api` isola contratos; mocks p/ telas dependentes |
+| R8 | Escopo backend ainda evoluindo | Retrabalho de frontend | Camada `features/api` isola contratos; mocks p/ telas dependentes. Confirmado: backend adicionou login Google + `profileComplete` sem aviso prévio |
+| R9 | Login Google do psicólogo + perfil incompleto (`profileComplete: false` → 403 fora do perfil) | Telas da Fase 3/4 podem quebrar pra contas incompletas | Checar `session.user.profileComplete` antes de chamadas protegidas; UI de conclusão de perfil ainda não implementada no frontend |
 
 ---
 
