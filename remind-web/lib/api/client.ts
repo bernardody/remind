@@ -6,12 +6,16 @@ import { ApiError, type Page, type PageParams } from "./types";
 const isBrowser = typeof window !== "undefined";
 
 /**
- * No browser, chamadas passam pelo BFF (`/api/proxy`, mesma origem) que
- * anexa o Bearer a partir do cookie httpOnly — o token nunca chega ao
- * cliente (R5). Server-side, chama o backend direto com `token` explícito.
+ * No browser, chamadas passam pelo BFF (rota catch-all `app/api/[...proxy]/route.ts`,
+ * mesma origem) que anexa o Bearer a partir do cookie httpOnly — o token nunca
+ * chega ao cliente (R5). Server-side, chama o backend direto com `token` explícito.
+ *
+ * A pasta `[...proxy]` é só o NOME do parâmetro capturado — a rota responde em
+ * `/api/*`, não em `/api/proxy/*`. Usar `/api/proxy` aqui faria o catch-all
+ * encaminhar para `${API_URL}/proxy/...`, que não existe no backend.
  */
 const BASE_URL = isBrowser
-  ? "/api/proxy"
+  ? "/api"
   : (process.env.API_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
 export interface RequestOptions extends Omit<RequestInit, "body"> {
