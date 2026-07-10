@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+// Aceita o usuário digitar com ou sem pontuação, mas envia só dígitos — a
+// coluna `phone` no Postgres é VARCHAR(11) (DDD + 8 ou 9 dígitos).
+const phoneSchema = z
+  .string()
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((value) => value.length >= 10 && value.length <= 11, "Telefone inválido");
+
 /**
  * Contrato real de `/pacientes` (Fase 3). `gender` é `Character` no backend
  * (não um enum) — validado como string de 1 caractere, não restrito a M/F,
@@ -24,8 +31,13 @@ export type Patient = z.infer<typeof PatientSchema>;
 export const InsertPatientRequestSchema = z.object({
   name: z.string().min(1, "Informe o nome"),
   email: z.string().email("Informe um email válido"),
-  cpf: z.string().min(11, "CPF inválido").max(14, "CPF inválido"),
-  phone: z.string().min(8, "Informe um telefone válido"),
+  // Aceita o usuário digitar com ou sem pontuação, mas envia só dígitos —
+  // a coluna `cpf` no Postgres é VARCHAR(11), não cabe "123.456.789-00".
+  cpf: z
+    .string()
+    .transform((value) => value.replace(/\D/g, ""))
+    .refine((value) => value.length === 11, "CPF inválido"),
+  phone: phoneSchema,
   password: z.string().min(6, "A senha deve ter ao menos 6 caracteres"),
   birthDate: z.string().min(1, "Informe a data de nascimento"),
   gender: z.string().length(1, "Selecione o gênero"),
@@ -38,7 +50,7 @@ export type InsertPatientRequest = z.infer<typeof InsertPatientRequestSchema>;
  */
 export const UpdatePatientRequestSchema = z.object({
   name: z.string().min(1, "Informe o nome"),
-  phone: z.string().min(8, "Informe um telefone válido"),
+  phone: phoneSchema,
   birthDate: z.string().min(1, "Informe a data de nascimento"),
   gender: z.string().length(1, "Selecione o gênero"),
 });
