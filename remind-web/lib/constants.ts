@@ -106,3 +106,11 @@ export const RISK_BANDS = [
 ] as const;
 
 export type RiskBand = (typeof RISK_BANDS)[number];
+
+/** Nível de risco correspondente a uma média (0–5) — usado no gauge de resultado. */
+export function getRiskBand(average: number): RiskBand {
+  return (
+    RISK_BANDS.find((band) => average >= band.min && average < band.max) ??
+    RISK_BANDS[RISK_BANDS.length - 1]
+  );
+}
