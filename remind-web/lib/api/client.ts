@@ -31,8 +31,11 @@ function buildUrl(
   path: string,
   params?: RequestOptions["params"],
 ): string {
+  // `new URL` exige base explícita pra entradas relativas (ex: BASE_URL="/api"
+  // no browser) — sem isso lança "Invalid URL" antes mesmo do fetch rodar.
   const url = new URL(
     path.startsWith("http") ? path : `${BASE_URL}${path}`,
+    isBrowser ? window.location.origin : undefined,
   );
   if (params) {
     for (const [key, value] of Object.entries(params)) {
