@@ -55,3 +55,38 @@ export const QuestionnairePatientSchema = z.object({
   answeredAt: z.string(),
 });
 export type QuestionnairePatient = z.infer<typeof QuestionnairePatientSchema>;
+
+/** `POST /questionarios/{id}/responder` — corpo (`AnswerQuestionnaireRequest` real). */
+export const AnswerQuestionnaireRequestSchema = z.object({
+  responses: z
+    .array(
+      z.object({
+        questionId: z.number(),
+        questionOptionId: z.number(),
+      }),
+    )
+    .min(1),
+});
+export type AnswerQuestionnaireRequest = z.infer<typeof AnswerQuestionnaireRequestSchema>;
+
+/** `POST /questionarios/{id}/responder` — resposta (`AnswerQuestionnaireResponse` real). */
+export const AnswerQuestionnaireResponseSchema = z.object({
+  id: z.number(),
+  patientName: z.string(),
+  questionnaireTitle: z.string(),
+  totalResponses: z.number(),
+  answeredAt: z.string(),
+});
+export type AnswerQuestionnaireResponse = z.infer<typeof AnswerQuestionnaireResponseSchema>;
+
+/**
+ * `GET /questionarios/respondidos` — auto-serviço do paciente (via JWT, sem
+ * `patientId`). Mesmo shape de `ListPatientQuestionnaireResponse` (reaproveitado
+ * no backend), mas do ponto de vista do próprio paciente, não do psicólogo.
+ */
+export const MyAnsweredQuestionnaireSchema = z.object({
+  questionnaireId: z.number(),
+  questionnaireTitle: z.string(),
+  answeredAt: z.string(),
+});
+export type MyAnsweredQuestionnaire = z.infer<typeof MyAnsweredQuestionnaireSchema>;

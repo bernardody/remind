@@ -64,6 +64,8 @@ export const ROUTES = {
     inicio: "/paciente/inicio",
     resultados: "/paciente/resultados",
     perfil: "/paciente/perfil",
+    responder: (questionnaireId: number) => `/paciente/questionarios/${questionnaireId}/responder`,
+    resultadoDetalhe: (questionnaireId: number) => `/paciente/resultados/${questionnaireId}`,
   },
 } as const;
 

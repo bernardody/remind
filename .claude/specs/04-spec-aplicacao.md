@@ -4,11 +4,13 @@
 > Cobre **Autenticação (Fase 2)**, **Dashboard do Psicólogo (Fase 3)**,
 > **Fluxo do Paciente (Fase 4)** e **Resultados & Analytics (Fase 5)**.
 > **Pré-requisito:** Fundação (Fase 0) da [Spec 03](03-spec-landing.md) já implementada.
-> **Status:** Fase 2 (Autenticação) e a Fase 3 (Dashboard do Psicólogo) **completas e
-> em produção** — incluindo `pacientes/[id]`, que fechou o único gap restante. Fase 4 e
-> Fase 5 ainda **pendentes** (telas hoje são placeholder). Contratos baseados no código real em `/api`.
+> **Status:** Fase 2 (Autenticação), Fase 3 (Dashboard do Psicólogo) e Fase 4 (Fluxo do
+> Paciente) **completas**. Fase 5 (analytics multi-escala/longitudinal) ainda **pendente**
+> — depende de dado que o backend não expõe. Contratos baseados no código real em `/api`.
 
-### Status de implementação (atualizado 2026-07-10 — Fase 3 fechada: endpoints `GET /pacientes/{id}` e `GET /pacientes/{id}/avaliacoes` + página `pacientes/[id]` em produção)
+### Status de implementação (atualizado 2026-07-11 — Fase 4 fechada: endpoints self-service
+`GET /questionarios/respondidos` e `GET /questionarios/{id}/resultado` (JWT, sem `patientId`)
++ wizard de resposta + `inicio/`/`resultados/` reais, verificado ponta a ponta localmente)
 
 | Parte | Status |
 |---|---|
@@ -20,13 +22,20 @@
 | Avaliações (Fase 3) — lista + detalhe + quem respondeu + resultado (gauge) | ✅ Implementado, em produção |
 | Relatórios (Fase 3 na spec original, mas depende da Fase 5) | ⏳ Placeholder deliberado — sem dado de backend pra evolução longitudinal ainda |
 | Perfil (psicólogo/paciente) | ✅ Implementado (lê nome/email/tipo do JWT) |
-| Fluxo do Paciente (Fase 4: wizard de resposta) | ⏳ Pendente — `inicio/`/`resultados/` placeholder, wizard não existe |
-| Resultados & Analytics (Fase 5: domain-bars, trend-line) | ⏳ Pendente — `gauge.tsx` já existe e está em uso no resultado do psicólogo |
-| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado |
+| Fluxo do Paciente (Fase 4: `inicio/`, wizard de resposta, `resultados/`) | ✅ Implementado — verificado localmente (login real via Auth.js, BFF, SSR, backend), não em produção ainda |
+| Resultados & Analytics (Fase 5: domain-bars, trend-line, breakdown por escala) | ⏳ Pendente — `gauge.tsx` já existe e está em uso nos dois resultados (psicólogo e paciente) |
+| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado (Fase 4 ainda não deployada) |
 
 **Fase 3: ✅ completa.** Todas as telas de `app/(app)/psicologo/` estão reais em produção,
-exceto `relatorios/` (depende da Fase 5, fora de escopo aqui). Próximo passo natural é a
-Fase 4 (Fluxo do Paciente).
+exceto `relatorios/` (depende da Fase 5, fora de escopo aqui).
+
+**Fase 4: ✅ completa (pendente deploy).** Wizard de resposta, `inicio/` (avaliações
+disponíveis) e `resultados/` (histórico + resultado individual) implementados e verificados
+localmente ponta a ponta — login real via Auth.js, sessão httpOnly, BFF, SSR das páginas de
+detalhe e o backend real (Postgres local isolado, não o de produção). Precisou de 2 endpoints
+novos no backend, auto-escopados ao paciente autenticado via JWT (sem `patientId` na URL,
+diferente do padrão psicólogo→paciente da Fase 3): `GET /questionarios/respondidos` e
+`GET /questionarios/{id}/resultado`. Ver §0 e §5.
 
 ---
 
@@ -46,13 +55,23 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 | DELETE | `/pacientes/{id}` | 204 |
 | GET | `/questionarios` | `Page<QuestionnaireResponse>` |
 | GET | `/questionarios/{id}` | `{ id, title, created_at, updated_at, active, questions[] }` onde `questions[] = { id, scale{id,name,...}, text, order_number, options[]{ id, name, value } }` |
-| POST | `/questionarios/{id}/responder` | body: `{ responses: [{ questionId, questionOptionId }] }` |
+| POST | `/questionarios/{id}/responder` | body: `{ responses: [{ questionId, questionOptionId }] }` — 409 se o paciente autenticado já respondeu este questionário (ver nota abaixo) |
 | GET | `/questionarios/{id}/pacientes` | `Page<{ patientId, patientName, answeredAt }>` |
 | GET | `/questionarios/{id}/pacientes/{pid}/respostas` | `{ questionnaireAnswerId, patientName, questionnaireTitle, answeredAt, responses[]{ questionId, questionText, chosenOption, chosenValue } }` |
-| GET | `/questionarios/{id}/pacientes/{pid}/resultado` | `{ questionnaireAnswerId, patientName, questionnaireTitle, average, answeredAt }` |
+| GET | `/questionarios/{id}/pacientes/{pid}/resultado` | `{ questionnaireAnswerId, patientName, questionnaireTitle, average, answeredAt }` — escopado ao **psicólogo** autenticado (404 se `patientId` não é seu) |
+| GET | `/questionarios/respondidos` | **(novo, Fase 4)** `Page<{ questionnaireId, questionnaireTitle, answeredAt }>` — auto-serviço do **paciente** autenticado (via JWT, sem `patientId` na URL); equivalente de `/pacientes/{id}/avaliacoes` mas do ponto de vista do próprio paciente |
+| GET | `/questionarios/{id}/resultado` | **(novo, Fase 4)** mesmo shape do endpoint acima com `pacientes/{pid}`, mas escopado ao **paciente** autenticado via JWT — 404 se ele mesmo não respondeu |
 
 > ⚠️ **Resultado = só `average` global** (PRD §3 #4). Breakdown por escala/risco ainda não
 > existe → componentes preparados, degrade graceful.
+> ✅ **Corrigido durante a Fase 4**: `AnswerQuestionnaireService` não impedia um paciente de
+> responder o mesmo questionário mais de uma vez — a 2ª resposta quebrava com 500
+> ("query did not return a unique result") tanto o `/resultado` do psicólogo quanto o novo
+> self-service, porque `findByPatientAndQuestionnaire` assume no máximo 1 resposta por par
+> paciente/questionário. Agora `POST /responder` rejeita com `409` se já existe resposta.
+> Bug pré-existente (a query já existia desde a Fase 3), só descoberto ao verificar o wizard
+> ponta a ponta — antes só o psicólogo podia disparar esse endpoint, e ele não controla quantas
+> vezes o paciente responde.
 > ✅ **R6 corrigido no backend**: `LoginController` já lança `401` (`ResponseStatusException`)
 > para credencial errada ou conta só-Google, em vez do `500` documentado no PRD. O frontend
 > mantém o tratamento de "qualquer não-2xx = credencial inválida" como rede de segurança
@@ -201,30 +220,37 @@ Regras: **nunca só a cor** — todo indicador de nível vem acompanhado de íco
 
 ---
 
-## 5. Fluxo do Paciente (Fase 4)
+## 5. Fluxo do Paciente (Fase 4) ✅ COMPLETA (pendente deploy)
 
-> **Status:** mesma situação da Fase 3 — `inicio/` e `resultados/` são placeholder;
-> `perfil/` é real; o wizard de resposta (`questionarios/[id]/responder/`) ainda não existe.
+> **Status:** todas as telas de `app/(app)/paciente/` estão implementadas. O gap de "rotas
+> exigem `patientId` explícito" (PRD §3 #5) foi fechado do mesmo jeito que a Fase 3 fechou o
+> equivalente pro psicólogo: 2 endpoints novos no backend, mas aqui auto-escopados via JWT
+> (sem `patientId` na URL, porque quem chama já É o paciente) — `GET /questionarios/respondidos`
+> e `GET /questionarios/{id}/resultado` (ver §0). Verificado ponta a ponta localmente (Postgres
+> isolado, login real via Auth.js, BFF, SSR) — ainda não deployado em produção.
 
 ```
 app/(app)/paciente/
-├── inicio/page.tsx                        ⏳ placeholder
-├── questionarios/[id]/responder/page.tsx  ⏳ não criado
-├── resultados/page.tsx                    ⏳ placeholder
+├── inicio/page.tsx                        ✅ real (lista de avaliações via /questionarios)
+├── questionarios/[id]/responder/page.tsx  ✅ real (wizard completo)
+├── resultados/page.tsx                    ✅ real (histórico via /questionarios/respondidos)
+├── resultados/[id]/page.tsx               ✅ real (resultado individual + gauge)
 └── perfil/page.tsx                        ✅ real (ProfileCard, dados do JWT)
 ```
 
 | Tela | RF | O que conter |
 |---|---|---|
-| `inicio/` | RF-18 | Questionários atribuídos/pendentes. ⚠️ Hoje as rotas exigem `patientId` explícito (PRD §3 #5); até existir endpoint escopado, listar via `/questionarios` e tratar escopo no cliente / mock. |
-| `questionarios/[id]/responder/` | RF-18 | **Wizard**: 1 pergunta/passo, barra de progresso, navegação prev/next, revisão antes de enviar. Carrega via `useQuestionnaire(id)`; estado do wizard em **Zustand** (`stores/wizard-store.ts`). Envia `POST /responder` com `{ responses: [{ questionId, questionOptionId }] }`. Tela de confirmação. Tom calmo, sem atrito (PRD §5). |
-| `resultados/` | RF-19 | Histórico próprio — **condicionado a endpoints escopados** (#5); placeholder até lá. |
-| `perfil/` | RF-20 | Dados pessoais + segurança. |
+| `inicio/` | RF-18 | ✅ Lista de avaliações via `/questionarios` (`AvailableQuestionnaires`). O backend não escopa "atribuídas a este paciente" — lista todas as ativas, sem fingir um status pendente/respondido que não há dado pra sustentar; inativas mostram "Indisponível" em vez do botão. |
+| `questionarios/[id]/responder/` | RF-18 | ✅ **Wizard** (`QuestionnaireWizard`): 1 pergunta/passo (`question-step.tsx`, opções como cards selecionáveis, sem Radix RadioGroup), barra de progresso (`progress-bar.tsx`), navegação prev/next, revisão antes de enviar (`review-step.tsx`, com "Editar" por pergunta) e confirmação (`confirmation.tsx`). Estado em **Zustand** (`stores/wizard-store.ts`). Envia `POST /responder`; backend agora rejeita 2ª resposta com `409` (ver §0). |
+| `resultados/` | RF-19 | ✅ Histórico próprio via `GET /questionarios/respondidos` (`MyAnsweredQuestionnaires`, mesmo padrão de `patient-questionnaires-table.tsx` da Fase 3), link "Ver resultado" pra `resultados/[id]`. |
+| `resultados/[id]/` | RF-19 | ✅ Resultado individual via `GET /questionarios/{id}/resultado` — mesmo layout do resultado do psicólogo (`Gauge`), sem a lista de respostas detalhada (não foi criado endpoint self-service pra `/respostas`, só pra `/resultado`). |
+| `perfil/` | RF-20 | ✅ Dados pessoais via `ProfileCard` (dados do JWT). Segurança (trocar senha) ainda pendente — sem endpoint no backend. |
 
 | Arquivo extra | O que conter |
 |---|---|
-| `stores/wizard-store.ts` | Zustand: respostas em progresso, passo atual, validação por passo. |
-| `features/questionnaires/components/wizard/*` | `question-step.tsx`, `progress-bar.tsx`, `review-step.tsx`, `confirmation.tsx`. |
+| `stores/wizard-store.ts` | ✅ Zustand: `questionnaireId`, `currentStep`, `answers` (respostas em progresso). `start()` só reseta se o paciente mudou de questionário — recarregar a página no meio do fluxo não perde respostas. |
+| `features/questionnaires/components/wizard/*` | ✅ `question-step.tsx`, `progress-bar.tsx`, `review-step.tsx`, `confirmation.tsx`, `questionnaire-wizard.tsx` (orquestrador). |
+| `features/questionnaires/components/{available-questionnaires,my-answered-questionnaires}.tsx` | ✅ Listas de `inicio/` e `resultados/`. |
 
 ---
 
@@ -247,7 +273,8 @@ quando houver série temporal. Até lá: exibir `average` global e manter compon
 | R6 Login 500 vs 401 | ✅ Corrigido no backend (401 real). Frontend mantém "não-2xx = inválido" como rede de segurança. |
 | R7 LGPD | Não logar PII; mascarar dados sensíveis em telas/prints. |
 | R8 Backend evoluindo | `features/*/api.ts` isola contratos; mocks p/ telas dependentes (#5). Confirmado na prática: backend ganhou login Google + `profileComplete` sem aviso prévio — schemas Zod absorveram o campo novo sem quebrar. |
-| R9 (novo) Perfil incompleto (403) | Contas com `profileComplete: false` só acessam perfil no backend. Telas da Fase 3/4 precisam checar `session.user.profileComplete` antes de assumir acesso pleno. |
+| R9 (novo) Perfil incompleto (403) | Contas com `profileComplete: false` só acessam perfil no backend. Telas da Fase 3/4 precisam checar `session.user.profileComplete` antes de assumir acesso pleno. Não é relevante pro paciente na prática — contas de paciente nascem sempre com senha (sem fluxo Google), `profileComplete` sempre `true`. |
+| R10 (novo, Fase 4) Resposta duplicada quebrava resultado | `findByPatientAndQuestionnaire` assumia no máximo 1 resposta por par paciente/questionário; sem essa checagem, responder 2x derrubava `/resultado` (psicólogo e paciente) com 500. Descoberto ao verificar o wizard ponta a ponta — corrigido com `409` em `AnswerQuestionnaireService` na 2ª tentativa. |
 
 ---
 
@@ -272,16 +299,34 @@ No backend: `GetPatientService`, `ListPatientQuestionnairesService`,
 `ListPatientQuestionnaireResponse`, `ListPatientQuestionnaireMapper` + rotas novas no
 `PatientController` (`GET /pacientes/{id}`, `GET /pacientes/{id}/avaliacoes`).
 
-**⏳ Ainda por criar:** conteúdo real de `app/(app)/psicologo/relatorios` e
-`app/(app)/paciente/{inicio,resultados}` (Fase 5/4), `app/(app)/paciente/questionarios/[id]/responder/`,
-`stores/wizard-store.ts`, `components/charts/{domain-bars,trend-line}.tsx`.
+**✅ Criados nesta atualização (Fase 4):** `stores/wizard-store.ts`,
+`features/questionnaires/components/wizard/{question-step,progress-bar,review-step,confirmation,questionnaire-wizard}.tsx`,
+`features/questionnaires/components/{available-questionnaires,my-answered-questionnaires}.tsx`,
+`app/(app)/paciente/questionarios/[id]/responder/page.tsx`, `app/(app)/paciente/resultados/[id]/page.tsx`.
+No backend: `ListMyQuestionnairesService`, `GetMyQuestionnaireResultService` + rotas novas no
+`QuestionnaireController` (`GET /questionarios/respondidos`, `GET /questionarios/{id}/resultado`).
+
+**✅ Modificados nesta atualização:** `app/(app)/paciente/{inicio,resultados}/page.tsx` (de
+placeholder pra real), `features/questionnaires/{schemas,api}.ts` (+`AnswerQuestionnaireRequest/Response`,
+`MyAnsweredQuestionnaire`, `useAnswerQuestionnaire`, `useMyAnsweredQuestionnaires`),
+`features/results/api.ts` (+`useMyQuestionnaireResult`), `lib/constants.ts` (+`ROUTES.paciente.responder/resultadoDetalhe`).
+No backend: `AnswerQuestionnaireService` (rejeita resposta duplicada com 409 — ver §7 R10);
+`QuestionnaireResultCalculator` movido de `calculator/` pra `calculator/questionnaire/` (o
+arquivo já declarava esse package — mismatch causava `ConflictingBeanDefinitionException` em
+builds incrementais sem `clean`, descoberto ao rodar o backend localmente pra verificação).
+
+**⏳ Ainda por criar:** conteúdo real de `app/(app)/psicologo/relatorios` (Fase 5),
+`components/charts/{domain-bars,trend-line}.tsx` (Fase 5).
 
 **Pré-requisitos de backend a pleitear (PRD §10):** refresh token, `GET /me`, score por escala +
-risco, endpoints escopados ao paciente (parcialmente resolvido pro psicólogo com os 2 endpoints
-novos desta atualização — falta o equivalente do lado do paciente pra Fase 4), OpenAPI, CORS
-restrito (~~login 500→401~~ já corrigido).
+risco, OpenAPI, CORS restrito (~~login 500→401~~ já corrigido; ~~endpoints escopados ao
+paciente~~ já resolvido nesta atualização pras rotas de avaliação — `/pacientes/*` do
+psicólogo continua sem equivalente pro paciente ver os PRÓPRIOS dados de perfil via API
+dedicada, mas isso já é coberto pelo JWT decodificado).
 
 **Entrega até aqui:** login real (Auth.js + BFF) testado em produção, shell autenticado completo
 com nav por perfil, **Fase 3 completa e em produção** (dashboard, CRUD pacientes, perfil
-individual do paciente, avaliações + resultado com gauge). **Falta:** paciente respondendo
-fim-a-fim (Fase 4), base de analytics (Fase 5).
+individual do paciente, avaliações + resultado com gauge), **Fase 4 completa e verificada
+localmente ponta a ponta** (paciente respondendo fim-a-fim: lista de avaliações, wizard,
+histórico e resultado individual) — ainda não deployada em produção. **Falta:** deploy da
+Fase 4, base de analytics (Fase 5).

@@ -1,6 +1,7 @@
 package br.com.remind.controller;
 
 import br.com.remind.controller.request.questionnaire.AnswerQuestionnaireRequest;
+import br.com.remind.controller.response.patient.ListPatientQuestionnaireResponse;
 import br.com.remind.controller.response.questionnaire.*;
 import br.com.remind.service.questionnaire.*;
 import jakarta.validation.Valid;
@@ -20,10 +21,18 @@ public class QuestionnaireController {
     private final ListQuestionnairePatientService listQuestionnairePatientService;
     private final GetPatientQuestionnaireAnswersService getPatientQuestionnaireAnswersService;
     private final GetPatientQuestionnaireResultService getPatientQuestionnaireResultService;
+    private final ListMyQuestionnairesService listMyQuestionnairesService;
+    private final GetMyQuestionnaireResultService getMyQuestionnaireResultService;
 
     @GetMapping
     public Page<QuestionnaireResponse> listQuestionnaires(Pageable pageable) {
         return listQuestionnaireService.list(pageable);
+    }
+
+    /** Auto-serviço do paciente: questionários que ele mesmo já respondeu (via JWT, sem patientId). */
+    @GetMapping("/respondidos")
+    public Page<ListPatientQuestionnaireResponse> listMyAnsweredQuestionnaires(Pageable pageable) {
+        return listMyQuestionnairesService.list(pageable);
     }
 
     @GetMapping("/{id}")
@@ -52,5 +61,11 @@ public class QuestionnaireController {
     public GetPatientQuestionnaireResultResponse getResult(@PathVariable Long id,
                                                            @PathVariable Long patientId) {
         return getPatientQuestionnaireResultService.get(id, patientId);
+    }
+
+    /** Auto-serviço do paciente: seu próprio resultado (via JWT, sem patientId). */
+    @GetMapping("/{id}/resultado")
+    public GetPatientQuestionnaireResultResponse getMyResult(@PathVariable Long id) {
+        return getMyQuestionnaireResultService.get(id);
     }
 }

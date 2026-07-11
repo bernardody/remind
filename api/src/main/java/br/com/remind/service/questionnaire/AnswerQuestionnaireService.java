@@ -43,6 +43,13 @@ public class AnswerQuestionnaireService {
         Questionnaire questionnaire = questionnaireRepository.findByIdAndActiveTrue(questionnaireId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Questionário não encontrado"));
 
+        // `findByPatientAndQuestionnaire` (usada no resultado) assume no máximo 1 resposta por
+        // paciente/questionário — sem essa checagem, responder duas vezes quebra a consulta do
+        // resultado com "query did not return a unique result".
+        if (questionnaireAnswerRepository.findByPatientAndQuestionnaire(patient, questionnaire).isPresent()) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(409), "Você já respondeu este questionário");
+        }
+
         answerQuestionnaireValidator.validate(questionnaire, request);
 
         QuestionnaireAnswer questionnaireAnswer = QuestionnaireAnswer.builder()

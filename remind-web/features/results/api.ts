@@ -23,3 +23,11 @@ export function usePatientResult(questionnaireId: number, patientId: number) {
       ),
   });
 }
+
+/** RF-19 — auto-serviço do paciente: seu próprio resultado (via JWT, sem `patientId`). */
+export function useMyQuestionnaireResult(questionnaireId: number) {
+  return useQuery({
+    queryKey: ["questionnaires", questionnaireId, "resultado"],
+    queryFn: () => apiFetch<PatientResult>(`/questionarios/${questionnaireId}/resultado`),
+  });
+}

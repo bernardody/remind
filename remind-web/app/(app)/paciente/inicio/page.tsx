@@ -1,23 +1,22 @@
-import { ClipboardList } from "lucide-react";
-
 import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState } from "@/components/shared/empty-state";
+import { AvailableQuestionnaires } from "@/features/questionnaires/components/available-questionnaires";
 import { requireRole } from "@/lib/auth/session";
 
 export default async function PacienteInicioPage() {
-  await requireRole("PATIENT");
+  const session = await requireRole("PATIENT");
+  const firstName = session.user.name?.trim().split(/\s+/)[0];
 
   return (
     <div>
       <PageHeader
         title="Início"
-        description="Seus questionários atribuídos e pendentes."
+        description={
+          firstName
+            ? `Olá, ${firstName}. Aqui estão as avaliações disponíveis pra você responder.`
+            : "Avaliações disponíveis pra você responder."
+        }
       />
-      <EmptyState
-        icon={ClipboardList}
-        title="Em construção"
-        description="A lista de questionários e o wizard de resposta chegam na Fase 4."
-      />
+      <AvailableQuestionnaires />
     </div>
   );
 }
