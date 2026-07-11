@@ -4,11 +4,11 @@
 > Cobre **Autenticação (Fase 2)**, **Dashboard do Psicólogo (Fase 3)**,
 > **Fluxo do Paciente (Fase 4)** e **Resultados & Analytics (Fase 5)**.
 > **Pré-requisito:** Fundação (Fase 0) da [Spec 03](03-spec-landing.md) já implementada.
-> **Status:** Fase 2 (Autenticação) e a Fase 3 (Dashboard do Psicólogo) **implementadas e
-> em produção**, com uma lacuna (`pacientes/[id]`). Fase 4 e Fase 5 ainda **pendentes**
-> (telas hoje são placeholder). Contratos baseados no código real em `/api`.
+> **Status:** Fase 2 (Autenticação) e a Fase 3 (Dashboard do Psicólogo) **completas e
+> em produção** — incluindo `pacientes/[id]`, que fechou o único gap restante. Fase 4 e
+> Fase 5 ainda **pendentes** (telas hoje são placeholder). Contratos baseados no código real em `/api`.
 
-### Status de implementação (atualizado 2026-07-10 — bug de carregamento pacientes/avaliações corrigido)
+### Status de implementação (atualizado 2026-07-10 — Fase 3 fechada: endpoints `GET /pacientes/{id}` e `GET /pacientes/{id}/avaliacoes` + página `pacientes/[id]` em produção)
 
 | Parte | Status |
 |---|---|
@@ -16,13 +16,17 @@
 | Shell da aplicação (sidebar, topbar, page-header, loading/empty/error state) | ✅ Implementado, em produção |
 | Dashboard do Psicólogo (Fase 3) — cards de visão geral | ✅ Implementado, em produção |
 | Pacientes (Fase 3) — lista paginada + CRUD (`patients-view.tsx`) | ✅ Implementado, em produção |
-| Pacientes (Fase 3) — perfil individual (`pacientes/[id]`, dados + avaliações respondidas) | ⏳ Pendente — nunca foi criado, sem link apontando pra lá ainda |
+| Pacientes (Fase 3) — perfil individual (`pacientes/[id]`, dados + avaliações respondidas) | ✅ Implementado, em produção — validado com `curl` contra a API real (200/404) |
 | Avaliações (Fase 3) — lista + detalhe + quem respondeu + resultado (gauge) | ✅ Implementado, em produção |
 | Relatórios (Fase 3 na spec original, mas depende da Fase 5) | ⏳ Placeholder deliberado — sem dado de backend pra evolução longitudinal ainda |
 | Perfil (psicólogo/paciente) | ✅ Implementado (lê nome/email/tipo do JWT) |
 | Fluxo do Paciente (Fase 4: wizard de resposta) | ⏳ Pendente — `inicio/`/`resultados/` placeholder, wizard não existe |
 | Resultados & Analytics (Fase 5: domain-bars, trend-line) | ⏳ Pendente — `gauge.tsx` já existe e está em uso no resultado do psicólogo |
 | Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado |
+
+**Fase 3: ✅ completa.** Todas as telas de `app/(app)/psicologo/` estão reais em produção,
+exceto `relatorios/` (depende da Fase 5, fora de escopo aqui). Próximo passo natural é a
+Fase 4 (Fluxo do Paciente).
 
 ---
 
@@ -129,20 +133,26 @@ testado ponta a ponta com o backend real (`camila.nogueira.cf@gmail.com`) e em p
 
 ---
 
-## 4. Dashboard do Psicólogo (Fase 3)
+## 4. Dashboard do Psicólogo (Fase 3) ✅ COMPLETA
 
-> **Status:** implementada e em produção, com uma lacuna. `dashboard/`, `pacientes/` (CRUD),
-> `avaliacoes/`, `avaliacoes/[id]/` e `avaliacoes/[id]/pacientes/[pid]/` (resultado com gauge)
-> são reais, testadas com backend real (inclusive o bug de `BASE_URL`/`buildUrl` que impedia
-> `/pacientes` e `/questionarios` de carregar no browser — corrigido em `lib/api/client.ts`).
-> `pacientes/[id]/` nunca foi criada (sem link apontando pra lá ainda). `relatorios/`
-> permanece placeholder deliberado — depende da Fase 5.
+> **Status:** todas as telas de `app/(app)/psicologo/` estão implementadas e em produção,
+> exceto `relatorios/` (placeholder deliberado — depende da Fase 5). O gap `pacientes/[id]/`
+> foi fechado: exigiu 2 endpoints novos no backend (`GET /pacientes/{id}` e
+> `GET /pacientes/{id}/avaliacoes`, escopados ao psicólogo autenticado — ver §0), já que o
+> `PatientController` só tinha lista/insert/update/delete e não existia consulta "avaliações
+> respondidas por este paciente" no sentido inverso ao que já existia por questionário.
+> Validado em produção via `curl` (200 pra paciente existente, 404 pra inexistente/de outro
+> psicólogo, lista paginada de avaliações). Também corrigido nesta fase: bug de `BASE_URL`/
+> `buildUrl` que impedia `/pacientes` e `/questionarios` de carregar no browser
+> (`new URL()` sem base explícita lançava `Invalid URL` antes do fetch — `lib/api/client.ts`),
+> e validação de `cpf`/`phone` no form de paciente que estourava `VARCHAR(11)` do Postgres
+> quando digitados com pontuação (`features/patients/schemas.ts`).
 
 ```
 app/(app)/psicologo/
 ├── dashboard/page.tsx      ✅ real (cards de contagem via /pacientes, /questionarios)
 ├── pacientes/page.tsx      ✅ real (CRUD completo, TanStack Table)
-├── pacientes/[id]/page.tsx ⏳ não criado — gap da Fase 3
+├── pacientes/[id]/page.tsx ✅ real (dados + avaliações respondidas)
 ├── avaliacoes/page.tsx     ✅ real
 ├── avaliacoes/[id]/page.tsx ✅ real (detalhe + quem respondeu)
 ├── avaliacoes/[id]/pacientes/[pid]/page.tsx ✅ real (respostas + resultado/gauge)
@@ -154,7 +164,7 @@ app/(app)/psicologo/
 |---|---|---|
 | `dashboard/` | RF-13 | ✅ Cards de visão geral: nº de pacientes ativos (de `/pacientes`), avaliações recentes, atalhos. |
 | `pacientes/` | RF-14 | ✅ **TanStack Table** + shadcn: lista paginada (Spring `Page`), busca, sort. Botão "Novo paciente" → dialog com form (`InsertPatientRequest`: name, email, cpf, phone, password, birthDate, gender) RHF+Zod. Editar/remover (confirm dialog). Navegação otimista + invalidação de cache. |
-| `pacientes/[id]/` | RF-14/16 | ⏳ **Pendente.** Perfil do paciente: dados + avaliações respondidas. |
+| `pacientes/[id]/` | RF-14/16 | ✅ Perfil do paciente: `PatientInfoCard` (dados) + `PatientQuestionnairesTable` (avaliações respondidas, link "Ver resultado" pra `avaliacoes/[id]/pacientes/[pid]`). Link de acesso via "Ver detalhes" no menu de ações de `pacientes/`. |
 | `avaliacoes/` | RF-15 | ✅ Lista de questionários (`/questionarios`). |
 | `avaliacoes/[id]/` | RF-15 | ✅ Detalhe do questionário + lista de quem respondeu (`/questionarios/{id}/pacientes`). |
 | `avaliacoes/[id]/pacientes/[pid]/` | RF-16 | ✅ Respostas detalhadas (`/respostas`) + resultado (`/resultado`): escore via **gauge (Recharts)**. Componentes de breakdown por domínio **preparados mas ocultos/placeholder** até backend expor (R3). |
@@ -257,17 +267,21 @@ ordinal do §4), `app/providers.tsx` (`SessionProvider`, retry sem 4xx), `compon
 
 **✅ Criados desde a última atualização:** `features/{patients,questionnaires,results}/{schemas,api}.ts`
 + `components/`, `components/charts/gauge.tsx`, conteúdo real de
-`app/(app)/psicologo/{dashboard,pacientes,avaliacoes,avaliacoes/[id],avaliacoes/[id]/pacientes/[pid]}`.
+`app/(app)/psicologo/{dashboard,pacientes,pacientes/[id],avaliacoes,avaliacoes/[id],avaliacoes/[id]/pacientes/[pid]}`.
+No backend: `GetPatientService`, `ListPatientQuestionnairesService`,
+`ListPatientQuestionnaireResponse`, `ListPatientQuestionnaireMapper` + rotas novas no
+`PatientController` (`GET /pacientes/{id}`, `GET /pacientes/{id}/avaliacoes`).
 
-**⏳ Ainda por criar:** `app/(app)/psicologo/pacientes/[id]/` (gap da Fase 3), conteúdo real de
-`app/(app)/psicologo/relatorios` e `app/(app)/paciente/{inicio,resultados}` (Fase 5/4),
-`app/(app)/paciente/questionarios/[id]/responder/`, `stores/wizard-store.ts`,
-`components/charts/{domain-bars,trend-line}.tsx`.
+**⏳ Ainda por criar:** conteúdo real de `app/(app)/psicologo/relatorios` e
+`app/(app)/paciente/{inicio,resultados}` (Fase 5/4), `app/(app)/paciente/questionarios/[id]/responder/`,
+`stores/wizard-store.ts`, `components/charts/{domain-bars,trend-line}.tsx`.
 
 **Pré-requisitos de backend a pleitear (PRD §10):** refresh token, `GET /me`, score por escala +
-risco, endpoints escopados ao paciente, OpenAPI, CORS restrito (~~login 500→401~~ já corrigido).
+risco, endpoints escopados ao paciente (parcialmente resolvido pro psicólogo com os 2 endpoints
+novos desta atualização — falta o equivalente do lado do paciente pra Fase 4), OpenAPI, CORS
+restrito (~~login 500→401~~ já corrigido).
 
 **Entrega até aqui:** login real (Auth.js + BFF) testado em produção, shell autenticado completo
-com nav por perfil, **núcleo clínico do psicólogo completo e em produção** (dashboard, CRUD
-pacientes, avaliações + resultado com gauge). **Falta:** perfil individual do paciente
-(`pacientes/[id]`), paciente respondendo fim-a-fim (Fase 4), base de analytics (Fase 5).
+com nav por perfil, **Fase 3 completa e em produção** (dashboard, CRUD pacientes, perfil
+individual do paciente, avaliações + resultado com gauge). **Falta:** paciente respondendo
+fim-a-fim (Fase 4), base de analytics (Fase 5).
