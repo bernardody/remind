@@ -11,5 +11,6 @@ import java.util.Optional;
 
 public interface QuestionnaireAnswerRepository extends JpaRepository<QuestionnaireAnswer, Long> {
     Page<QuestionnaireAnswer> findByQuestionnaire(Questionnaire questionnaire, Pageable pageable);
+    Page<QuestionnaireAnswer> findByPatient(Patient patient, Pageable pageable);
     Optional<QuestionnaireAnswer> findByPatientAndQuestionnaire(Patient patient, Questionnaire questionnaire);
 }

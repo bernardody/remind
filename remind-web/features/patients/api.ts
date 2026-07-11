@@ -3,7 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiFetchPage } from "@/lib/api/client";
 import type { PageParams } from "@/lib/api/types";
 
-import type { InsertPatientRequest, Patient, UpdatePatientRequest } from "./schemas";
+import type {
+  InsertPatientRequest,
+  Patient,
+  PatientQuestionnaire,
+  UpdatePatientRequest,
+} from "./schemas";
 
 const PATIENTS_KEY = ["patients"] as const;
 
@@ -11,6 +16,13 @@ export function usePatients(params: PageParams) {
   return useQuery({
     queryKey: [...PATIENTS_KEY, params],
     queryFn: () => apiFetchPage<Patient>("/pacientes", params),
+  });
+}
+
+export function usePatientQuestionnaires(id: number, params: PageParams) {
+  return useQuery({
+    queryKey: [...PATIENTS_KEY, id, "avaliacoes", params],
+    queryFn: () => apiFetchPage<PatientQuestionnaire>(`/pacientes/${id}/avaliacoes`, params),
   });
 }
 

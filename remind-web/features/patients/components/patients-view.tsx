@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal, Plus, Search, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ import { PatientFormDialog } from "@/features/patients/components/patient-form-d
 import { useDeletePatient, usePatients } from "@/features/patients/api";
 import type { Patient } from "@/features/patients/schemas";
 import { ApiError } from "@/lib/api/types";
+import { ROUTES } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -106,6 +108,9 @@ export function PatientsView() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`${ROUTES.psicologo.pacientes}/${row.original.id}`}>Ver detalhes</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setFormPatient(row.original)}>
               Editar
             </DropdownMenuItem>

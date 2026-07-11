@@ -55,3 +55,11 @@ export const UpdatePatientRequestSchema = z.object({
   gender: z.string().length(1, "Selecione o gênero"),
 });
 export type UpdatePatientRequest = z.infer<typeof UpdatePatientRequestSchema>;
+
+/** `GET /pacientes/{id}/avaliacoes` (`ListPatientQuestionnaireResponse`). */
+export const PatientQuestionnaireSchema = z.object({
+  questionnaireId: z.number(),
+  questionnaireTitle: z.string(),
+  answeredAt: z.string(),
+});
+export type PatientQuestionnaire = z.infer<typeof PatientQuestionnaireSchema>;

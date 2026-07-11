@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface PatientRepository extends JpaRepository<Patient, Long> {
     Page<Patient> findByPsychologistAndActiveTrue(Psychologist psychologist, Pageable pageable);
     Optional<Patient> findByUserAndActiveTrue(User user);
+    Optional<Patient> findByIdAndPsychologistAndActiveTrue(Long id, Psychologist psychologist);
 }

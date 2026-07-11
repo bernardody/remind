@@ -35,6 +35,8 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 |---|---|---|
 | POST | `/login` | `{ accessToken, expiresIn, type: "PSYCHOLOGIST"\|"PATIENT", profileComplete: boolean }` |
 | GET | `/pacientes` | `Page<{ id, name, email, phone, birthDate, gender(char), createdAt, active }>` |
+| GET | `/pacientes/{id}` | mesmo shape do item da lista (`ListPatientResponse`), escopado ao psicólogo autenticado — 404 se o paciente não existe ou pertence a outro psicólogo |
+| GET | `/pacientes/{id}/avaliacoes` | `Page<{ questionnaireId, questionnaireTitle, answeredAt }>` — avaliações respondidas por esse paciente, escopado ao psicólogo autenticado |
 | POST | `/pacientes` | body: `{ name, email, cpf, phone, password, birthDate, gender }` |
 | PUT | `/pacientes/{id}` | `UpdatePatientResponse` |
 | DELETE | `/pacientes/{id}` | 204 |
