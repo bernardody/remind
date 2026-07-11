@@ -12,4 +12,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Sem isso, o container (Alpine, sem tzdata/TZ configurado) roda em UTC e todo
+# LocalDateTime.now() do backend (answered_at, created_at etc.) grava hora UTC
+# como se fosse local — 3h adiantado do horário de Brasília real.
+ENTRYPOINT ["java", "-Duser.timezone=America/Sao_Paulo", "-jar", "app.jar"]

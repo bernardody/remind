@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Home,
   LayoutDashboard,
-  LineChart,
   UserCircle,
   Users,
   type LucideIcon,
@@ -62,10 +61,8 @@ export const ROUTES = {
   },
   paciente: {
     inicio: "/paciente/inicio",
-    resultados: "/paciente/resultados",
     perfil: "/paciente/perfil",
     responder: (questionnaireId: number) => `/paciente/questionarios/${questionnaireId}/responder`,
-    resultadoDetalhe: (questionnaireId: number) => `/paciente/resultados/${questionnaireId}`,
   },
 } as const;
 
@@ -90,9 +87,12 @@ export const PSYCHOLOGIST_NAV: NavItem[] = [
   { label: "Perfil", href: ROUTES.psicologo.perfil, icon: UserCircle },
 ];
 
+/**
+ * Paciente só entra, responde e sai — sem tela de resultados própria (decisão de
+ * produto: só o psicólogo vê o escore, ver `.claude/specs/04-spec-aplicacao.md` §5).
+ */
 export const PATIENT_NAV: NavItem[] = [
   { label: "Início", href: ROUTES.paciente.inicio, icon: Home },
-  { label: "Resultados", href: ROUTES.paciente.resultados, icon: LineChart },
   { label: "Perfil", href: ROUTES.paciente.perfil, icon: UserCircle },
 ];
 

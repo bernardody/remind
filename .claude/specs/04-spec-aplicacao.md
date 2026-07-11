@@ -60,7 +60,7 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 | GET | `/questionarios/{id}/pacientes/{pid}/respostas` | `{ questionnaireAnswerId, patientName, questionnaireTitle, answeredAt, responses[]{ questionId, questionText, chosenOption, chosenValue } }` |
 | GET | `/questionarios/{id}/pacientes/{pid}/resultado` | `{ questionnaireAnswerId, patientName, questionnaireTitle, average, answeredAt }` — escopado ao **psicólogo** autenticado (404 se `patientId` não é seu) |
 | GET | `/questionarios/respondidos` | **(novo, Fase 4)** `Page<{ questionnaireId, questionnaireTitle, answeredAt }>` — auto-serviço do **paciente** autenticado (via JWT, sem `patientId` na URL); equivalente de `/pacientes/{id}/avaliacoes` mas do ponto de vista do próprio paciente |
-| GET | `/questionarios/{id}/resultado` | **(novo, Fase 4)** mesmo shape do endpoint acima com `pacientes/{pid}`, mas escopado ao **paciente** autenticado via JWT — 404 se ele mesmo não respondeu |
+| GET | `/questionarios/{id}/resultado` | **(novo, Fase 4)** mesmo shape do endpoint acima com `pacientes/{pid}`, mas escopado ao **paciente** autenticado via JWT — 404 se ele mesmo não respondeu. Frontend do paciente usa isso só como checagem de existência (200/404) pra bloquear reentrada no wizard — o `average` da resposta nunca é exibido pro paciente (ver §5, decisão de produto) |
 
 > ⚠️ **Resultado = só `average` global** (PRD §3 #4). Breakdown por escala/risco ainda não
 > existe → componentes preparados, degrade graceful.
@@ -224,32 +224,48 @@ Regras: **nunca só a cor** — todo indicador de nível vem acompanhado de íco
 
 > **Status:** todas as telas de `app/(app)/paciente/` estão implementadas. O gap de "rotas
 > exigem `patientId` explícito" (PRD §3 #5) foi fechado do mesmo jeito que a Fase 3 fechou o
-> equivalente pro psicólogo: 2 endpoints novos no backend, mas aqui auto-escopados via JWT
-> (sem `patientId` na URL, porque quem chama já É o paciente) — `GET /questionarios/respondidos`
-> e `GET /questionarios/{id}/resultado` (ver §0). Verificado ponta a ponta localmente (Postgres
-> isolado, login real via Auth.js, BFF, SSR) — ainda não deployado em produção.
+> equivalente pro psicólogo: endpoint novo no backend, mas aqui auto-escopado via JWT (sem
+> `patientId` na URL, porque quem chama já É o paciente) — `GET /questionarios/respondidos`
+> (ver §0). Verificado ponta a ponta localmente (Postgres isolado, login real via Auth.js, BFF,
+> SSR) — ainda não deployado em produção.
+>
+> ⚠️ **Decisão de produto (revertida após teste em produção, 2026-07-11): paciente NÃO vê
+> resultado próprio.** O fluxo original desta spec incluía `resultados/` (histórico + resultado
+> individual com gauge) — foi **removido**. O paciente só entra, responde e sai; quem vê o
+> escore é o psicólogo (Fase 3). `GET /questionarios/{id}/resultado` continua existindo no
+> backend (não foi removido, é inofensivo ficar parado), só não tem mais nenhum consumidor no
+> frontend do paciente — a checagem de "já respondeu" usa esse mesmo endpoint (só o status
+> 200/404 importa, o `average` da resposta é ignorado).
 
 ```
 app/(app)/paciente/
-├── inicio/page.tsx                        ✅ real (lista de avaliações via /questionarios)
-├── questionarios/[id]/responder/page.tsx  ✅ real (wizard completo)
-├── resultados/page.tsx                    ✅ real (histórico via /questionarios/respondidos)
-├── resultados/[id]/page.tsx               ✅ real (resultado individual + gauge)
+├── inicio/page.tsx                        ✅ real (lista de avaliações via /questionarios,
+│                                              marca "Já respondido" via /questionarios/respondidos)
+├── questionarios/[id]/responder/page.tsx  ✅ real (wizard completo; bloqueia reentrada se já
+│                                              respondido, ver nota abaixo)
 └── perfil/page.tsx                        ✅ real (ProfileCard, dados do JWT)
 ```
 
 | Tela | RF | O que conter |
 |---|---|---|
-| `inicio/` | RF-18 | ✅ Lista de avaliações via `/questionarios` (`AvailableQuestionnaires`). O backend não escopa "atribuídas a este paciente" — lista todas as ativas, sem fingir um status pendente/respondido que não há dado pra sustentar; inativas mostram "Indisponível" em vez do botão. |
-| `questionarios/[id]/responder/` | RF-18 | ✅ **Wizard** (`QuestionnaireWizard`): 1 pergunta/passo (`question-step.tsx`, opções como cards selecionáveis, sem Radix RadioGroup), barra de progresso (`progress-bar.tsx`), navegação prev/next, revisão antes de enviar (`review-step.tsx`, com "Editar" por pergunta) e confirmação (`confirmation.tsx`). Estado em **Zustand** (`stores/wizard-store.ts`). Envia `POST /responder`; backend agora rejeita 2ª resposta com `409` (ver §0). |
-| `resultados/` | RF-19 | ✅ Histórico próprio via `GET /questionarios/respondidos` (`MyAnsweredQuestionnaires`, mesmo padrão de `patient-questionnaires-table.tsx` da Fase 3), link "Ver resultado" pra `resultados/[id]`. |
-| `resultados/[id]/` | RF-19 | ✅ Resultado individual via `GET /questionarios/{id}/resultado` — mesmo layout do resultado do psicólogo (`Gauge`), sem a lista de respostas detalhada (não foi criado endpoint self-service pra `/respostas`, só pra `/resultado`). |
+| `inicio/` | RF-18 | ✅ Lista de avaliações via `/questionarios` (`AvailableQuestionnaires`). O backend não escopa "atribuídas a este paciente" — lista todas as ativas, sem fingir um status "pendente" que não há dado pra sustentar. Mas "já respondido" a gente sabe (via `/questionarios/respondidos`) — mostra label em vez do botão "Responder"; inativas mostram "Indisponível". |
+| `questionarios/[id]/responder/` | RF-18 | ✅ **Wizard** (`QuestionnaireWizard`): 1 pergunta/passo (`question-step.tsx`, opções como cards selecionáveis, sem Radix RadioGroup), barra de progresso (`progress-bar.tsx`), navegação prev/next, revisão antes de enviar (`review-step.tsx`, com "Editar" por pergunta) e confirmação (`confirmation.tsx`). Estado em **Zustand** (`stores/wizard-store.ts`). Envia `POST /responder`; backend rejeita 2ª resposta com `409` (ver §0). **Bloqueio também no carregamento da página** (não só no envio): o server component checa `GET /questionarios/{id}/resultado` antes de renderizar — 200 (já respondeu) mostra tela "Questionário já respondido" em vez do wizard; sem essa checagem o paciente conseguia abrir e marcar tudo de novo, só sendo barrado ao clicar em "Enviar". |
 | `perfil/` | RF-20 | ✅ Dados pessoais via `ProfileCard` (dados do JWT). Segurança (trocar senha) ainda pendente — sem endpoint no backend. |
 
 | Arquivo extra | O que conter |
 |---|---|
 | `stores/wizard-store.ts` | ✅ Zustand: `questionnaireId`, `currentStep`, `answers` (respostas em progresso). `start()` só reseta se o paciente mudou de questionário — recarregar a página no meio do fluxo não perde respostas. |
 | `features/questionnaires/components/wizard/*` | ✅ `question-step.tsx`, `progress-bar.tsx`, `review-step.tsx`, `confirmation.tsx`, `questionnaire-wizard.tsx` (orquestrador). |
+
+### Timezone (achado em produção, 2026-07-11)
+
+Horários gravados pelo backend (`answered_at` etc., todos `LocalDateTime.now()`) saíam 3h
+adiantados em produção — o container roda `eclipse-temurin:21-jre-alpine`, que por padrão usa
+UTC, e `LocalDateTime.now()` usa o timezone default da JVM. Corrigido no `api/Dockerfile`:
+`ENTRYPOINT ["java", "-Duser.timezone=America/Sao_Paulo", "-jar", "app.jar"]`. Reproduzido e
+confirmado localmente forçando a JVM pra UTC vs. `America/Sao_Paulo` e comparando contra o
+horário real. Timestamps já gravados em produção antes da correção continuam com o desvio de
+3h — não foram corrigidos retroativamente (fora de escopo, não pedido).
 | `features/questionnaires/components/{available-questionnaires,my-answered-questionnaires}.tsx` | ✅ Listas de `inicio/` e `resultados/`. |
 
 ---
@@ -275,6 +291,7 @@ quando houver série temporal. Até lá: exibir `average` global e manter compon
 | R8 Backend evoluindo | `features/*/api.ts` isola contratos; mocks p/ telas dependentes (#5). Confirmado na prática: backend ganhou login Google + `profileComplete` sem aviso prévio — schemas Zod absorveram o campo novo sem quebrar. |
 | R9 (novo) Perfil incompleto (403) | Contas com `profileComplete: false` só acessam perfil no backend. Telas da Fase 3/4 precisam checar `session.user.profileComplete` antes de assumir acesso pleno. Não é relevante pro paciente na prática — contas de paciente nascem sempre com senha (sem fluxo Google), `profileComplete` sempre `true`. |
 | R10 (novo, Fase 4) Resposta duplicada quebrava resultado | `findByPatientAndQuestionnaire` assumia no máximo 1 resposta por par paciente/questionário; sem essa checagem, responder 2x derrubava `/resultado` (psicólogo e paciente) com 500. Descoberto ao verificar o wizard ponta a ponta — corrigido com `409` em `AnswerQuestionnaireService` na 2ª tentativa. |
+| R11 (novo, Fase 4) Timezone do container | Container roda em UTC por padrão (imagem Alpine), gravando `LocalDateTime.now()` 3h adiantado do horário de Brasília real. Achado em produção pelo usuário. Corrigido fixando `-Duser.timezone=America/Sao_Paulo` na JVM (`Dockerfile`), não no código — `LocalDateTime` em si não carrega timezone. |
 
 ---
 
@@ -301,19 +318,25 @@ No backend: `GetPatientService`, `ListPatientQuestionnairesService`,
 
 **✅ Criados nesta atualização (Fase 4):** `stores/wizard-store.ts`,
 `features/questionnaires/components/wizard/{question-step,progress-bar,review-step,confirmation,questionnaire-wizard}.tsx`,
-`features/questionnaires/components/{available-questionnaires,my-answered-questionnaires}.tsx`,
-`app/(app)/paciente/questionarios/[id]/responder/page.tsx`, `app/(app)/paciente/resultados/[id]/page.tsx`.
+`features/questionnaires/components/available-questionnaires.tsx`,
+`app/(app)/paciente/questionarios/[id]/responder/page.tsx`.
 No backend: `ListMyQuestionnairesService`, `GetMyQuestionnaireResultService` + rotas novas no
 `QuestionnaireController` (`GET /questionarios/respondidos`, `GET /questionarios/{id}/resultado`).
 
-**✅ Modificados nesta atualização:** `app/(app)/paciente/{inicio,resultados}/page.tsx` (de
-placeholder pra real), `features/questionnaires/{schemas,api}.ts` (+`AnswerQuestionnaireRequest/Response`,
-`MyAnsweredQuestionnaire`, `useAnswerQuestionnaire`, `useMyAnsweredQuestionnaires`),
-`features/results/api.ts` (+`useMyQuestionnaireResult`), `lib/constants.ts` (+`ROUTES.paciente.responder/resultadoDetalhe`).
-No backend: `AnswerQuestionnaireService` (rejeita resposta duplicada com 409 — ver §7 R10);
-`QuestionnaireResultCalculator` movido de `calculator/` pra `calculator/questionnaire/` (o
-arquivo já declarava esse package — mismatch causava `ConflictingBeanDefinitionException` em
-builds incrementais sem `clean`, descoberto ao rodar o backend localmente pra verificação).
+**✅ Modificados nesta atualização:** `app/(app)/paciente/inicio/page.tsx` (de placeholder pra
+real, com marcação "Já respondido"), `features/questionnaires/{schemas,api}.ts`
+(+`AnswerQuestionnaireRequest/Response`, `MyAnsweredQuestionnaire`, `useAnswerQuestionnaire`,
+`useMyAnsweredQuestionnaires`), `lib/constants.ts` (+`ROUTES.paciente.responder`, nav sem
+"Resultados"). No backend: `AnswerQuestionnaireService` (rejeita resposta duplicada com 409 —
+ver §7 R10); `QuestionnaireResultCalculator` movido de `calculator/` pra
+`calculator/questionnaire/` (o arquivo já declarava esse package — mismatch causava
+`ConflictingBeanDefinitionException` em builds incrementais sem `clean`, descoberto ao rodar o
+backend localmente pra verificação); `Dockerfile` (`-Duser.timezone=America/Sao_Paulo`, ver §5).
+
+**❌ Removidos após teste em produção (2026-07-11):** `app/(app)/paciente/resultados/` (lista +
+`[id]/`), `features/questionnaires/components/my-answered-questionnaires.tsx`,
+`features/results/api.ts#useMyQuestionnaireResult`, `ROUTES.paciente.{resultados,resultadoDetalhe}`,
+item "Resultados" do `PATIENT_NAV` — decisão de produto: paciente não vê o próprio resultado.
 
 **⏳ Ainda por criar:** conteúdo real de `app/(app)/psicologo/relatorios` (Fase 5),
 `components/charts/{domain-bars,trend-line}.tsx` (Fase 5).
