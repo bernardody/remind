@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { Badge } from "@/components/ui/badge";
 import type { ScaleResult } from "@/features/results/schemas";
 import { getRiskBandByLabel } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -79,15 +80,16 @@ export function DomainBars({ data, max = 5, height = 220, className }: DomainBar
               <span className="tabular-nums text-muted-foreground">
                 {entry.average.toFixed(1)} de {max}
               </span>
-              <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              <Badge
+                variant="risk"
+                className="px-2.5 py-0.5 text-xs font-semibold"
                 style={{
                   backgroundColor: entry.band?.color ?? NEUTRAL_COLOR,
                   color: entry.band?.textColor ?? "#FFFFFF",
                 }}
               >
                 {entry.band ? `Risco ${entry.band.label.toLowerCase()}` : "Sem faixa"}
-              </span>
+              </Badge>
             </span>
           </li>
         ))}

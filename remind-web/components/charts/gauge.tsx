@@ -2,6 +2,7 @@
 
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 
+import { Badge } from "@/components/ui/badge";
 import { getRiskBand, RISK_BANDS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -57,12 +58,13 @@ export function Gauge({ value, max = 5, size = 220, className }: GaugeProps) {
           <span className="text-xs text-muted-foreground">de {max}</span>
         </div>
       </div>
-      <span
-        className="rounded-full px-3 py-1 text-sm font-semibold"
+      <Badge
+        variant="risk"
+        className="px-3 py-1 text-sm font-semibold"
         style={{ backgroundColor: band.color, color: band.textColor }}
       >
         Risco {band.label.toLowerCase()}
-      </span>
+      </Badge>
 
       <div className="flex items-center gap-4" aria-hidden="true">
         {RISK_BANDS.map((riskBand) => (

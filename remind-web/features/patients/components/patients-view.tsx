@@ -100,6 +100,7 @@ export function PatientsView() {
     {
       id: "actions",
       header: () => <span className="sr-only">Ações</span>,
+      enableSorting: false,
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

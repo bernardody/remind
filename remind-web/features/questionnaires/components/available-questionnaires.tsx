@@ -48,6 +48,7 @@ export function AvailableQuestionnaires() {
     {
       id: "actions",
       header: () => <span className="sr-only">Ações</span>,
+      enableSorting: false,
       cell: ({ row }) => {
         if (answeredIds.has(row.original.id)) {
           return <span className="text-xs font-medium text-muted-foreground">Já respondido</span>;

@@ -246,6 +246,21 @@ padding: 4px 12px;
 
 **Nunca usar `#A8C5C0` como cor de texto.** Apenas para elementos decorativos, ícones e fundos secundários.
 
+### 8.1 Tabela de contraste estendida (adendo — redesign UI/UX, jul/2026)
+
+Validada por cálculo de luminância relativa (WCAG). Cobre combinações usadas na prática
+(ex. badges de faixa de risco, sidebar) que a tabela acima não cobria.
+
+| Combinação | Contraste | Uso permitido |
+|---|---|---|
+| Grafite-Verde sobre Branco-Neve | 13.55:1 | Texto em qualquer tamanho/peso |
+| Ciano-Escuro sobre Branco-Neve | 4.78:1 | Texto normal — evitar peso `font-light` (margem apertada) |
+| Branco sobre Ciano-Escuro | 5.18:1 | Botão primário, badge de risco "Moderado" |
+| Branco sobre `#0B4A42` (teal escuro, risco "Alto") | 10.13:1 | Seguro para qualquer peso |
+| **Branco sobre `#7AB1A8` (teal claro, risco "Baixo")** | **2.42:1** | ❌ **Proibido** — usar Grafite-Verde (6.07:1) em vez de branco |
+| Grafite-Verde sobre Verde-Névoa (chip/badge) | 7.98:1 | Único jeito seguro de "ativar" Verde-Névoa com texto em cima |
+| **Ciano-Escuro sobre Grafite-Verde** | **2.83:1** | ❌ **Nunca** usar Ciano-Escuro como texto/ícone sobre fundo escuro (ex. sidebar) — usar branco |
+
 ---
 
 ## 9. FOTOGRAFIA E IMAGENS
