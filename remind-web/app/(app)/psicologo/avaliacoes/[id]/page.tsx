@@ -42,17 +42,14 @@ export default async function AvaliacaoDetailPage({ params }: AvaliacaoDetailPag
         <Badge variant={questionnaire.active ? "default" : "secondary"}>
           {questionnaire.active ? "Ativo" : "Inativo"}
         </Badge>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+        <Badge variant="outline" className="gap-1.5 px-3 py-1 text-xs">
           <ClipboardList className="size-3.5" />
           {questionnaire.questions.length} pergunta(s)
-        </span>
+        </Badge>
         {scales.map((scale) => (
-          <span
-            key={scale}
-            className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground"
-          >
+          <Badge key={scale} variant="outline" className="px-3 py-1 text-xs">
             {scale}
-          </span>
+          </Badge>
         ))}
       </div>
 

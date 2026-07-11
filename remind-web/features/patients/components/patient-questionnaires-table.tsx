@@ -37,7 +37,7 @@ export function PatientQuestionnairesTable({ patientId }: PatientQuestionnairesT
     },
     {
       id: "actions",
-      header: "",
+      header: () => <span className="sr-only">Ações</span>,
       cell: ({ row }) => (
         <Button variant="ghost" size="sm" className="group" asChild>
           <Link

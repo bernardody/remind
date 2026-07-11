@@ -16,7 +16,7 @@ export default async function RelatoriosPage() {
       <EmptyState
         icon={BarChart3}
         title="Em breve"
-        description="Condicionado a dados do backend — chega na Fase 5, junto dos gráficos de analytics."
+        description="Em desenvolvimento — chegará em breve com a evolução dos seus pacientes ao longo do tempo."
       />
     </div>
   );

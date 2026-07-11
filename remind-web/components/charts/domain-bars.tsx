@@ -80,8 +80,11 @@ export function DomainBars({ data, max = 5, height = 220, className }: DomainBar
                 {entry.average.toFixed(1)} de {max}
               </span>
               <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                style={{ backgroundColor: entry.band?.color ?? NEUTRAL_COLOR }}
+                className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                style={{
+                  backgroundColor: entry.band?.color ?? NEUTRAL_COLOR,
+                  color: entry.band?.textColor ?? "#FFFFFF",
+                }}
               >
                 {entry.band ? `Risco ${entry.band.label.toLowerCase()}` : "Sem faixa"}
               </span>

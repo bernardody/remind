@@ -6,7 +6,7 @@ import { SITE, ROUTES } from "@/lib/constants";
 
 /** RF-10 — Footer: logo + Contato + Legal + copyright. */
 export function SiteFooter() {
-  const year = 2026;
+  const year = new Date().getFullYear();
 
   return (
     <footer className="bg-graphite text-snow">

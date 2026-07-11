@@ -30,14 +30,21 @@ export function SidebarNav({ userType, onNavigate }: SidebarNavProps) {
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
               isActive
                 ? "bg-white/10 text-white"
                 : "text-white/60 hover:bg-white/5 hover:text-white",
             )}
           >
-            <Icon className="size-[18px] shrink-0" aria-hidden />
-            {item.label}
+            <span className="flex items-center gap-3">
+              <Icon className="size-[18px] shrink-0" aria-hidden />
+              {item.label}
+            </span>
+            {item.badge && (
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/60">
+                {item.badge}
+              </span>
+            )}
           </Link>
         );
       })}

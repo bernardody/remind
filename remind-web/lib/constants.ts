@@ -76,6 +76,8 @@ interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Selo pequeno ao lado do label (ex. "Em breve") — telas ainda placeholder. */
+  badge?: string;
 }
 
 /** Navegação da sidebar por perfil (RF-13..RF-20) — components/layout/sidebar-nav.tsx. */
@@ -83,7 +85,12 @@ export const PSYCHOLOGIST_NAV: NavItem[] = [
   { label: "Dashboard", href: ROUTES.psicologo.dashboard, icon: LayoutDashboard },
   { label: "Pacientes", href: ROUTES.psicologo.pacientes, icon: Users },
   { label: "Avaliações", href: ROUTES.psicologo.avaliacoes, icon: ClipboardList },
-  { label: "Relatórios", href: ROUTES.psicologo.relatorios, icon: BarChart3 },
+  {
+    label: "Relatórios",
+    href: ROUTES.psicologo.relatorios,
+    icon: BarChart3,
+    badge: "Em breve",
+  },
   { label: "Perfil", href: ROUTES.psicologo.perfil, icon: UserCircle },
 ];
 
@@ -100,11 +107,15 @@ export const PATIENT_NAV: NavItem[] = [
  * Faixas de risco (placeholder) — alinhar com backend quando expuser
  * score por escala + faixas (PRD §3 dep. #4). Paleta ordinal de um único
  * matiz (Spec 04 §4) — nunca semáforo verde/amarelo/vermelho.
+ *
+ * `textColor` é o texto seguro sobre `color` (WCAG AA) — o tom claro do teal
+ * ("Baixo") reprova com texto branco (2.42:1); Grafite-Verde nele passa em
+ * 6.07:1. Ver PRD.md §2.3/§4.1 (redesign de UI/UX, jul/2026).
  */
 export const RISK_BANDS = [
-  { label: "Baixo", min: 0, max: 2, color: "#7AB1A8" },
-  { label: "Moderado", min: 2, max: 3.5, color: "#1A7A6E" },
-  { label: "Alto", min: 3.5, max: 5, color: "#0B4A42" },
+  { label: "Baixo", min: 0, max: 2, color: "#7AB1A8", textColor: "#1C2B2B" },
+  { label: "Moderado", min: 2, max: 3.5, color: "#1A7A6E", textColor: "#FFFFFF" },
+  { label: "Alto", min: 3.5, max: 5, color: "#0B4A42", textColor: "#FFFFFF" },
 ] as const;
 
 export type RiskBand = (typeof RISK_BANDS)[number];

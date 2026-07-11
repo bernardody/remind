@@ -58,8 +58,8 @@ export function Gauge({ value, max = 5, size = 220, className }: GaugeProps) {
         </div>
       </div>
       <span
-        className="rounded-full px-3 py-1 text-sm font-semibold text-white"
-        style={{ backgroundColor: band.color }}
+        className="rounded-full px-3 py-1 text-sm font-semibold"
+        style={{ backgroundColor: band.color, color: band.textColor }}
       >
         Risco {band.label.toLowerCase()}
       </span>

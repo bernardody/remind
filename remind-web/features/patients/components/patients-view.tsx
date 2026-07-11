@@ -99,7 +99,7 @@ export function PatientsView() {
     },
     {
       id: "actions",
-      header: "",
+      header: () => <span className="sr-only">Ações</span>,
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -118,7 +118,7 @@ export function PatientsView() {
               variant="destructive"
               onSelect={() => setDeleteTarget(row.original)}
             >
-              Remover
+              Inativar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -130,10 +130,10 @@ export function PatientsView() {
     if (!deleteTarget) return;
     try {
       await deletePatient.mutateAsync(deleteTarget.id);
-      toast.success("Paciente removido.");
+      toast.success("Paciente inativado.");
     } catch (err) {
       toast.error(
-        err instanceof ApiError ? err.message : "Não foi possível remover o paciente.",
+        err instanceof ApiError ? err.message : "Não foi possível inativar o paciente.",
       );
     } finally {
       setDeleteTarget(null);
@@ -201,7 +201,7 @@ export function PatientsView() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover paciente?</AlertDialogTitle>
+            <AlertDialogTitle>Inativar paciente?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTarget?.name} deixa de aparecer como ativo. A ação é reversível apenas pelo
               suporte.
@@ -209,7 +209,7 @@ export function PatientsView() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Remover</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Inativar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -20,9 +20,9 @@ export default function TermosPage() {
 
       <article className="py-16 sm:py-20">
         <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 sm:px-6 lg:px-8 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-foreground [&_p]:leading-relaxed [&_p]:text-muted-foreground [&_li]:text-muted-foreground">
-          <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm">
-            ⚠️ Texto provisório, a ser revisado juridicamente antes da
-            publicação em produção.
+          <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            Este conteúdo está em revisão pela nossa equipe jurídica e pode ser
+            atualizado sem aviso prévio.
           </p>
 
           <section className="flex flex-col gap-3">
