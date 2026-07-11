@@ -29,13 +29,13 @@ public class ListQuestionnairePatientService {
     public Page<ListQuestionnairePatientResponse> list(Long questionnaireId, Pageable pageable) {
         User authenticatedUser = authenticatedUserService.get();
 
-        psychologistRepository.findByUser(authenticatedUser)
+        Psychologist psychologist = psychologistRepository.findByUser(authenticatedUser)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Psicólogo não encontrado"));
 
         Questionnaire questionnaire = questionnaireRepository.findByIdAndActiveTrue(questionnaireId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Questionário não encontrado"));
 
-        return questionnaireAnswerRepository.findByQuestionnaire(questionnaire, pageable)
+        return questionnaireAnswerRepository.findByQuestionnaireAndPatient_Psychologist(questionnaire, psychologist, pageable)
                 .map(listQuestionnairePatientMapper::toResponse);
     }
 }

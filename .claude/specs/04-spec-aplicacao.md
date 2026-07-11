@@ -9,10 +9,9 @@
 > (evolução longitudinal / `trend-line.tsx`) **adiada deliberadamente** — decisão de produto,
 > ver §6. Contratos baseados no código real em `/api`.
 
-### Status de implementação (atualizado 2026-07-11 — Fase 5a implementada: score por escala
-+ faixa de risco no backend e no resultado do psicólogo; **ainda não deployada** — precisa
-aplicar `schema.sql`/`insert.sql` novos no Postgres de produção antes do deploy do `/api`,
-ver §6)
+### Status de implementação (atualizado 2026-07-11 — Fase 5a implementada, deployada e
+**testada em produção com sucesso** — incidente de deploy no meio do caminho, corrigido no
+mesmo dia, ver R12 no §7)
 
 | Parte | Status |
 |---|---|
@@ -25,9 +24,9 @@ ver §6)
 | Relatórios (Fase 3 na spec original, mas depende da Fase 5) | ⏳ Placeholder mantido — depende de evolução longitudinal (Fase 5b, adiada), não do breakdown por escala (Fase 5a, já pronto) |
 | Perfil (psicólogo/paciente) | ✅ Implementado (lê nome/email/tipo do JWT) |
 | Fluxo do Paciente (Fase 4: `inicio/`, wizard de resposta) | ✅ Implementado, deployado e testado em produção — incluindo os 3 ajustes pós-teste (ver §5). Paciente não vê mais resultado próprio (`resultados/` removida) |
-| Resultados & Analytics (Fase 5a: `domain-bars.tsx`, breakdown por escala + faixa de risco) | ✅ Implementado (backend + frontend), **não deployado ainda** — ver §6 |
+| Resultados & Analytics (Fase 5a: `domain-bars.tsx`, breakdown por escala + faixa de risco) | ✅ Implementado, deployado e testado em produção |
 | Resultados & Analytics (Fase 5b: `trend-line.tsx`, evolução longitudinal) | ⏳ Adiada deliberadamente (decisão de produto) — ver §6 |
-| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ⚠️ Fase 4 estabilizada e testada. Fase 5a **pendente de deploy**: precisa aplicar as 2 tabelas novas (`scale_risk_bands`, `questionnaire_scale_results`) no Postgres de produção antes do push do `/api` (mesmo cuidado do incidente de schema drift já visto nesta spec) |
+| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado, inclusive Fase 5a — com 1 incidente no meio do caminho (ver R12 no §7): push na `main` disparou deploy automático do `/api` (webhook EasyPanel) **antes** da migração de schema ser aplicada em prod, derrubando o backend inteiro por ~alguns minutos (`SchemaManagementException: missing table`). Corrigido aplicando a migração via pgweb contra o `remind_db` já em produção, sem rollback de código — resolvido no mesmo dia |
 
 **Fase 3: ✅ completa.** Todas as telas de `app/(app)/psicologo/` estão reais em produção,
 exceto `relatorios/` (depende da Fase 5, fora de escopo aqui).
@@ -371,7 +370,7 @@ chance de regressão na Fase 4 recém-testada em produção. Nenhuma das duas fo
 | R9 (novo) Perfil incompleto (403) | Contas com `profileComplete: false` só acessam perfil no backend. Telas da Fase 3/4 precisam checar `session.user.profileComplete` antes de assumir acesso pleno. Não é relevante pro paciente na prática — contas de paciente nascem sempre com senha (sem fluxo Google), `profileComplete` sempre `true`. |
 | R10 (novo, Fase 4) Resposta duplicada quebrava resultado | `findByPatientAndQuestionnaire` assumia no máximo 1 resposta por par paciente/questionário; sem essa checagem, responder 2x derrubava `/resultado` (psicólogo e paciente) com 500. Descoberto ao verificar o wizard ponta a ponta — corrigido com `409` em `AnswerQuestionnaireService` na 2ª tentativa. |
 | R11 (novo, Fase 4) Timezone do container | Container roda em UTC por padrão (imagem Alpine), gravando `LocalDateTime.now()` 3h adiantado do horário de Brasília real. Achado em produção pelo usuário. Corrigido fixando `-Duser.timezone=America/Sao_Paulo` na JVM (`Dockerfile`), não no código — `LocalDateTime` em si não carrega timezone. |
-| R12 (novo, Fase 5a) Deploy exige migração manual de schema | `scale_risk_bands`/`questionnaire_scale_results` são tabelas novas; `ddl-auto: validate` em prod não as cria sozinho. Mitigação: aplicar `schema.sql`/`insert.sql` atualizados no Postgres de produção **antes** do próximo deploy do `/api` — mesma classe de risco do incidente de schema drift já visto (ver memória do projeto). |
+| R12 (novo, Fase 5a) Deploy exige migração manual de schema | **Materializado em produção em 2026-07-11.** `scale_risk_bands`/`questionnaire_scale_results` são tabelas novas; `ddl-auto: validate` em prod não as cria sozinho. O commit foi enviado pra `main` antes da migração ser aplicada — o webhook do EasyPanel disparou o deploy automático do `/api` na hora, e o backend inteiro ficou em crash loop (`SchemaManagementException: Schema validation: missing table [questionnaire_scale_results]`, `502` em `api.remindapp.com.br`, login quebrado pra **todo mundo**, não só um usuário). Corrigido rodando a migração adicional (só `CREATE TABLE`/`ALTER TABLE`/`INSERT`, sem `DROP`) direto no `remind_db` via **pgweb** (console SQL já exposto no EasyPanel, mesma ferramenta usada pra aplicar o schema original) — sem precisar reverter o deploy. **Lição:** daqui pra frente, qualquer mudança de schema precisa ser aplicada no Postgres de produção *antes* do push pra `main`, nunca depois — o deploy automático não dá esse tempo de folga. |
 
 ---
 
