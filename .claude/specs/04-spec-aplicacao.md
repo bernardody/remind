@@ -8,9 +8,10 @@
 > Paciente) **completas**. Fase 5 (analytics multi-escala/longitudinal) ainda **pendente**
 > — depende de dado que o backend não expõe. Contratos baseados no código real em `/api`.
 
-### Status de implementação (atualizado 2026-07-11 — Fase 4 fechada: endpoints self-service
-`GET /questionarios/respondidos` e `GET /questionarios/{id}/resultado` (JWT, sem `patientId`)
-+ wizard de resposta + `inicio/`/`resultados/` reais, verificado ponta a ponta localmente)
+### Status de implementação (atualizado 2026-07-11 — Fase 4 deployada e testada em produção;
+3 ajustes pós-teste feitos — remoção de `resultados/` do paciente, fix de timezone no container,
+bloqueio de reentrada no wizard — commitados, deployados (push na `main`) e **retestados em
+produção com sucesso**)
 
 | Parte | Status |
 |---|---|
@@ -22,20 +23,26 @@
 | Avaliações (Fase 3) — lista + detalhe + quem respondeu + resultado (gauge) | ✅ Implementado, em produção |
 | Relatórios (Fase 3 na spec original, mas depende da Fase 5) | ⏳ Placeholder deliberado — sem dado de backend pra evolução longitudinal ainda |
 | Perfil (psicólogo/paciente) | ✅ Implementado (lê nome/email/tipo do JWT) |
-| Fluxo do Paciente (Fase 4: `inicio/`, wizard de resposta, `resultados/`) | ✅ Implementado — verificado localmente (login real via Auth.js, BFF, SSR, backend), não em produção ainda |
-| Resultados & Analytics (Fase 5: domain-bars, trend-line, breakdown por escala) | ⏳ Pendente — `gauge.tsx` já existe e está em uso nos dois resultados (psicólogo e paciente) |
-| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado (Fase 4 ainda não deployada) |
+| Fluxo do Paciente (Fase 4: `inicio/`, wizard de resposta) | ✅ Implementado, deployado e testado em produção — incluindo os 3 ajustes pós-teste (ver §5). Paciente não vê mais resultado próprio (`resultados/` removida) |
+| Resultados & Analytics (Fase 5: domain-bars, trend-line, breakdown por escala) | ⏳ Pendente — `gauge.tsx` já existe e está em uso só no resultado do psicólogo (Fase 3); paciente não vê resultado (decisão de produto, ver §5) |
+| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado. Fase 4 completa deployada e testada, inclusive os 3 ajustes pós-teste |
 
 **Fase 3: ✅ completa.** Todas as telas de `app/(app)/psicologo/` estão reais em produção,
 exceto `relatorios/` (depende da Fase 5, fora de escopo aqui).
 
-**Fase 4: ✅ completa (pendente deploy).** Wizard de resposta, `inicio/` (avaliações
-disponíveis) e `resultados/` (histórico + resultado individual) implementados e verificados
-localmente ponta a ponta — login real via Auth.js, sessão httpOnly, BFF, SSR das páginas de
-detalhe e o backend real (Postgres local isolado, não o de produção). Precisou de 2 endpoints
-novos no backend, auto-escopados ao paciente autenticado via JWT (sem `patientId` na URL,
-diferente do padrão psicólogo→paciente da Fase 3): `GET /questionarios/respondidos` e
-`GET /questionarios/{id}/resultado`. Ver §0 e §5.
+**Fase 4: ✅ completa, deployada e testada em produção (2026-07-11).** Wizard de resposta e
+`inicio/` (avaliações disponíveis) verificados ponta a ponta localmente antes do deploy — login
+real via Auth.js, sessão httpOnly, BFF, SSR — e depois validados pelo usuário em produção no
+mesmo dia. Precisou de 1 endpoint novo no backend, auto-escopado ao paciente autenticado via JWT
+(sem `patientId` na URL, diferente do padrão psicólogo→paciente da Fase 3):
+`GET /questionarios/respondidos` (o segundo endpoint criado, `GET /questionarios/{id}/resultado`,
+sobrevive só como checagem de existência — ver abaixo). Ver §0 e §5.
+
+O primeiro teste em produção revelou 3 problemas: (1) decisão de produto revertida — paciente
+não vê o próprio resultado, a tela `resultados/` foi removida; (2) timezone do container 3h
+adiantado (fix no `Dockerfile`); (3) paciente conseguia reabrir e refazer um questionário já
+respondido (bloqueio adicionado na entrada da página, não só no envio). Corrigidos, deployados
+e **retestados em produção com sucesso** — Fase 4 sem pendências. Detalhes em §5.
 
 ---
 
@@ -220,14 +227,16 @@ Regras: **nunca só a cor** — todo indicador de nível vem acompanhado de íco
 
 ---
 
-## 5. Fluxo do Paciente (Fase 4) ✅ COMPLETA (pendente deploy)
+## 5. Fluxo do Paciente (Fase 4) ✅ COMPLETA, deployada e testada em produção — sem pendências
 
 > **Status:** todas as telas de `app/(app)/paciente/` estão implementadas. O gap de "rotas
 > exigem `patientId` explícito" (PRD §3 #5) foi fechado do mesmo jeito que a Fase 3 fechou o
 > equivalente pro psicólogo: endpoint novo no backend, mas aqui auto-escopado via JWT (sem
 > `patientId` na URL, porque quem chama já É o paciente) — `GET /questionarios/respondidos`
 > (ver §0). Verificado ponta a ponta localmente (Postgres isolado, login real via Auth.js, BFF,
-> SSR) — ainda não deployado em produção.
+> SSR), depois deployado e testado pelo usuário em produção em 2026-07-11 — o teste real revelou
+> os 3 problemas corrigidos abaixo, que foram deployados e **retestados em produção com
+> sucesso** no mesmo dia.
 >
 > ⚠️ **Decisão de produto (revertida após teste em produção, 2026-07-11): paciente NÃO vê
 > resultado próprio.** O fluxo original desta spec incluía `resultados/` (histórico + resultado
@@ -349,7 +358,7 @@ dedicada, mas isso já é coberto pelo JWT decodificado).
 
 **Entrega até aqui:** login real (Auth.js + BFF) testado em produção, shell autenticado completo
 com nav por perfil, **Fase 3 completa e em produção** (dashboard, CRUD pacientes, perfil
-individual do paciente, avaliações + resultado com gauge), **Fase 4 completa e verificada
-localmente ponta a ponta** (paciente respondendo fim-a-fim: lista de avaliações, wizard,
-histórico e resultado individual) — ainda não deployada em produção. **Falta:** deploy da
-Fase 4, base de analytics (Fase 5).
+individual do paciente, avaliações + resultado com gauge), **Fase 4 completa, deployada e
+testada em produção, sem pendências** (paciente respondendo fim-a-fim: lista de avaliações,
+wizard; paciente NÃO vê resultado próprio — decisão de produto). **Falta:** base de analytics
+(Fase 5).
