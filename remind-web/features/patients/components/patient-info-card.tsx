@@ -1,12 +1,17 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Patient } from "@/features/patients/schemas";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 const GENDER_LABEL: Record<string, string> = { M: "Masculino", F: "Feminino" };
 
+interface PatientInfoCardProps {
+  patient: Patient;
+  className?: string;
+}
+
 /** RF-14/RF-16 — dados cadastrais do paciente na tela de perfil individual. */
-export function PatientInfoCard({ patient }: { patient: Patient }) {
+export function PatientInfoCard({ patient, className }: PatientInfoCardProps) {
   const fields = [
     { label: "Email", value: patient.email },
     { label: "Telefone", value: patient.phone },
@@ -15,7 +20,7 @@ export function PatientInfoCard({ patient }: { patient: Patient }) {
   ];
 
   return (
-    <Card className="max-w-md">
+    <Card className={cn("h-fit", className)}>
       <CardContent className="flex flex-col divide-y divide-border p-0">
         <div className="flex items-center justify-between px-6 py-4">
           <span className="text-sm text-muted-foreground">Status</span>

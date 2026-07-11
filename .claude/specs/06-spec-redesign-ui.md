@@ -11,19 +11,14 @@
 
 ---
 
-## 0. Decisão de produto pendente — bloqueia parte do escopo
+## 0. Decisão de produto — resolvida
 
-Antes de iniciar a Fase 3 (telas), uma decisão **não técnica** precisa ser tomada com o
-time/clínico (PRD §4.18 item 3, §8.1):
-
-> **A rampa de risco (Baixo/Moderado/Alto) usa um único matiz (teal) no produto real,
-> mas a landing (`solution.tsx`) mostra um mock com semáforo vermelho/âmbar/verde.**
-> Escolher uma linguagem visual única e aplicá-la nos dois lugares — não é opcional,
-> ver §3 desta spec (`Fase 3`, item da landing).
-
-Sem essa decisão, os itens que tocam `solution.tsx`/`app-showcase.tsx` (Fase 3) ficam
-bloqueados. Os itens de Fase 1 e Fase 2 **não dependem** dessa decisão e podem começar
-imediatamente.
+~~Antes de iniciar a Fase 3 (telas), uma decisão não técnica precisava ser tomada~~ —
+**decidido: Opção A, rampa de teal em tudo** (a mesma linguagem visual de
+`RISK_BANDS`/`gauge.tsx`/`domain-bars.tsx` do produto real). Já aplicado em
+`solution.tsx` (gráfico + legenda) e `app-showcase.tsx` (badges de risco do mock,
+agora via `Badge variant="risk"`, o mesmo componente do produto real) fora de ordem,
+como correção pontual — não é preciso revisitar esse item na Fase 3.
 
 ---
 
@@ -106,7 +101,7 @@ dependência entre telas diferentes, exceto onde indicado.
 | `app/(app)/paciente/inicio/page.tsx` (`available-questionnaires.tsx`) | Diferenciar os 3 estados (Responder/Já respondido/Indisponível) com ícone, não só texto | — |
 | `features/questionnaires/components/wizard/question-step.tsx` | Adicionar transição `motion/react` entre perguntas (já é dependência do projeto) | Migração para `RadioGroup` (Fase 2) |
 | `features/questionnaires/components/wizard/progress-bar.tsx` | Tratar o passo de revisão como etapa visualmente distinta, não "Pergunta Y de Y" | `components/ui/progress.tsx` (Fase 2), se optar por extrair |
-| `components/marketing/app-showcase.tsx`, `components/marketing/solution.tsx` | Realinhar o mock ao estado real do produto **após** o redesign do dashboard (linha acima) — inclui aplicar a decisão de linguagem de risco tomada em §0 desta spec | §0 desta spec (decisão de produto) + redesign do dashboard |
+| `components/marketing/app-showcase.tsx`, `components/marketing/solution.tsx` | Linguagem de risco já alinhada (§0). Falta só realinhar os números/stats do mock ao estado real do produto **após** o redesign do dashboard (linha acima) | redesign do dashboard |
 | `components/marketing/challenge.tsx`, `components/marketing/features.tsx` | Diferenciar visualmente tom "problema" de tom "solução" (hoje mesmo padrão de card) | — |
 | `components/marketing/hero.tsx` | Verificar/corrigir asset `hero-bg.png` (comentário no código cita `.jpg`, possível descompasso) | — |
 | `components/marketing/demo-form.tsx` | Indicador visual consistente para campos obrigatórios vs. opcionais | — |

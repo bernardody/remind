@@ -29,9 +29,12 @@ export default function ContatoPage() {
               <Mail className="size-5" />
             </span>
             <h2 className="mt-4 text-lg font-bold">E-mail</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Dúvidas gerais, parcerias ou suporte.
+            </p>
             <a
               href={`mailto:${SITE.email}`}
-              className="mt-1 inline-block text-sm text-primary hover:underline"
+              className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
             >
               {SITE.email}
             </a>
@@ -42,9 +45,12 @@ export default function ContatoPage() {
               <Phone className="size-5" />
             </span>
             <h2 className="mt-4 text-lg font-bold">Telefone</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Fale diretamente com nossa equipe.
+            </p>
             <a
               href={SITE.phoneHref}
-              className="mt-1 inline-block text-sm text-primary hover:underline"
+              className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
             >
               {SITE.phone}
             </a>

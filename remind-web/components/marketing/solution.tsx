@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/marketing/reveal";
 import { LazyBarChart } from "@/components/charts/lazy-bar-chart";
 import type { BarDatum } from "@/components/charts/bar-chart";
+import { getRiskBandByLabel } from "@/lib/constants";
 
 const BENEFITS = [
   "Escalas validadas prontas para aplicar (CARS, UCLA, SPI e novas escalas).",
@@ -11,12 +12,22 @@ const BENEFITS = [
   "Histórico de evolução por paciente, com comparação entre avaliações.",
 ];
 
+/**
+ * Mesma rampa monocromática de teal usada no produto real (`RISK_BANDS`,
+ * gauge/domain-bars) — nunca semáforo vermelho/âmbar/verde. Decisão de
+ * produto (PRD.md §0/§4.18): a landing precisa falar a mesma linguagem
+ * visual de risco que o app autenticado, não uma linguagem própria.
+ */
+function riskColor(label: "Baixo" | "Moderado" | "Alto") {
+  return getRiskBandByLabel(label)?.color ?? "#1A7A6E";
+}
+
 const CHART_DATA: BarDatum[] = [
-  { label: "Jan", value: 3.8, color: "#C0432F" },
-  { label: "Fev", value: 3.1, color: "#E0A21F" },
-  { label: "Mar", value: 2.4, color: "#E0A21F" },
-  { label: "Abr", value: 1.7, color: "#1A7A6E" },
-  { label: "Mai", value: 1.4, color: "#1A7A6E" },
+  { label: "Jan", value: 3.8, color: riskColor("Alto") },
+  { label: "Fev", value: 3.1, color: riskColor("Moderado") },
+  { label: "Mar", value: 2.4, color: riskColor("Moderado") },
+  { label: "Abr", value: 1.7, color: riskColor("Baixo") },
+  { label: "Mai", value: 1.4, color: riskColor("Baixo") },
 ];
 
 /** RF-05 — A Solução: plataforma para o psicólogo que leva dados a sério. */
@@ -70,9 +81,9 @@ export function Solution() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <Legend color="#C0432F" label="Alto" />
-              <Legend color="#E0A21F" label="Moderado" />
-              <Legend color="#1A7A6E" label="Baixo" />
+              <Legend color={riskColor("Alto")} label="Alto" />
+              <Legend color={riskColor("Moderado")} label="Moderado" />
+              <Legend color={riskColor("Baixo")} label="Baixo" />
             </div>
           </Card>
         </Reveal>

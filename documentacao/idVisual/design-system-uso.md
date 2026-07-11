@@ -61,7 +61,27 @@ breadcrumb convida a sair dele no meio de um questionário clínico.
 
 ---
 
-## 5. Tooltip
+## 5. Import de `Slot` — nunca do pacote `radix-ui` bundlado
+
+`components/ui/badge.tsx` e `components/ui/breadcrumb.tsx` só precisam de `Slot`
+(polimorfismo `asChild`), mas importar de `"radix-ui"` (o pacote que bundla ~25
+primitivos — Menubar, ScrollArea, OTP input etc. — num só módulo) traz esse pacote
+inteiro pro bundle, porque ele não faz tree-shaking limpo dos exports não usados.
+
+**Achado real (redesign UI/UX, jul/2026):** isso inflou o bundle da landing em
++75kB (194kB → 269kB) só por `app-showcase.tsx` importar `Badge` pela primeira vez —
+a landing não usa nenhum outro primitivo Radix, então herdou a "taxa" inteira do
+pacote por causa de um único `Slot`. Corrigido trocando por `@radix-ui/react-slot`
+(pacote individual, o mesmo que `components/ui/button.tsx` já usa) — o bundle voltou
+a 194kB, e rotas autenticadas que usam `Badge` também encolheram (ex.
+`avaliacoes/[id]` caiu de 232kB pra 156kB).
+
+**Regra:** qualquer componente que só precisa de `Slot` (`asChild`) importa de
+`@radix-ui/react-slot`, nunca de `"radix-ui"`. O pacote bundlado só vale a pena
+quando o componente já usa uma primitiva interativa de verdade dele (Dialog, Select,
+Tabs etc.) — nesses casos o custo já é pago pela primitiva em si.
+
+## 6. Tooltip
 
 Só para reforçar contexto de um ícone sem label visível (ex. ação de tabela só com
 ícone). Nunca para informação essencial — se o conteúdo é necessário para operar a tela,

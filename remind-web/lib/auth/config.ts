@@ -1,10 +1,19 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 import {
   LoginRequestSchema,
   LoginResponseSchema,
 } from "@/features/auth/schemas";
+
+/**
+ * `code` chega ao cliente via `result.code` do `signIn()` (com `redirect:
+ * false`) — permite `login-form.tsx` diferenciar "servidor indisponível" de
+ * "credencial errada" sem nunca revelar se o email existe (PRD.md §5.3).
+ */
+class ServerUnavailableError extends CredentialsSignin {
+  code = "server-unavailable";
+}
 
 // Tipos de Session/User/JWT aumentados em `types/next-auth.d.ts`.
 
@@ -55,11 +64,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             body: JSON.stringify(parsed.data),
           });
         } catch {
-          return null;
+          // Rede/backend fora do ar — não é o usuário que errou a senha.
+          throw new ServerUnavailableError();
         }
 
-        // R6: backend retorna 500 em vez de 401 para credencial inválida —
-        // qualquer resposta não-2xx aqui vira "credenciais inválidas".
+        // R6 corrigido no backend (05-spec-login-google.md): credencial
+        // errada já retorna 401 real. Um 5xx aqui é falha do próprio
+        // backend, tratado como caso separado (não "credenciais inválidas").
+        if (res.status >= 500) throw new ServerUnavailableError();
         if (!res.ok) return null;
 
         const json = await res.json().catch(() => null);

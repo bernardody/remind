@@ -39,8 +39,8 @@ export function Challenge() {
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {CARDS.map((card, i) => (
             <Reveal key={card.title} delay={i * 0.08}>
-              <Card className="h-full p-7">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary/30 text-primary">
+              <Card className="h-full border-graphite/10 p-7">
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-graphite/8 text-graphite">
                   <card.icon className="size-6" />
                 </span>
                 <h3 className="mt-5 text-2xl font-semibold">{card.title}</h3>

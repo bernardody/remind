@@ -41,10 +41,15 @@ export function LoginForm() {
       redirect: false,
     });
 
-    // Credenciais inválidas OU 500 do backend (R6) chegam aqui como erro
-    // genérico — nunca distinguimos os dois casos ao usuário.
+    // `code` vem de `ServerUnavailableError` (lib/auth/config.ts) — só
+    // diferencia "servidor fora do ar" de "credencial errada"; nunca revela
+    // se o email existe (mesma rede de segurança de antes, PRD.md §5.3).
     if (!result || result.error) {
-      setFormError("Email ou senha inválidos.");
+      setFormError(
+        result?.code === "server-unavailable"
+          ? "Não conseguimos conectar. Tente novamente em instantes."
+          : "Email ou senha inválidos.",
+      );
       return;
     }
 

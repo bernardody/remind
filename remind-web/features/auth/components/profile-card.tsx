@@ -1,3 +1,6 @@
+import { Info } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import type { UserType } from "@/features/auth/schemas";
 
@@ -13,8 +16,11 @@ interface ProfileCardProps {
 }
 
 /**
- * RF-20 — dados do usuário logado. Vêm do JWT (sem `GET /me` no backend
- * ainda, ver Spec 04 §2); troca de fonte fica isolada aqui quando existir.
+ * RF-20 — dados do usuário logado, mesmo componente pros dois perfis
+ * (psicólogo/paciente, ver `app/(app)/{psicologo,paciente}/perfil/page.tsx`).
+ * Vêm do JWT (sem `GET /me` no backend ainda, ver Spec 04 §2); troca de fonte
+ * fica isolada aqui quando existir — o mesmo vale pra edição/troca de senha,
+ * que dependem de endpoint ainda inexistente (PRD.md §5.11).
  */
 export function ProfileCard({ name, email, type }: ProfileCardProps) {
   const fields = [
@@ -24,22 +30,33 @@ export function ProfileCard({ name, email, type }: ProfileCardProps) {
   ];
 
   return (
-    <Card className="max-w-md">
-      <CardContent className="flex flex-col divide-y divide-border p-0">
-        {fields.map((field) => (
-          <div
-            key={field.label}
-            className="flex items-center justify-between px-6 py-4"
-          >
-            <span className="text-sm text-muted-foreground">
-              {field.label}
-            </span>
-            <span className="text-sm font-medium text-foreground">
-              {field.value}
-            </span>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <div className="flex max-w-md flex-col gap-4">
+      <Card>
+        <CardContent className="flex flex-col divide-y divide-border p-0">
+          {fields.map((field) => (
+            <div
+              key={field.label}
+              className="flex items-center justify-between px-6 py-4"
+            >
+              <span className="text-sm text-muted-foreground">
+                {field.label}
+              </span>
+              <span className="text-sm font-medium text-foreground">
+                {field.value}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Alert variant="warning">
+        <Info />
+        <AlertTitle>Edição de perfil em breve</AlertTitle>
+        <AlertDescription>
+          Trocar dados pessoais e senha por aqui ainda depende de um recurso do
+          backend. Por enquanto, esses dados são somente leitura.
+        </AlertDescription>
+      </Alert>
+    </div>
   );
 }

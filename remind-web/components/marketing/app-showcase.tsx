@@ -1,7 +1,9 @@
 import { LayoutDashboard, ListChecks, FileBarChart } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { Reveal } from "@/components/marketing/reveal";
+import { getRiskBandByLabel } from "@/lib/constants";
 
 /** RF-08 — Demonstração visual: mockups do app (CSS, substituíveis por screenshots). */
 export function AppShowcase() {
@@ -72,20 +74,31 @@ export function AppShowcase() {
                       { name: "Rodrigo M. Prado", scale: "CARS", risk: "Moderado" },
                       { name: "Ana C. Ribeiro", scale: "UCLA", risk: "Baixo" },
                       { name: "Lucas Fernandes", scale: "SPI", risk: "Alto" },
-                    ].map((row) => (
-                      <div
-                        key={row.name}
-                        className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm"
-                      >
-                        <span className="font-medium">{row.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {row.scale}
-                        </span>
-                        <span className="rounded-full bg-secondary/40 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                          {row.risk}
-                        </span>
-                      </div>
-                    ))}
+                    ].map((row) => {
+                      const band = getRiskBandByLabel(row.risk);
+                      return (
+                        <div
+                          key={row.name}
+                          className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium">{row.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {row.scale}
+                          </span>
+                          <Badge
+                            variant="risk"
+                            className="px-2.5 py-0.5 text-xs font-semibold"
+                            style={
+                              band
+                                ? { backgroundColor: band.color, color: band.textColor }
+                                : undefined
+                            }
+                          >
+                            {row.risk}
+                          </Badge>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

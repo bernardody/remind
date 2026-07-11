@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +29,7 @@ export function QuestionnaireWizard({ questionnaire }: QuestionnaireWizardProps)
 
   const { currentStep, answers, start, answer, goNext, goPrev, goToStep } = useWizardStore();
   const answerMutation = useAnswerQuestionnaire(questionnaire.id);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     start(questionnaire.id);
@@ -66,17 +68,31 @@ export function QuestionnaireWizard({ questionnaire }: QuestionnaireWizardProps)
   return (
     <Card>
       <CardContent className="flex flex-col gap-6 py-6">
-        <ProgressBar current={Math.min(currentStep, reviewStepIndex)} total={reviewStepIndex} />
+        <ProgressBar
+          current={Math.min(currentStep, reviewStepIndex)}
+          total={reviewStepIndex}
+          isReview={isReviewStep}
+        />
 
-        {isReviewStep ? (
-          <ReviewStep questions={questions} answers={answers} onEdit={goToStep} />
-        ) : currentQuestion ? (
-          <QuestionStep
-            question={currentQuestion}
-            selectedOptionId={answers[currentQuestion.id]}
-            onSelect={(optionId) => answer(currentQuestion.id, optionId)}
-          />
-        ) : null}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={isReviewStep ? "review" : currentQuestion?.id}
+            initial={shouldReduceMotion ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, x: -12 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: "easeOut" }}
+          >
+            {isReviewStep ? (
+              <ReviewStep questions={questions} answers={answers} onEdit={goToStep} />
+            ) : currentQuestion ? (
+              <QuestionStep
+                question={currentQuestion}
+                selectedOptionId={answers[currentQuestion.id]}
+                onSelect={(optionId) => answer(currentQuestion.id, optionId)}
+              />
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
 
         <div className="flex items-center justify-between border-t border-border pt-5">
           <Button variant="outline" onClick={goPrev} disabled={currentStep === 0}>

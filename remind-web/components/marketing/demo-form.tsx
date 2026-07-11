@@ -95,7 +95,9 @@ export function DemoForm() {
                   name="nome"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome completo</FormLabel>
+                      <FormLabel>
+                        Nome completo <span className="text-primary">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Seu nome"
@@ -114,7 +116,9 @@ export function DemoForm() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>E-mail</FormLabel>
+                        <FormLabel>
+                          E-mail <span className="text-primary">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="email"
@@ -133,7 +137,9 @@ export function DemoForm() {
                     name="telefone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Telefone</FormLabel>
+                        <FormLabel>
+                          Telefone <span className="text-primary">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="tel"

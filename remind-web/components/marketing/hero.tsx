@@ -13,7 +13,7 @@ export function Hero() {
       id="inicio"
       className="relative flex min-h-[620px] items-center overflow-hidden pt-28 pb-16 sm:min-h-[680px] sm:pt-36 sm:pb-24"
     >
-      {/* foto de fundo — coloque em public/hero-bg.jpg */}
+      {/* foto de fundo — public/brand/hero-bg.png */}
       <Image
         src="/brand/hero-bg.png"
         alt=""

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ClipboardList } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/shared/data-table";
@@ -51,14 +51,27 @@ export function AvailableQuestionnaires() {
       enableSorting: false,
       cell: ({ row }) => {
         if (answeredIds.has(row.original.id)) {
-          return <span className="text-xs font-medium text-muted-foreground">Já respondido</span>;
+          return (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <CheckCircle2 className="size-3.5 text-primary" aria-hidden />
+              Já respondido
+            </span>
+          );
         }
         if (!row.original.active) {
-          return <span className="text-xs text-muted-foreground">Indisponível</span>;
+          return (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Lock className="size-3.5" aria-hidden />
+              Indisponível
+            </span>
+          );
         }
         return (
           <Button size="sm" asChild>
-            <Link href={ROUTES.paciente.responder(row.original.id)}>Responder</Link>
+            <Link href={ROUTES.paciente.responder(row.original.id)}>
+              Responder
+              <ArrowRight className="size-3.5" />
+            </Link>
           </Button>
         );
       },

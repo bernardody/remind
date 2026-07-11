@@ -3,7 +3,15 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Plus, Search, Users } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -28,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
+import { LoadingState } from "@/components/shared/loading-state";
 import { PatientFormDialog } from "@/features/patients/components/patient-form-dialog";
 import { useDeletePatient, usePatients } from "@/features/patients/api";
 import type { Patient } from "@/features/patients/schemas";
@@ -145,6 +154,17 @@ export function PatientsView() {
     return <ErrorState onRetry={() => refetch()} />;
   }
 
+  const emptyStateNode = (
+    <EmptyState
+      icon={Users}
+      title={search ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
+      description={
+        search ? "Ajuste a busca ou limpe o filtro." : "Cadastre o primeiro paciente para começar."
+      }
+      action={!search && <Button onClick={() => setFormPatient(null)}>Novo paciente</Button>}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -158,7 +178,8 @@ export function PatientsView() {
               className="pl-10"
             />
           </div>
-          <p className="mt-1.5 text-xs text-muted-foreground">
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Info className="size-3.5 shrink-0" />
             Busca filtra apenas os pacientes carregados nesta página.
           </p>
         </div>
@@ -168,30 +189,111 @@ export function PatientsView() {
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered}
-        isLoading={isLoading}
-        page={data?.number ?? 0}
-        totalPages={data?.totalPages ?? 0}
-        isFirst={data?.first ?? true}
-        isLast={data?.last ?? true}
-        onPageChange={setPage}
-        emptyState={
-          <EmptyState
-            icon={Users}
-            title={search ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
-            description={
-              search
-                ? "Ajuste a busca ou limpe o filtro."
-                : "Cadastre o primeiro paciente para começar."
-            }
-            action={
-              !search && <Button onClick={() => setFormPatient(null)}>Novo paciente</Button>
-            }
-          />
-        }
-      />
+      {/* Desktop/tablet: tabela completa. Abaixo de `md`, 7 colunas força scroll
+          horizontal ruim numa lista de uso diário — troca por cards (PRD.md §5.5). */}
+      <div className="hidden md:block">
+        <DataTable
+          columns={columns}
+          data={filtered}
+          isLoading={isLoading}
+          page={data?.number ?? 0}
+          totalPages={data?.totalPages ?? 0}
+          isFirst={data?.first ?? true}
+          isLast={data?.last ?? true}
+          onPageChange={setPage}
+          emptyState={emptyStateNode}
+        />
+      </div>
+
+      <div className="flex flex-col gap-4 md:hidden">
+        {isLoading ? (
+          <LoadingState rows={5} />
+        ) : filtered.length === 0 ? (
+          emptyStateNode
+        ) : (
+          <>
+            <div className="flex flex-col gap-3">
+              {filtered.map((patient) => (
+                <div
+                  key={patient.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
+                >
+                  <Link
+                    href={`${ROUTES.psicologo.pacientes}/${patient.id}`}
+                    className="flex min-w-0 items-center gap-3"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-primary">
+                      {initials(patient.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {patient.name}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">{patient.email}</p>
+                    </div>
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Badge variant={patient.active ? "default" : "secondary"}>
+                      {patient.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Ações do paciente">
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`${ROUTES.psicologo.pacientes}/${patient.id}`}>
+                            Ver detalhes
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setFormPatient(patient)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => setDeleteTarget(patient)}
+                        >
+                          Inativar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {(data?.totalPages ?? 0) > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Página {(data?.number ?? 0) + 1} de {data?.totalPages ?? 0}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={data?.first ?? true}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    <ChevronLeft className="size-4" />
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={data?.last ?? true}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Próxima
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <PatientFormDialog
         open={formPatient !== undefined}
