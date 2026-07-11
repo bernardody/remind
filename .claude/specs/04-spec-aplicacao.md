@@ -344,15 +344,29 @@ evolução longitudinal fica pra depois (ver 5b).
 
 ### 5b. Evolução longitudinal (`trend-line.tsx`) ⏳ Adiada deliberadamente
 
-Decisão consciente ao escopar a Fase 5: fora desta rodada. Hoje **não há como** ter série
+Decisão consciente ao escopar a Fase 5: fora desta rodada (confirmado de novo em 2026-07-11 ao
+cogitar iniciar a 5b — usuário decidiu adiar mais uma vez). Hoje **não há como** ter série
 temporal por questionário único — `AnswerQuestionnaireService` rejeita uma 2ª resposta ao mesmo
 questionário com `409` (ver R10 no §7), regra ligada à unicidade assumida por
-`findByPatientAndQuestionnaire`. Caminho viável sem quebrar isso: agregar por `Scale` através de
-múltiplos `Questionnaire`s distintos que compartilhem a mesma escala (o modelo de dados já
-suporta — `Question.scale` é uma FK livre, não há conceito de "1 escala = 1 questionário").
-Alternativa mais robusta, mas de maior risco: relaxar o `409` e trocar as queries de resultado
-(hoje `Optional`, assumem no máximo 1 resposta) por histórico ordenado por `answered_at` — maior
-chance de regressão na Fase 4 recém-testada em produção. Nenhuma das duas foi iniciada.
+`findByPatientAndQuestionnaire`.
+
+**Caminho escolhido pra quando a 5b for retomada:** questionários novos por escala, **não**
+relaxar o `409`. Cada "reaplicação" ao longo do tempo (ex. mensal) é um `Questionnaire` novo
+cujas perguntas apontam pra mesma `Scale` — agrega por `Scale` através de múltiplos
+`Questionnaire`s (o modelo de dados já suporta isso, `Question.scale` é uma FK livre, não há
+conceito de "1 escala = 1 questionário"). Não mexe no bloqueio de reentrada do wizard nem na
+regra de resposta única por questionário da Fase 4, já testada em produção — menor risco de
+regressão que relaxar o `409`.
+
+**Escopo real da 5b quando retomada, então, inclui duas partes:**
+1. Tela nova pro **psicólogo criar questionários** (hoje não existe — `Questionnaire`/`Question`/
+   `Scale`/`QuestionOption` só são alimentados via SQL direto, sem CRUD nenhum, ver §1). Sem
+   isso não há como o psicólogo de fato "reaplicar" uma escala mês a mês.
+2. Agregação + `trend-line.tsx`: query que junte `QuestionnaireScaleResult` de um paciente por
+   `Scale` (não por `Questionnaire`), ordenada por `answered_at`, pra mostrar a progressão
+   mensal pedida pelo usuário ("ver a progressão entre os meses do paciente").
+
+Nenhuma das duas partes foi iniciada.
 
 ---
 
