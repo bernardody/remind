@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { DomainBars } from "@/components/charts/domain-bars";
 import { Gauge } from "@/components/charts/gauge";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,10 +47,20 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
 
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-8">
-          {/* Resultado é só uma média global (PRD §3 dep. #4) — sem breakdown por escala ainda. */}
           <Gauge value={result.average} />
         </CardContent>
       </Card>
+
+      {result.scaleResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Escore por escala</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DomainBars data={result.scaleResults} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

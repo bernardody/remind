@@ -116,3 +116,12 @@ export function getRiskBand(average: number): RiskBand {
     RISK_BANDS[RISK_BANDS.length - 1]
   );
 }
+
+/**
+ * Nível de risco a partir do label vindo do backend (Fase 5: cada escala tem suas
+ * próprias faixas, calculadas e classificadas no backend — `riskLabel` já vem pronto).
+ * `null` quando a escala ainda não tem faixas cadastradas (degrade graceful).
+ */
+export function getRiskBandByLabel(label: string | null): RiskBand | null {
+  return RISK_BANDS.find((band) => band.label === label) ?? null;
+}

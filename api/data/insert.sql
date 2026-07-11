@@ -41,6 +41,21 @@ INSERT INTO scales (name, created_at, updated_at, active) VALUES
 ('SPI', '2026-02-17', '2026-02-17', true);
 
 
+-- Faixas de risco por escala — cortes placeholder (tercis 0-2/2-3.5/3.5-5,
+-- espelhando o RISK_BANDS que hoje só existe hardcoded no frontend), até
+-- termos os pontos de corte clínicos reais de cada escala (CARS/UCLA/SPI).
+INSERT INTO scale_risk_bands (id_scale, label, min_value, max_value, created_at, updated_at, active) VALUES
+(1, 'Baixo', 0, 2, '2026-02-17', '2026-02-17', true),
+(1, 'Moderado', 2, 3.5, '2026-02-17', '2026-02-17', true),
+(1, 'Alto', 3.5, 5, '2026-02-17', '2026-02-17', true),
+(2, 'Baixo', 0, 2, '2026-02-17', '2026-02-17', true),
+(2, 'Moderado', 2, 3.5, '2026-02-17', '2026-02-17', true),
+(2, 'Alto', 3.5, 5, '2026-02-17', '2026-02-17', true),
+(3, 'Baixo', 0, 2, '2026-02-17', '2026-02-17', true),
+(3, 'Moderado', 2, 3.5, '2026-02-17', '2026-02-17', true),
+(3, 'Alto', 3.5, 5, '2026-02-17', '2026-02-17', true);
+
+
 INSERT INTO questions (id_questionnaire, id_scale, text, order_number, created_at, updated_at, active) VALUES
 (1, 1, 'Você sente a necessidade de verificar as redes sociais logo ao acordar ou antes de dormir?', 1, '2026-02-17', '2026-02-17', true),
 (1, 1, 'Quando está em situações sociais, você sente que precisa usar as redes sociais para se distrair ou se sentir mais confortável?', 1, '2026-02-17', '2026-02-17', true),

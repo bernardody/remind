@@ -4,14 +4,15 @@
 > Cobre **Autenticação (Fase 2)**, **Dashboard do Psicólogo (Fase 3)**,
 > **Fluxo do Paciente (Fase 4)** e **Resultados & Analytics (Fase 5)**.
 > **Pré-requisito:** Fundação (Fase 0) da [Spec 03](03-spec-landing.md) já implementada.
-> **Status:** Fase 2 (Autenticação), Fase 3 (Dashboard do Psicólogo) e Fase 4 (Fluxo do
-> Paciente) **completas**. Fase 5 (analytics multi-escala/longitudinal) ainda **pendente**
-> — depende de dado que o backend não expõe. Contratos baseados no código real em `/api`.
+> **Status:** Fase 2 (Autenticação), Fase 3 (Dashboard do Psicólogo), Fase 4 (Fluxo do
+> Paciente) e Fase 5a (score por escala + faixa de risco) **completas**. Fase 5b
+> (evolução longitudinal / `trend-line.tsx`) **adiada deliberadamente** — decisão de produto,
+> ver §6. Contratos baseados no código real em `/api`.
 
-### Status de implementação (atualizado 2026-07-11 — Fase 4 deployada e testada em produção;
-3 ajustes pós-teste feitos — remoção de `resultados/` do paciente, fix de timezone no container,
-bloqueio de reentrada no wizard — commitados, deployados (push na `main`) e **retestados em
-produção com sucesso**)
+### Status de implementação (atualizado 2026-07-11 — Fase 5a implementada: score por escala
++ faixa de risco no backend e no resultado do psicólogo; **ainda não deployada** — precisa
+aplicar `schema.sql`/`insert.sql` novos no Postgres de produção antes do deploy do `/api`,
+ver §6)
 
 | Parte | Status |
 |---|---|
@@ -21,11 +22,12 @@ produção com sucesso**)
 | Pacientes (Fase 3) — lista paginada + CRUD (`patients-view.tsx`) | ✅ Implementado, em produção |
 | Pacientes (Fase 3) — perfil individual (`pacientes/[id]`, dados + avaliações respondidas) | ✅ Implementado, em produção — validado com `curl` contra a API real (200/404) |
 | Avaliações (Fase 3) — lista + detalhe + quem respondeu + resultado (gauge) | ✅ Implementado, em produção |
-| Relatórios (Fase 3 na spec original, mas depende da Fase 5) | ⏳ Placeholder deliberado — sem dado de backend pra evolução longitudinal ainda |
+| Relatórios (Fase 3 na spec original, mas depende da Fase 5) | ⏳ Placeholder mantido — depende de evolução longitudinal (Fase 5b, adiada), não do breakdown por escala (Fase 5a, já pronto) |
 | Perfil (psicólogo/paciente) | ✅ Implementado (lê nome/email/tipo do JWT) |
 | Fluxo do Paciente (Fase 4: `inicio/`, wizard de resposta) | ✅ Implementado, deployado e testado em produção — incluindo os 3 ajustes pós-teste (ver §5). Paciente não vê mais resultado próprio (`resultados/` removida) |
-| Resultados & Analytics (Fase 5: domain-bars, trend-line, breakdown por escala) | ⏳ Pendente — `gauge.tsx` já existe e está em uso só no resultado do psicólogo (Fase 3); paciente não vê resultado (decisão de produto, ver §5) |
-| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado. Fase 4 completa deployada e testada, inclusive os 3 ajustes pós-teste |
+| Resultados & Analytics (Fase 5a: `domain-bars.tsx`, breakdown por escala + faixa de risco) | ✅ Implementado (backend + frontend), **não deployado ainda** — ver §6 |
+| Resultados & Analytics (Fase 5b: `trend-line.tsx`, evolução longitudinal) | ⏳ Adiada deliberadamente (decisão de produto) — ver §6 |
+| Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ⚠️ Fase 4 estabilizada e testada. Fase 5a **pendente de deploy**: precisa aplicar as 2 tabelas novas (`scale_risk_bands`, `questionnaire_scale_results`) no Postgres de produção antes do push do `/api` (mesmo cuidado do incidente de schema drift já visto nesta spec) |
 
 **Fase 3: ✅ completa.** Todas as telas de `app/(app)/psicologo/` estão reais em produção,
 exceto `relatorios/` (depende da Fase 5, fora de escopo aqui).
@@ -65,12 +67,25 @@ Auth: Bearer JWT RS256, `expiresIn: 600s`. **Sem refresh, sem `/me`** (PRD §3).
 | POST | `/questionarios/{id}/responder` | body: `{ responses: [{ questionId, questionOptionId }] }` — 409 se o paciente autenticado já respondeu este questionário (ver nota abaixo) |
 | GET | `/questionarios/{id}/pacientes` | `Page<{ patientId, patientName, answeredAt }>` |
 | GET | `/questionarios/{id}/pacientes/{pid}/respostas` | `{ questionnaireAnswerId, patientName, questionnaireTitle, answeredAt, responses[]{ questionId, questionText, chosenOption, chosenValue } }` |
-| GET | `/questionarios/{id}/pacientes/{pid}/resultado` | `{ questionnaireAnswerId, patientName, questionnaireTitle, average, answeredAt }` — escopado ao **psicólogo** autenticado (404 se `patientId` não é seu) |
+| GET | `/questionarios/{id}/pacientes/{pid}/resultado` | `{ questionnaireAnswerId, patientName, questionnaireTitle, average, answeredAt, scaleResults[] }` (Fase 5a) — escopado ao **psicólogo** autenticado (404 se `patientId` não é seu). `scaleResults[] = { scaleId, scaleName, average, riskLabel }`, um item por escala presente no questionário (`average` continua sendo a média global, inalterado) |
 | GET | `/questionarios/respondidos` | **(novo, Fase 4)** `Page<{ questionnaireId, questionnaireTitle, answeredAt }>` — auto-serviço do **paciente** autenticado (via JWT, sem `patientId` na URL); equivalente de `/pacientes/{id}/avaliacoes` mas do ponto de vista do próprio paciente |
 | GET | `/questionarios/{id}/resultado` | **(novo, Fase 4)** mesmo shape do endpoint acima com `pacientes/{pid}`, mas escopado ao **paciente** autenticado via JWT — 404 se ele mesmo não respondeu. Frontend do paciente usa isso só como checagem de existência (200/404) pra bloquear reentrada no wizard — o `average` da resposta nunca é exibido pro paciente (ver §5, decisão de produto) |
 
-> ⚠️ **Resultado = só `average` global** (PRD §3 #4). Breakdown por escala/risco ainda não
-> existe → componentes preparados, degrade graceful.
+> ✅ **Fase 5a — breakdown por escala + faixa de risco.** `GetPatientQuestionnaireResultResponse`
+> ganhou `scaleResults[]` (ver linha acima). Antes disso o cálculo (`QuestionnaireResultCalculator`)
+> só produzia 1 `average` global misturando **todas** as escalas do questionário — sem sentido
+> clínico, já que o questionário seed tem 3 escalas distintas (CARS/UCLA/SPI) na mesma lista de
+> perguntas. Agora agrupa `PatientQuestionResponse` por `Question.scale`, calcula 1 média por
+> escala e classifica o risco (Baixo/Moderado/Alto) contra a tabela nova `scale_risk_bands`
+> (thresholds por escala, seed manual — ver `api/data/insert.sql`, cortes placeholder tipo
+> tercis 0–2/2–3.5/3.5–5, mesmos da paleta ordinal do §4, até haver cortes clínicos reais por
+> escala). Persistido em `questionnaire_scale_results` (1 linha por escala por resposta),
+> calculado 1x no momento da resposta (mesmo padrão do `average` global), não recalculado na
+> leitura. `riskLabel` fica `null` se a escala não tiver faixas cadastradas (degrade graceful —
+> frontend mostra "Sem faixa" em vez de quebrar). O endpoint do **paciente**
+> (`GET /questionarios/{id}/resultado`) usa o mesmo mapper e passou a incluir `scaleResults`
+> também, mas o frontend do paciente continua ignorando o corpo da resposta inteiro (decisão de
+> produto da Fase 4: paciente não vê resultado, só o status 200/404 importa).
 > ✅ **Corrigido durante a Fase 4**: `AnswerQuestionnaireService` não impedia um paciente de
 > responder o mesmo questionário mais de uma vez — a 2ª resposta quebrava com 500
 > ("query did not return a unique result") tanto o `/resultado` do psicólogo quanto o novo
@@ -193,7 +208,7 @@ app/(app)/psicologo/
 | `pacientes/[id]/` | RF-14/16 | ✅ Perfil do paciente: `PatientInfoCard` (dados) + `PatientQuestionnairesTable` (avaliações respondidas, link "Ver resultado" pra `avaliacoes/[id]/pacientes/[pid]`). Link de acesso via "Ver detalhes" no menu de ações de `pacientes/`. |
 | `avaliacoes/` | RF-15 | ✅ Lista de questionários (`/questionarios`). |
 | `avaliacoes/[id]/` | RF-15 | ✅ Detalhe do questionário + lista de quem respondeu (`/questionarios/{id}/pacientes`). |
-| `avaliacoes/[id]/pacientes/[pid]/` | RF-16 | ✅ Respostas detalhadas (`/respostas`) + resultado (`/resultado`): escore via **gauge (Recharts)**. Componentes de breakdown por domínio **preparados mas ocultos/placeholder** até backend expor (R3). |
+| `avaliacoes/[id]/pacientes/[pid]/` | RF-16 | ✅ Respostas detalhadas (`/respostas`) + resultado (`/resultado`): escore global via **gauge (Recharts)** + breakdown por escala via **`domain-bars.tsx`** (Fase 5a, condicional a `scaleResults.length > 0`). `trend-line.tsx` (Fase 5b, longitudinal) segue adiado. |
 | `relatorios/` | RF-17 | ⏳ Evolução longitudinal / comparativos por escala — **condicionado a dados do backend**; placeholder com aviso "em breve" mantido até a Fase 5. |
 | `perfil/` | RF-20 | ✅ Dados do usuário logado (do JWT) via `ProfileCard`. Segurança (trocar senha etc.) ainda pendente — sem endpoint no backend. |
 
@@ -202,10 +217,11 @@ app/(app)/psicologo/
 > backend — endpoints além de perfil retornam `403`. Ao implementar as telas acima, tratar
 > esse caso (ex.: banner "complete seu perfil" + bloqueio), hoje fora do escopo desta spec.
 
-### Componentes de visualização a criar (`components/charts/`)
+### Componentes de visualização (`components/charts/`)
 
-`gauge.tsx` (escore geral), `domain-bars.tsx` (barras por domínio + nível Baixo/Moderado/Alto —
-usa faixas de risco quando existirem), `trend-line.tsx` (evolução temporal). Recharts.
+`gauge.tsx` ✅ (escore geral), `domain-bars.tsx` ✅ (Fase 5a — barras por escala + nível
+Baixo/Moderado/Alto vindo do backend via `riskLabel`, `getRiskBandByLabel` em `lib/constants.ts`),
+`trend-line.tsx` ⏳ (Fase 5b, evolução temporal — adiada). Recharts.
 `features/patients/components/` e `features/results/components/` para tabelas/cards específicos.
 
 #### Escala de risco (Baixo/Moderado/Alto) — paleta
@@ -281,9 +297,63 @@ horário real. Timestamps já gravados em produção antes da correção continu
 
 ## 6. Resultados & Analytics (Fase 5)
 
-Evoluir com o backend (PRD §3 #4): quando `resultado` expuser score **por escala** + faixas de
-risco, ativar `domain-bars.tsx` e `gauge.tsx` com dados reais; `trend-line.tsx` para longitudinal
-quando houver série temporal. Até lá: exibir `average` global e manter componentes em degrade graceful.
+### 5a. Score por escala + faixa de risco ✅ COMPLETA (backend + frontend, deploy pendente)
+
+Decisões de escopo tomadas com o usuário ao iniciar a fase: (1) mostrar a média final global
+**e** a média de cada escala lado a lado (não substituir uma pela outra); (2) faixas de risco em
+tabela nova por escala, com seed manual de placeholder (não hardcode no Java, não adiado); (3)
+evolução longitudinal fica pra depois (ver 5b).
+
+**Backend** (schema novo, ver `api/data/schema.sql`/`insert.sql`):
+- `scale_risk_bands` (`id_scale` FK, `label`, `min_value`, `max_value`) — thresholds por escala.
+  Seed atual (`insert.sql`) usa cortes placeholder (tercis 0–2/2–3.5/3.5–5, mesmos 3 níveis já
+  usados no frontend) pras 3 escalas existentes (CARS/UCLA/SPI) — **trocar pelos cortes clínicos
+  reais quando definidos**, é só UPDATE nas linhas, sem migração de schema.
+- `questionnaire_scale_results` (`id_questionnaire_result` FK, `id_scale` FK, `average`,
+  `risk_label`) — 1 linha por escala por resposta, calculada 1x em `QuestionnaireResultCalculator`
+  (junto do `average` global, que não mudou) e nunca recalculada na leitura.
+- `QuestionnaireResultCalculator` reescrito: agrupa `PatientQuestionResponse` por
+  `Question.scale`, calcula 1 média por grupo, classifica contra `ScaleRiskBandRepository`
+  (`null` se a escala não tiver faixa cadastrada). **Classificação por piso, não por
+  intervalo:** a faixa escolhida é a de maior `min_value` que a média atinge — não compara
+  contra `max_value`. Achado em teste manual ponta a ponta (Postgres real, paciente
+  respondendo "Sempre"/"Concordo totalmente" em tudo de uma escala, `average = 5.00`): com
+  faixas `min`/`max` e limite superior exclusivo (`average < max_value`), a nota máxima
+  possível da escala nunca bateria a condição do maior nível ("Alto", `max_value = 5`), e
+  ficaria sem classificação nenhuma (`riskLabel = null`). `max_value` continua no schema como
+  metadado descritivo, só não entra na comparação.
+- `GetPatientQuestionnaireResultResponse` ganhou `scaleResults[]` (`scaleId`, `scaleName`,
+  `average`, `riskLabel`); mesmo mapper serve tanto o endpoint do psicólogo quanto o do paciente
+  (que ignora o campo, ver §0).
+
+**Frontend:**
+- `features/results/schemas.ts`: `ScaleResultSchema` novo, `PatientResultSchema.scaleResults`.
+- `components/charts/domain-bars.tsx` (novo): barra por escala (Recharts) + lista textual com
+  nível de risco (nunca só cor, mesma regra do `gauge.tsx`/`RISK_BANDS` do §4).
+- `lib/constants.ts`: `getRiskBandByLabel(label)` novo — mapeia o `riskLabel` do backend
+  (string) pra cor/label da paleta ordinal (`getRiskBand(average)`, que já existia, continua
+  servindo só o gauge do escore global).
+- `avaliacoes/[id]/pacientes/[pid]/page.tsx`: renderiza `<DomainBars>` num card novo entre o
+  gauge e a lista de respostas, condicional a `scaleResults.length > 0` (resultados antigos —
+  respondidos antes desta fase — não têm `questionnaire_scale_results`, então o card não
+  aparece pra eles em vez de mostrar vazio).
+
+**⚠️ Pendente antes do deploy:** aplicar `scale_risk_bands` e `questionnaire_scale_results`
+(schema + seed) no Postgres de produção — `ddl-auto: validate` não cria tabela nenhuma sozinho
+(mesma mecânica do incidente de schema drift já documentado nesta spec). Sem isso, o boot do
+`/api` em prod falha a validação do Hibernate contra o schema real.
+
+### 5b. Evolução longitudinal (`trend-line.tsx`) ⏳ Adiada deliberadamente
+
+Decisão consciente ao escopar a Fase 5: fora desta rodada. Hoje **não há como** ter série
+temporal por questionário único — `AnswerQuestionnaireService` rejeita uma 2ª resposta ao mesmo
+questionário com `409` (ver R10 no §7), regra ligada à unicidade assumida por
+`findByPatientAndQuestionnaire`. Caminho viável sem quebrar isso: agregar por `Scale` através de
+múltiplos `Questionnaire`s distintos que compartilhem a mesma escala (o modelo de dados já
+suporta — `Question.scale` é uma FK livre, não há conceito de "1 escala = 1 questionário").
+Alternativa mais robusta, mas de maior risco: relaxar o `409` e trocar as queries de resultado
+(hoje `Optional`, assumem no máximo 1 resposta) por histórico ordenado por `answered_at` — maior
+chance de regressão na Fase 4 recém-testada em produção. Nenhuma das duas foi iniciada.
 
 ---
 
@@ -301,6 +371,7 @@ quando houver série temporal. Até lá: exibir `average` global e manter compon
 | R9 (novo) Perfil incompleto (403) | Contas com `profileComplete: false` só acessam perfil no backend. Telas da Fase 3/4 precisam checar `session.user.profileComplete` antes de assumir acesso pleno. Não é relevante pro paciente na prática — contas de paciente nascem sempre com senha (sem fluxo Google), `profileComplete` sempre `true`. |
 | R10 (novo, Fase 4) Resposta duplicada quebrava resultado | `findByPatientAndQuestionnaire` assumia no máximo 1 resposta por par paciente/questionário; sem essa checagem, responder 2x derrubava `/resultado` (psicólogo e paciente) com 500. Descoberto ao verificar o wizard ponta a ponta — corrigido com `409` em `AnswerQuestionnaireService` na 2ª tentativa. |
 | R11 (novo, Fase 4) Timezone do container | Container roda em UTC por padrão (imagem Alpine), gravando `LocalDateTime.now()` 3h adiantado do horário de Brasília real. Achado em produção pelo usuário. Corrigido fixando `-Duser.timezone=America/Sao_Paulo` na JVM (`Dockerfile`), não no código — `LocalDateTime` em si não carrega timezone. |
+| R12 (novo, Fase 5a) Deploy exige migração manual de schema | `scale_risk_bands`/`questionnaire_scale_results` são tabelas novas; `ddl-auto: validate` em prod não as cria sozinho. Mitigação: aplicar `schema.sql`/`insert.sql` atualizados no Postgres de produção **antes** do próximo deploy do `/api` — mesma classe de risco do incidente de schema drift já visto (ver memória do projeto). |
 
 ---
 
@@ -347,18 +418,35 @@ backend localmente pra verificação); `Dockerfile` (`-Duser.timezone=America/Sa
 `features/results/api.ts#useMyQuestionnaireResult`, `ROUTES.paciente.{resultados,resultadoDetalhe}`,
 item "Resultados" do `PATIENT_NAV` — decisão de produto: paciente não vê o próprio resultado.
 
-**⏳ Ainda por criar:** conteúdo real de `app/(app)/psicologo/relatorios` (Fase 5),
-`components/charts/{domain-bars,trend-line}.tsx` (Fase 5).
+**✅ Criados/modificados nesta atualização (Fase 5a):** backend —
+`domain/{ScaleRiskBand,QuestionnaireScaleResult}.java`,
+`repository/{ScaleRiskBandRepository,QuestionnaireScaleResultRepository}.java`,
+`calculator/questionnaire/QuestionnaireResultCalculator` (reescrito, agrupa por escala),
+`controller/response/questionnaire/GetPatientQuestionnaireResultResponse` (+`scaleResults[]`),
+`mapper/questionnaire/GetPatientQuestionnaireResultMapper` (+parâmetro de lista),
+`service/questionnaire/{GetPatientQuestionnaireResultService,GetMyQuestionnaireResultService}`
+(injetam o repo novo), `api/data/{schema.sql,insert.sql}` (2 tabelas novas + seed de faixas).
+Frontend — `components/charts/domain-bars.tsx` (novo), `features/results/schemas.ts`
+(+`ScaleResultSchema`), `lib/constants.ts` (+`getRiskBandByLabel`),
+`app/(app)/psicologo/avaliacoes/[id]/pacientes/[pid]/page.tsx` (renderiza `DomainBars`).
+Testes existentes (29, `mvnw test`) e typecheck/lint do frontend passam sem alteração.
 
-**Pré-requisitos de backend a pleitear (PRD §10):** refresh token, `GET /me`, score por escala +
-risco, OpenAPI, CORS restrito (~~login 500→401~~ já corrigido; ~~endpoints escopados ao
-paciente~~ já resolvido nesta atualização pras rotas de avaliação — `/pacientes/*` do
-psicólogo continua sem equivalente pro paciente ver os PRÓPRIOS dados de perfil via API
-dedicada, mas isso já é coberto pelo JWT decodificado).
+**⏳ Ainda por criar:** `components/charts/trend-line.tsx` e conteúdo real de
+`app/(app)/psicologo/relatorios` — ambos dependem da Fase 5b (longitudinal), adiada
+deliberadamente (ver §6).
+
+**Pré-requisitos de backend a pleitear (PRD §10):** refresh token, `GET /me`, ~~score por
+escala + risco~~ já implementado nesta atualização (Fase 5a), série temporal (Fase 5b), OpenAPI,
+CORS restrito (~~login 500→401~~ já corrigido; ~~endpoints escopados ao paciente~~ já resolvido
+na Fase 4 pras rotas de avaliação — `/pacientes/*` do psicólogo continua sem equivalente pro
+paciente ver os PRÓPRIOS dados de perfil via API dedicada, mas isso já é coberto pelo JWT
+decodificado).
 
 **Entrega até aqui:** login real (Auth.js + BFF) testado em produção, shell autenticado completo
 com nav por perfil, **Fase 3 completa e em produção** (dashboard, CRUD pacientes, perfil
 individual do paciente, avaliações + resultado com gauge), **Fase 4 completa, deployada e
 testada em produção, sem pendências** (paciente respondendo fim-a-fim: lista de avaliações,
-wizard; paciente NÃO vê resultado próprio — decisão de produto). **Falta:** base de analytics
-(Fase 5).
+wizard; paciente NÃO vê resultado próprio — decisão de produto), **Fase 5a completa** (score
+por escala + faixa de risco, backend e frontend prontos, **deploy pendente** — precisa migrar
+schema em prod antes, ver R12). **Falta:** Fase 5b (evolução longitudinal, adiada por decisão
+de produto).

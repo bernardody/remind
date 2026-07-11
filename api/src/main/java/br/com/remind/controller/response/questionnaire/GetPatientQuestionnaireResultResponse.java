@@ -4,6 +4,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder
 @AllArgsConstructor
@@ -17,4 +18,17 @@ public class GetPatientQuestionnaireResultResponse {
     private String questionnaireTitle;
     private BigDecimal average;
     private LocalDateTime answeredAt;
+    private List<ScaleResultResponse> scaleResults;
+
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class ScaleResultResponse {
+        private Long scaleId;
+        private String scaleName;
+        private BigDecimal average;
+        private String riskLabel;
+    }
 }

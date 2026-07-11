@@ -5,17 +5,21 @@ import br.com.remind.domain.Patient;
 import br.com.remind.domain.Questionnaire;
 import br.com.remind.domain.QuestionnaireAnswer;
 import br.com.remind.domain.QuestionnaireResult;
+import br.com.remind.domain.QuestionnaireScaleResult;
 import br.com.remind.domain.User;
 import br.com.remind.mapper.questionnaire.GetPatientQuestionnaireResultMapper;
 import br.com.remind.repository.PatientRepository;
 import br.com.remind.repository.QuestionnaireAnswerRepository;
 import br.com.remind.repository.QuestionnaireRepository;
 import br.com.remind.repository.QuestionnaireResultRepository;
+import br.com.remind.repository.QuestionnaireScaleResultRepository;
 import br.com.remind.service.user.AuthenticatedUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -24,6 +28,7 @@ public class GetMyQuestionnaireResultService {
     private final QuestionnaireRepository questionnaireRepository;
     private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
     private final QuestionnaireResultRepository questionnaireResultRepository;
+    private final QuestionnaireScaleResultRepository questionnaireScaleResultRepository;
     private final PatientRepository patientRepository;
     private final AuthenticatedUserService authenticatedUserService;
     private final GetPatientQuestionnaireResultMapper getPatientQuestionnaireResultMapper;
@@ -43,6 +48,8 @@ public class GetMyQuestionnaireResultService {
         QuestionnaireResult result = questionnaireResultRepository.findByQuestionnaireResponse(answer)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Resultado não encontrado"));
 
-        return getPatientQuestionnaireResultMapper.toResponse(result);
+        List<QuestionnaireScaleResult> scaleResults = questionnaireScaleResultRepository.findByQuestionnaireResult(result);
+
+        return getPatientQuestionnaireResultMapper.toResponse(result, scaleResults);
     }
 }

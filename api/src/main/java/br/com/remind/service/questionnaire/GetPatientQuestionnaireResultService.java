@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @Service
 public class GetPatientQuestionnaireResultService {
@@ -17,6 +19,7 @@ public class GetPatientQuestionnaireResultService {
     private final QuestionnaireRepository questionnaireRepository;
     private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
     private final QuestionnaireResultRepository questionnaireResultRepository;
+    private final QuestionnaireScaleResultRepository questionnaireScaleResultRepository;
     private final PatientRepository patientRepository;
     private final PsychologistRepository psychologistRepository;
     private final AuthenticatedUserService authenticatedUserService;
@@ -44,6 +47,8 @@ public class GetPatientQuestionnaireResultService {
         QuestionnaireResult result = questionnaireResultRepository.findByQuestionnaireResponse(answer)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Resultado não encontrado"));
 
-        return getPatientQuestionnaireResultMapper.toResponse(result);
+        List<QuestionnaireScaleResult> scaleResults = questionnaireScaleResultRepository.findByQuestionnaireResult(result);
+
+        return getPatientQuestionnaireResultMapper.toResponse(result, scaleResults);
     }
 }
