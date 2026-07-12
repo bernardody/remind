@@ -6,8 +6,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn, getSession } from "next-auth/react";
-import { AnimatePresence, motion } from "motion/react";
-import { Eye, EyeOff, Loader2, TriangleAlert } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ArrowLeft, Eye, EyeOff, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const form = useForm<LoginRequest>({
     resolver: zodResolver(LoginRequestSchema),
@@ -64,32 +65,46 @@ export function LoginForm() {
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-8">
-      <div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
-          Entrar
-        </h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Acesse com o email e senha cadastrados.
-        </p>
+      <div className="flex flex-col gap-5">
+        <Link
+          href={ROUTES.home}
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Voltar ao site
+        </Link>
+        <div>
+          <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
+            Entrar
+          </h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Acesse com o email e senha cadastrados.
+          </p>
+        </div>
       </div>
 
+      {/* Reveal (altura/opacidade) e shake ficam em elementos separados —
+          animar os dois juntos na mesma transição competia visualmente e
+          deixava o estado de erro difícil de acompanhar. */}
       <AnimatePresence>
         {formError && (
           <motion.div
             key="login-error"
             initial={{ opacity: 0, height: 0 }}
-            animate={{
-              opacity: 1,
-              height: "auto",
-              x: [0, -6, 6, -4, 4, 0],
-            }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex items-start gap-2 overflow-hidden rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-sm text-destructive"
-            role="alert"
+            transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
           >
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-            <span>{formError}</span>
+            <motion.div
+              animate={shouldReduceMotion ? undefined : { x: [0, -6, 6, -3, 3, 0] }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-sm text-destructive"
+              role="alert"
+            >
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <span>{formError}</span>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -145,11 +160,22 @@ export function LoginForm() {
                     }
                     tabIndex={-1}
                   >
-                    {showPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={showPassword ? "hide" : "show"}
+                        initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
+                      </motion.span>
+                    </AnimatePresence>
                   </button>
                 </div>
                 <FormMessage />
@@ -161,24 +187,12 @@ export function LoginForm() {
             type="submit"
             size="lg"
             className="mt-2 w-full"
-            disabled={form.formState.isSubmitting}
+            isLoading={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting && (
-              <Loader2 className="size-4 animate-spin" />
-            )}
             Entrar
           </Button>
         </form>
       </Form>
-
-      <p className="text-center text-sm text-muted-foreground">
-        <Link
-          href={ROUTES.home}
-          className="font-medium text-primary transition-colors hover:text-primary/80"
-        >
-          Voltar ao site
-        </Link>
-      </p>
     </div>
   );
 }
