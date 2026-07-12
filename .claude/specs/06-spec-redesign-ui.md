@@ -4,11 +4,15 @@
 > repo). Traduz as 8 seções do PRD em lista acionável de arquivos a **criar** e
 > **modificar**, no mesmo formato das specs anteriores (`04-spec-aplicacao.md`).
 > **Pré-requisito:** Fases 0–5a já implementadas e em produção (`04-spec-aplicacao.md`).
-> **Status (atualizado 2026-07-12):** **Fases 1, 2 e 3 implementadas e commitadas.**
-> Fase 4 não iniciada (depende de backend, ver §4). Verificação: `typecheck`/`lint`/
-> `test`/`build` limpos após cada fase; a tela de login (Fase 3 + polimento adicional,
-> ver §3.1) foi validada ponta a ponta com login real via Auth.js contra backend +
-> Postgres locais (skill `verify`), não só lida no código.
+> **Status (atualizado 2026-07-12):** **Fases 1, 2 e 3 implementadas, commitadas e
+> confirmadas em produção (Vercel).** Fase 4 não iniciada (depende de backend, ver §4).
+> Verificação: `typecheck`/`lint`/`test`/`build` limpos após cada fase; a tela de login
+> (Fase 3 + polimento adicional, ver §3.1) foi validada ponta a ponta com login real via
+> Auth.js contra backend + Postgres locais (skill `verify`), não só lida no código.
+> Deploy em produção confirmado via fingerprint público (sem login): `remindapp.com.br/privacidade`
+> já mostra o aviso discreto sem emoji (mudança da Fase 1, tabela abaixo) e o rodapé mostra
+> `© 2026` (ano dinâmico, também Fase 1) — `origin/main` já continha o HEAD local, então o
+> push já tinha dado o deploy automático.
 > **Regra de execução:** produto já está em uso por psicólogos/pacientes reais — cada
 > fase foi um commit incremental próprio, nunca um "big bang" (PRD §8.5).
 > Todos os caminhos são relativos a `remind-web/`, salvo indicação contrária.

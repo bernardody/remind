@@ -10,8 +10,7 @@
 > ver §6. Contratos baseados no código real em `/api`.
 
 ### Status de implementação (atualizado 2026-07-12 — redesign de UI/UX, Fases 1-3 da
-[Spec 06](06-spec-redesign-ui.md), implementado e commitado localmente — **deploy ainda
-não confirmado**)
+[Spec 06](06-spec-redesign-ui.md), implementado, commitado e **confirmado em produção**)
 
 | Parte | Status |
 |---|---|
@@ -27,7 +26,14 @@ não confirmado**)
 | Resultados & Analytics (Fase 5a: `domain-bars.tsx`, breakdown por escala + faixa de risco) | ✅ Implementado, deployado e testado em produção |
 | Resultados & Analytics (Fase 5b: `trend-line.tsx`, evolução longitudinal) | ⏳ Adiada deliberadamente (decisão de produto) — ver §6 |
 | Deploy produção (Vercel: env vars) + backend VPS (schema + `GOOGLE_CLIENT_ID`) | ✅ Estabilizado, inclusive Fase 5a — com 1 incidente no meio do caminho (ver R12 no §7): push na `main` disparou deploy automático do `/api` (webhook EasyPanel) **antes** da migração de schema ser aplicada em prod, derrubando o backend inteiro por ~alguns minutos (`SchemaManagementException: missing table`). Corrigido aplicando a migração via pgweb contra o `remind_db` já em produção, sem rollback de código — resolvido no mesmo dia |
-| Redesign de UI/UX (design system + telas, [Spec 06](06-spec-redesign-ui.md) Fases 1-3) | ✅ Implementado, verificado (`typecheck`/`lint`/`test`/`build` limpos) e commitado localmente. Login validado ponta a ponta contra backend+Postgres locais (skill `verify`). **Sem alteração de schema/backend** — é frontend puro, sem o risco do R12. Fase 4 (busca real, edição de perfil, filtro por escala) fica bloqueada em pré-requisitos de backend, não iniciada. **Deploy em produção ainda não confirmado nesta sessão** |
+| Redesign de UI/UX (design system + telas, [Spec 06](06-spec-redesign-ui.md) Fases 1-3) | ✅ Implementado, verificado (`typecheck`/`lint`/`test`/`build` limpos), commitado e **confirmado em produção** (2026-07-12). Login validado ponta a ponta contra backend+Postgres locais (skill `verify`). **Sem alteração de schema/backend** — é frontend puro, sem o risco do R12. Fase 4 (busca real, edição de perfil, filtro por escala) fica bloqueada em pré-requisitos de backend, não iniciada |
+
+> **Confirmação de deploy do redesign (2026-07-12):** `git log origin/main..HEAD` vazio — o
+> HEAD local (com as Fases 1-3 já commitadas) já estava em `origin/main`, então o push já tinha
+> disparado o deploy automático da Vercel. Confirmado direto em produção via fingerprint público
+> (sem precisar de login): `remindapp.com.br/privacidade` mostra o aviso discreto sem emoji
+> ("Este conteúdo está em revisão...", mudança da Fase 1, item 1 da tabela em §1 da
+> [Spec 06](06-spec-redesign-ui.md)) e o rodapé mostra `© 2026` (ano dinâmico, também Fase 1).
 
 **Fase 3: ✅ completa.** Todas as telas de `app/(app)/psicologo/` estão reais em produção,
 exceto `relatorios/` (depende da Fase 5, fora de escopo aqui).
