@@ -4,9 +4,13 @@
 > repo). Traduz as 8 seções do PRD em lista acionável de arquivos a **criar** e
 > **modificar**, no mesmo formato das specs anteriores (`04-spec-aplicacao.md`).
 > **Pré-requisito:** Fases 0–5a já implementadas e em produção (`04-spec-aplicacao.md`).
-> **Status:** proposta — nenhum arquivo abaixo foi criado/modificado ainda.
+> **Status (atualizado 2026-07-12):** **Fases 1, 2 e 3 implementadas e commitadas.**
+> Fase 4 não iniciada (depende de backend, ver §4). Verificação: `typecheck`/`lint`/
+> `test`/`build` limpos após cada fase; a tela de login (Fase 3 + polimento adicional,
+> ver §3.1) foi validada ponta a ponta com login real via Auth.js contra backend +
+> Postgres locais (skill `verify`), não só lida no código.
 > **Regra de execução:** produto já está em uso por psicólogos/pacientes reais — cada
-> fase abaixo deve ser um PR/deploy incremental próprio, nunca um "big bang" (PRD §8.5).
+> fase foi um commit incremental próprio, nunca um "big bang" (PRD §8.5).
 > Todos os caminhos são relativos a `remind-web/`, salvo indicação contrária.
 
 ---
@@ -15,155 +19,203 @@
 
 ~~Antes de iniciar a Fase 3 (telas), uma decisão não técnica precisava ser tomada~~ —
 **decidido: Opção A, rampa de teal em tudo** (a mesma linguagem visual de
-`RISK_BANDS`/`gauge.tsx`/`domain-bars.tsx` do produto real). Já aplicado em
-`solution.tsx` (gráfico + legenda) e `app-showcase.tsx` (badges de risco do mock,
-agora via `Badge variant="risk"`, o mesmo componente do produto real) fora de ordem,
-como correção pontual — não é preciso revisitar esse item na Fase 3.
+`RISK_BANDS`/`gauge.tsx`/`domain-bars.tsx` do produto real). Aplicado em `solution.tsx`
+(gráfico + legenda, via `getRiskBandByLabel`) e `app-showcase.tsx` (badges de risco do
+mock, via `Badge variant="risk"`, o mesmo componente do produto real).
 
 ---
 
-## 1. Fase 1 — Correções e bloqueadores
+## 1. Fase 1 — Correções e bloqueadores ✅ Implementada
 
-Sem dependência de componente novo, sem risco de regressão. Pode ir para produção como
-um único PR pequeno ou vários PRs triviais.
+Todos os itens abaixo foram aplicados, verificados (`typecheck`/`lint`/`test`/`build`
+limpos) e commitados. Sem regressão.
 
-| Arquivo | Mudança | Motivo (PRD §) |
+| Arquivo | Mudança | Status |
 |---|---|---|
-| `app/(marketing)/privacidade/page.tsx` | Remover `⚠️ Texto provisório, a ser revisado juridicamente...`. Substituir por texto jurídico definitivo (se disponível) ou por um `Alert` de rascunho controlado (depende do componente novo da Fase 2 — até lá, manter aviso discreto sem emoji cru) | §2.2 "Bloqueador de release", §5.2 |
-| `app/(marketing)/termos/page.tsx` | Idem acima | §2.2, §5.2 |
-| `components/charts/gauge.tsx` | Badge de risco: cor do texto passa a depender do fundo — Grafite-Verde (`#1C2B2B`) quando `band.color === "#7AB1A8"` (Baixo), branco nos demais. Hoje `text-white` fixo na `<span>` de risco (linha ~60-65) | §2.3, §4.1, §4.18 — **correção de WCAG AA verificada por cálculo (2.42:1 → reprova)** |
-| `components/charts/domain-bars.tsx` | Mesma correção de contraste no badge de risco por escala | §2.3, §4.1, §4.18 |
-| `lib/constants.ts` | `RISK_BANDS`: adicionar campo `textColor` por item (`"#1C2B2B"` para Baixo, `"#FFFFFF"` para Moderado/Alto). `gauge.tsx`/`domain-bars.tsx` passam a ler `band.textColor` em vez de assumir branco | §4.1 — token de origem da correção acima |
-| `stores/wizard-store.ts` | Adicionar middleware `persist` do Zustand (ex. `sessionStorage`, já que é um fluxo de sessão única) ao redor do store atual, mantendo a lógica existente de `start()` (só reseta se o paciente mudou de questionário) | §2.2 "perda de progresso", §5.13 — **prevenção de perda de dados do paciente** |
-| `features/patients/components/patients-view.tsx` (ou onde estiver o `AlertDialog` de exclusão) | Rótulo do botão de ação: `"Remover"` → `"Inativar"`. Manter a descrição existente (já explica corretamente que é reversível só por suporte) | §2.2, §5.5 — rótulo≠comportamento |
-| `app/(app)/psicologo/avaliacoes/[id]/page.tsx` | Trocar os dois `<span border border-border>` de contagem (perguntas/escalas) por `<Badge variant="outline">` | §2.2, §4.7, §5.8 — unificação de componente |
-| `components/marketing/site-footer.tsx` | `const year = 2026` → `new Date().getFullYear()` (linha ~9), alinhando com `app-shell.tsx`/`brand-panel.tsx` | §2.2 — inconsistência de padrão |
-| `components/layout/sidebar-nav.tsx` + `lib/constants.ts#PSYCHOLOGIST_NAV` | Item "Relatórios": adicionar indicador visual "Em breve" (badge pequeno ao lado do label) | §2.2, §4.10, §5.10 |
-| `app/(app)/psicologo/relatorios/page.tsx` | Copy do `EmptyState`: trocar "Condicionado a dados do backend" por texto orientado a produto (ex. "Em desenvolvimento — chegará em breve com a evolução dos seus pacientes ao longo do tempo") | §5.10 — linguagem interna vazando pro usuário |
-| `components/ui/dialog.tsx` | `DialogContent`: `bg-background` → `bg-card` (linha ~64) para gerar contraste de elevação real com o fundo da página | §2.2, §4.5 |
-| `components/ui/select.tsx`, `components/ui/badge.tsx` | Padronizar `focus-visible:ring-ring/50` → `focus-visible:ring-2 focus-visible:ring-ring` (sem opacidade), igual já está em `button.tsx` | §3.2 (achado de auditoria shadcn 2026), §4.1 |
-| Colunas `"Ações"` em tabelas (`patients-view.tsx`, demais usos de `DataTable`) | `header: ""` → `header: () => <span className="sr-only">Ações</span>` (ou equivalente `aria-label` na `TableHead`) | §2.2, §4.6 — leitor de tela sem contexto |
+| `app/(marketing)/privacidade/page.tsx`, `termos/page.tsx` | Aviso "⚠️ provisório" trocado por texto discreto sem emoji (`Alert` da Fase 2 não existia ainda neste ponto — ficou como parágrafo simples, conforme previsto) | ✅ |
+| `components/charts/gauge.tsx`, `domain-bars.tsx` | Badge de risco: texto Grafite-Verde quando o fundo é o tom claro da rampa (`#7AB1A8`, "Baixo"), branco nos demais — corrige reprovação WCAG AA (2.42:1 → 6.07:1) | ✅ |
+| `lib/constants.ts` | `RISK_BANDS` ganhou campo `textColor` por item | ✅ |
+| `stores/wizard-store.ts` | Middleware `persist` do Zustand (`sessionStorage`) — progresso do wizard sobrevive a fechar aba/refresh | ✅ |
+| `features/patients/components/patients-view.tsx` | Rótulo "Remover" → "Inativar" (botão, `AlertDialog`, toasts) | ✅ |
+| `app/(app)/psicologo/avaliacoes/[id]/page.tsx` | Chips de contagem unificados em `Badge variant="outline"` | ✅ |
+| `components/marketing/site-footer.tsx` | Ano do copyright dinâmico | ✅ |
+| `components/layout/sidebar-nav.tsx` + `lib/constants.ts` | Badge "Em breve" no item "Relatórios" (novo campo `NavItem.badge`) | ✅ |
+| `app/(app)/psicologo/relatorios/page.tsx` | Copy do placeholder reescrita (sem linguagem interna de engenharia) | ✅ |
+| `components/ui/dialog.tsx` | `bg-background` → `bg-card` (elevação real do modal) | ✅ |
+| `components/ui/select.tsx`, `components/ui/badge.tsx` | Focus ring sem opacidade `/50`, igual a `button.tsx` | ✅ |
+| 5 tabelas (`patients-view`, `patient-questionnaires-table`, `questionnaire-patients-table`, `questionnaires-view`, `available-questionnaires`) | Coluna "Ações" com `header: () => <span className="sr-only">Ações</span>` | ✅ |
 
 ---
 
-## 2. Fase 2 — Extensão do design system
+## 2. Fase 2 — Extensão do design system ✅ Implementada
 
-Componentes novos em `components/ui/` (todos via `npx shadcn@latest add <nome>`, estilo
-`new-york` já configurado em `components.json` — manter consistência de instalação).
-Nenhuma tela é tocada nesta fase; é só base para a Fase 3.
+### 2.1 Componentes criados
 
-### 2.1 Componentes a criar
-
-| Arquivo | Conteúdo | Primeiro uso previsto (Fase 3) |
+| Arquivo | Status | Observação |
 |---|---|---|
-| `components/ui/alert.tsx` | Padrão shadcn, variantes `default`/`warning`/`destructive` | Banner "complete seu perfil" (R9 pendente), aviso legal temporário em `privacidade`/`termos` |
-| `components/ui/breadcrumb.tsx` | Padrão shadcn | `pacientes/[id]`, `avaliacoes/[id]/pacientes/[pid]` — **nunca** no wizard do paciente |
-| `components/ui/tabs.tsx` | Radix Tabs | Tela de resultado (`avaliacoes/[id]/pacientes/[pid]`) — "Resumo" vs. "Respostas detalhadas" |
-| `components/ui/tooltip.tsx` | Radix Tooltip | Ícones de ação sem label em tabelas |
-| `components/ui/popover.tsx` | Radix Popover | Pré-requisito de `calendar.tsx`; menus de filtro avançado |
-| `components/ui/avatar.tsx` | Padrão shadcn | Extrai o `<span>` de iniciais hoje hardcoded em `topbar.tsx` |
-| `components/ui/progress.tsx` | Padrão shadcn (Radix Progress) | Extraído de `features/questionnaires/components/wizard/progress-bar.tsx`; reuso futuro (ex. completude de perfil) |
-| `components/ui/radio-group.tsx` | Radix RadioGroup | Substitui o `<button role="radio">` manual em `question-step.tsx` |
-| `components/ui/calendar.tsx` | Padrão shadcn (baixa prioridade) | Formulário de paciente, se/quando substituir `<input type="date">` nativo |
-| `components/ui/command.tsx` | `cmdk` + shadcn (Fase 4, não bloqueia esta fase) | Command palette (⌘K) do psicólogo |
+| `components/ui/alert.tsx` | ✅ | Variantes `default`/`warning`/`destructive`. Usado em `ProfileCard` (Fase 3) |
+| `components/ui/breadcrumb.tsx` | ✅ | Usado em `pacientes/[id]/page.tsx` (Fase 3) |
+| `components/ui/tabs.tsx` | ✅ | Usado na tela de resultado (Fase 3) |
+| `components/ui/spinner.tsx` | ✅ | Não estava na lista original — necessário pro `isLoading` do `Button` |
+| `components/ui/tooltip.tsx` | ✅ criado | ⏳ **ainda não usado em nenhuma tela** — fica disponível pra Fase 4+ |
+| `components/ui/popover.tsx` | ✅ criado | ⏳ **ainda não usado** — o uso previsto (`Calendar`) não foi criado |
+| `components/ui/avatar.tsx` | ✅ criado | ⏳ **ainda não usado** — `Topbar` continua com o `<span>` de iniciais hand-rolled; extrair fica pra quando mexer no Topbar de novo |
+| `components/ui/progress.tsx` | ✅ criado | ⏳ **ainda não usado** — `progress-bar.tsx` do wizard continua com sua barra própria (a Fase 3 só ajustou o rótulo de texto, não trocou a implementação) |
+| `components/ui/radio-group.tsx` | ✅ criado | Usado só como componente genérico de referência — o wizard (`question-step.tsx`) usa `RadioGroupPrimitive` diretamente (ver §3) porque precisava do card inteiro clicável, não do círculo pequeno padrão |
+| `components/ui/calendar.tsx` | ❌ **não criado** | Decisão mantida: exigiria a dependência nova `react-day-picker`; `<input type="date">` nativo continua em uso, nenhuma tela pediu por isso ainda |
+| `components/ui/command.tsx` | ❌ **não criado** | Fase 4 (exigiria `cmdk`), conforme já previsto |
 
-### 2.2 Alterações em componentes existentes
+### 2.2 Alterações em componentes existentes ✅
 
 | Arquivo | Mudança |
 |---|---|
-| `components/ui/badge.tsx` | Nova variante `variant="risk"`, recebendo `style={{ backgroundColor, color: textColor }}` a partir de um `RiskBand` — elimina a duplicação de `<span>` de badge de risco hoje recriada em `gauge.tsx` e `domain-bars.tsx` |
-| `components/shared/data-table.tsx` | Adicionar `getSortedRowModel()` ao `useReactTable`; headers ganham indicador de ordenação (ícone) e `onClick`. Paginação: adicionar "Página X de Y" entre os botões Anterior/Próxima, mantendo a API `Page<T>` do Spring já consumida |
-| `features/questionnaires/components/wizard/question-step.tsx` | Migrar de `<button role="radio">` manual para `RadioGroup`/`RadioGroupItem` do novo `components/ui/radio-group.tsx`, preservando o visual de "cards selecionáveis" (className customizado no `RadioGroupItem`, não o indicador circular padrão) |
-| `components/ui/button.tsx` | Adicionar prop `isLoading?: boolean` que troca o conteúdo por `<Spinner />` (requer `components/ui/spinner.tsx`, shadcn 2025) e aplica `disabled` automaticamente |
+| `components/ui/badge.tsx` | Nova variante `variant="risk"` (cor via `style`) — usada em `gauge.tsx`, `domain-bars.tsx`, `app-showcase.tsx` |
+| `components/shared/data-table.tsx` | `getSortedRowModel` + header clicável com ícone de ordenação (`ArrowUp`/`ArrowDown`/`ArrowUpDown`); `enableSorting: false` explícito nas colunas "Ações" |
+| `features/questionnaires/components/wizard/question-step.tsx` | Migrado para `RadioGroupPrimitive` do Radix (import direto, não o `components/ui/radio-group.tsx` genérico — ver nota acima) |
+| `components/ui/button.tsx` | Prop `isLoading` (troca conteúdo por `<Spinner/>`, ignorada quando `asChild=true`) |
 
-### 2.3 Documentação (não é código, mas é parte do design system)
+### 2.3 Documentação ✅
 
-| Arquivo | Mudança |
+| Arquivo | Status |
 |---|---|
-| `documentacao/idVisual/id.md` | Adicionar seção **8.1 — Tabela de contraste estendida**, com as combinações validadas no PRD §4.1 (incluindo a regra nova: "Ciano-Escuro nunca como texto/ícone sobre Grafite-Verde", achado §2.3 do PRD) |
-| `documentacao/idVisual/id.md` ou novo `documentacao/idVisual/design-system-uso.md` | Documentar a regra Toast vs. Alert (PRD §4.9): toast = evento pontual auto-dismiss; Alert = estado contínuo até resolvido — nunca usar toast para erro que bloqueia fluxo clínico |
+| `documentacao/idVisual/id.md` | Seção **8.1** adicionada (tabela de contraste estendida) |
+| `documentacao/idVisual/design-system-uso.md` | **Criado** (não existia antes) — convenções Toast vs. Alert, uso do badge `risk`, Breadcrumb, Skeleton vs. Spinner, Tooltip, **e uma seção 5 nova sobre o pitfall do import de `Slot`** (ver §2.4 abaixo) |
 
----
+### 2.4 Achado não previsto — regressão de bundle size, corrigida
 
-## 3. Fase 3 — Redesign de telas de alto impacto
+Não estava no plano original. Ao concluir a Fase 3, o build de produção acusou a
+landing page crescendo de **194 kB → 269 kB** de First Load JS. Investigação (ver
+histórico da sessão): `components/ui/badge.tsx` importava `Slot` do pacote bundlado
+`"radix-ui"` (~25 primitivos num módulo só, incl. Menubar/ScrollArea/OTP — nada disso
+usado no projeto), em vez do pacote individual `@radix-ui/react-slot` que
+`button.tsx` já usa. A landing nunca tinha importado `Badge` antes de
+`app-showcase.tsx` (Fase 3, §0), então herdou o pacote inteiro na primeira vez.
 
-Depende da Fase 2 (componentes prontos). Cada linha pode ser um PR próprio — não há
-dependência entre telas diferentes, exceto onde indicado.
+**Corrigido**: `badge.tsx` e `breadcrumb.tsx` trocados para `@radix-ui/react-slot`.
+Resultado após rebuild limpo:
 
-| Tela / arquivo | Mudança | Depende de |
+| Rota | Antes | Depois |
 |---|---|---|
-| `app/(app)/psicologo/dashboard/page.tsx` | Adicionar card "Avaliações recentes" (agregação de `/questionarios/{id}/pacientes` no frontend, sem endpoint novo); reorganizar grid para 3-4 colunas em telas largas; criar `app/(app)/psicologo/dashboard/loading.tsx` (skeleton nativo do App Router) | — |
-| `app/(app)/psicologo/pacientes/page.tsx` + `patients-view.tsx` | Ativar `getSortedRowModel` (Fase 2); layout alternativo em cards abaixo do breakpoint `md` (a tabela tem 7 colunas); reforçar visualmente (não só texto pequeno) que a busca é só da página carregada, até a busca real de backend existir (Fase 4) | `data-table.tsx` (Fase 2) |
-| `app/(app)/psicologo/pacientes/[id]/page.tsx` | Layout de 2 colunas em desktop (dados cadastrais + resumo/mini-histórico com "última avaliação: {data}, risco {label}", dado já disponível via `/pacientes/{id}/avaliacoes`); adicionar `Breadcrumb` "Pacientes › {Nome}"; formatação relativa de data | `components/ui/breadcrumb.tsx` (Fase 2) |
-| `app/(app)/psicologo/avaliacoes/page.tsx` (`questionnaires-view.tsx`) | Texto explicativo curto sobre ausência de CTA de criar avaliação; filtro por escala/status; trocar coluna "Atualizado em" por "Respondida por N pacientes" | — |
-| `app/(app)/psicologo/avaliacoes/[id]/pacientes/[pid]/page.tsx` | Agrupar lista de respostas por escala usando `Accordion` (já existe, subaproveitado); considerar `Tabs` "Resumo"/"Respostas detalhadas"; prototipar bullet chart como alternativa ao `Gauge` circular (decisão de design, validar com 2-3 psicólogos antes de trocar definitivamente) | `components/ui/tabs.tsx` (Fase 2); correção de contraste já feita na Fase 1 |
-| `app/(app)/psicologo/perfil/page.tsx` + `app/(app)/paciente/perfil/page.tsx` + `ProfileCard` | Unificar como componente único parametrizado por `userType`; adicionar estado visual "em breve" para edição de dados/senha (a edição real depende de `PUT /me`, Fase 4) | — |
-| `app/(app)/paciente/inicio/page.tsx` (`available-questionnaires.tsx`) | Diferenciar os 3 estados (Responder/Já respondido/Indisponível) com ícone, não só texto | — |
-| `features/questionnaires/components/wizard/question-step.tsx` | Adicionar transição `motion/react` entre perguntas (já é dependência do projeto) | Migração para `RadioGroup` (Fase 2) |
-| `features/questionnaires/components/wizard/progress-bar.tsx` | Tratar o passo de revisão como etapa visualmente distinta, não "Pergunta Y de Y" | `components/ui/progress.tsx` (Fase 2), se optar por extrair |
-| `components/marketing/app-showcase.tsx`, `components/marketing/solution.tsx` | Linguagem de risco já alinhada (§0). Falta só realinhar os números/stats do mock ao estado real do produto **após** o redesign do dashboard (linha acima) | redesign do dashboard |
-| `components/marketing/challenge.tsx`, `components/marketing/features.tsx` | Diferenciar visualmente tom "problema" de tom "solução" (hoje mesmo padrão de card) | — |
-| `components/marketing/hero.tsx` | Verificar/corrigir asset `hero-bg.png` (comentário no código cita `.jpg`, possível descompasso) | — |
-| `components/marketing/demo-form.tsx` | Indicador visual consistente para campos obrigatórios vs. opcionais | — |
-| `app/(marketing)/contato/page.tsx` | Enriquecer cards de contato (horário, WhatsApp) para reduzir espaço vazio | — |
-| `features/auth/components/login-form.tsx` | Diferenciar estado de erro de rede/5xx detectável (timeout, `fetch` falhou) da mensagem de "credencial inválida" — mantendo a mensagem ambígua só para o caso real de credencial errada (não vazar existência de conta) | — |
-| `features/auth/components/brand-panel.tsx` | Trazer ao menos a tagline de marca para o topo do formulário em mobile (hoje só logo pequeno) | — |
+| `/` (landing) | 269 kB | **194 kB** |
+| `/psicologo/avaliacoes/[id]` | 232 kB | **156 kB** |
+| `/psicologo/pacientes/[id]` | 232 kB | **156 kB** |
+
+Regra documentada em `design-system-uso.md` §5: componentes que só precisam de `Slot`
+sempre importam de `@radix-ui/react-slot`, nunca do pacote `"radix-ui"` bundlado.
 
 ---
 
-## 4. Fase 4 — Pré-requisitos de backend / decisão de produto
+## 3. Fase 3 — Redesign de telas de alto impacto ✅ Implementada
 
-**Não implementável só no frontend.** Registrar como itens de backlog de backend
-separados — não iniciar UI que dependa deles sem o contrato de API definido primeiro
-(mesmo padrão de risco já documentado em `04-spec-aplicacao.md` §7, R12: migração de
-schema em produção precisa vir *antes* do deploy do frontend que a consome).
+| Tela / arquivo | O que foi feito | Desvio do plano original |
+|---|---|---|
+| `app/(app)/psicologo/dashboard/page.tsx` + `loading.tsx` (novo) | Card "Avaliações recentes" (agregação de `/questionarios/{id}/pacientes` de até 5 questionários, 5 respostas cada, ordenado no frontend); grid `sm:grid-cols-2 lg:grid-cols-4`; skeleton via `loading.tsx` nativo do App Router | Nenhum |
+| `patients-view.tsx` | `getSortedRowModel` ativado; layout em cards abaixo de `md` (`hidden md:block` na tabela + bloco `md:hidden` próprio, com paginação duplicada); ícone `Info` reforçando o aviso de busca | Nenhum |
+| `pacientes/[id]/page.tsx` | `Breadcrumb`; grid `lg:grid-cols-3` (`PatientInfoCard` 1 coluna + card "Resumo clínico" 2 colunas com última avaliação + `Badge risk`); `formatRelativeDate` novo em `lib/utils.ts` | O "resumo/mini-histórico" buscou `average` via `/resultado` da avaliação mais recente (endpoint extra não citado explicitamente no plano, mas dentro do espírito "dado que já existe") |
+| `questionnaires-view.tsx` | Texto explicativo; filtro por **status** (real); coluna "Respondida por" via `useQueries` (`/questionarios/{id}/pacientes?size=1` por linha, só `totalElements`) | **Filtro por escala não implementado** — documentado no código: `/questionarios` (lista) não traz `scale`, só o detalhe (`/questionarios/{id}`); filtrar exigiria N+1 fetches de detalhe só pra isso, custo não justificado pelo catálogo pequeno de hoje |
+| `avaliacoes/[id]/pacientes/[pid]/page.tsx` | `Tabs` ("Resumo" / "Respostas detalhadas"); `Accordion` agrupando respostas por escala — precisou de um fetch extra (`QuestionnaireDetail`) só pra mapear `questionId → scale.name`, porque `/respostas` não traz a escala de cada pergunta | **Bullet chart não prototipado** — decisão de design que a spec já marcava como "validar com psicólogos antes", segue em aberto, gauge circular mantido |
+| `perfil/page.tsx` (×2) + `ProfileCard` | Não viraram um único componente de rota, mas já **compartilhavam** `ProfileCard` — a "unificação" virou: `ProfileCard` ganhou um `Alert variant="warning"` ("Edição de perfil em breve"), mudança no único ponto compartilhado | Interpretação mais enxuta que "componente único parametrizado por userType" — as duas páginas já eram idênticas via `ProfileCard`, criar um wrapper novo seria abstração sem ganho |
+| `available-questionnaires.tsx` | Ícones por estado: `CheckCircle2` (já respondido), `Lock` (indisponível), `ArrowRight` (responder) | Nenhum |
+| `question-step.tsx` + `questionnaire-wizard.tsx` | Transição `AnimatePresence`/`motion` entre perguntas (respeitando `useReducedMotion`) | Nenhum |
+| `progress-bar.tsx` | Prop `isReview` — rótulo "Revisão das respostas" / "Pronta para enviar" em vez de "Pergunta Y de Y" | Não foi extraído para `components/ui/progress.tsx` (ver §2.1) — o componente próprio do wizard já resolvia, trocar a implementação não era necessário só pelo rótulo |
+| `app-showcase.tsx`, `solution.tsx` | Linguagem de risco já alinhada em §0 | Números/stats do mock (48 pacientes, 126 avaliações) **não foram realinhados** ao dashboard real — ilustrativos, não é dado real, decisão de deixar como está |
+| `challenge.tsx` | Ícone do card em `bg-graphite/8 text-graphite` (tom sério) em vez de `bg-secondary/30 text-primary` — diferencia do tom de `features.tsx` (mantido teal/positivo) | Nenhum |
+| `hero.tsx` | Asset **já existia** (`public/brand/hero-bg.png`, confirmado com `ls`) — só o comentário no código estava desatualizado (citava `.jpg`), corrigido | Não era bug real, só doc desatualizada |
+| `demo-form.tsx` | Asterisco nos labels dos 3 campos obrigatórios (Nome, E-mail, Telefone), confirmado contra `leadSchema` (zod) que `clinica`/`mensagem` são os únicos opcionais | Nenhum |
+| `contato/page.tsx` | Legenda de uma linha em cada card (Email/Telefone) | Sem WhatsApp/horário — dado não existe em `lib/constants.ts#SITE`, decidiu não inventar |
+| `login-form.tsx` | Erro de rede/5xx diferenciado de credencial inválida via `ServerUnavailableError` (subclasse de `CredentialsSignin` do Auth.js, `code="server-unavailable"`) em `lib/auth/config.ts` — **verificado ponta a ponta** (login real, senha errada, backend derrubado de propósito) contra backend+Postgres locais | Implementado além do previsto: ver §3.1 |
+| `app/(auth)/layout.tsx` | Tagline (`SITE.tagline`) abaixo do logo em mobile (não em `brand-panel.tsx`, que só existe pro desktop) | O plano citava `brand-panel.tsx`; a mudança certa era no `layout.tsx`, que já tem o bloco condicional `lg:hidden` |
+
+### 3.1 Polimento adicional da tela de login (skill `impeccable`, pós-Fase 3)
+
+Fora do escopo original desta spec — pedido separado do usuário ("a página de login
+tá muito confusa"), usando o skill `impeccable` (registro "product"). Tocou o mesmo
+`login-form.tsx` já modificado na Fase 3:
+
+- Link "Voltar ao site" movido do rodapé (quase invisível) pro topo do form, com ícone
+  `ArrowLeft` — dá âncora/saída clara, resolve a assimetria do form "flutuando" sem
+  nada acima dele no desktop.
+- Animação do alerta de erro reformulada: **reveal** (opacity/height) e **shake** (só
+  `x`) separados em elementos aninhados em vez de uma única transição fazendo os três
+  ao mesmo tempo (que competiam visualmente); passou a respeitar
+  `prefers-reduced-motion` de verdade (`useReducedMotion`), o que não acontecia antes
+  apesar da spec original já reivindicar isso.
+- Botão de submit migrado pro `isLoading` do `Button` (Fase 2) — antes usava um
+  `Loader2` solto manual, inconsistente com o resto do design system.
+- Transição sutil (fade+scale, 150ms) na troca do ícone mostrar/ocultar senha.
+
+**Verificação real** (skill `verify`): Postgres 16 em Docker (porta 5433, isolado do
+Postgres nativo da máquina), schema+seed carregados, usuário de teste com hash bcrypt
+gerado via teste JUnit descartável (removido depois), backend Spring Boot local,
+frontend Next.js local (porta 3100) — login válido, senha errada e backend
+derrubado de propósito testados via `curl` através do fluxo real do Auth.js
+(`/api/auth/callback/credentials`), confirmando `code=credentials` vs.
+`code=server-unavailable` chegando corretamente no cliente. Ambiente todo limpo depois
+(container removido, servidores parados).
+
+---
+
+## 4. Fase 4 — Pré-requisitos de backend / decisão de produto ⏳ Não iniciada
+
+**Não implementável só no frontend.** Nenhum item abaixo foi tocado — segue como
+backlog de backend, igual ao planejamento original.
 
 | Item | Endpoint/contrato necessário | Tela impactada |
 |---|---|---|
 | Busca real de pacientes | `GET /pacientes?search=` (ou equivalente) | `pacientes/page.tsx` |
-| Edição de perfil / troca de senha | `PUT /me` ou `PUT /psychologists/me/profile` equivalente para paciente (hoje só existe para psicólogo com perfil incompleto, ver `05-spec-login-google.md`) | `perfil/page.tsx` (ambos os perfis) |
-| Escopo real de "avaliação atribuída ao paciente" | Endpoint que filtre `/questionarios` por atribuição, não só por `active` | `paciente/inicio/page.tsx` |
-| Evolução longitudinal (Fase 5b, já adiada) | Ver `04-spec-aplicacao.md` §6 — questionários novos por escala, agregação por `Scale` | `relatorios/page.tsx`, novo `trend-line.tsx` |
+| Edição de perfil / troca de senha | `PUT /me` ou equivalente para paciente | `perfil/page.tsx` (ambos os perfis) |
+| Escopo real de "avaliação atribuída ao paciente" | Endpoint que filtre `/questionarios` por atribuição | `paciente/inicio/page.tsx` |
+| Evolução longitudinal (Fase 5b, já adiada) | Ver `04-spec-aplicacao.md` §6 | `relatorios/page.tsx`, novo `trend-line.tsx` |
 | Recuperação de senha | Endpoint de reset ainda inexistente | `login/page.tsx` |
-| "Pacientes em risco alto" agregado no dashboard | Hoje `scaleResults` só é acessível por avaliação individual — precisaria de endpoint de agregação, ou o frontend aceita não ter esse card até existir | `dashboard/page.tsx` |
+| "Pacientes em risco alto" agregado no dashboard | Endpoint de agregação (hoje `scaleResults` só por avaliação individual) | `dashboard/page.tsx` |
+| Filtro por escala na lista de avaliações | `/questionarios` (lista) não traz `scale` — endpoint precisaria expor isso, ou aceitar N+1 | `avaliacoes/page.tsx` |
 
 ---
 
-## 5. Testes a adicionar
+## 5. Testes a adicionar ⏳ Não implementado
+
+Nenhum teste novo foi escrito nesta rodada — a verificação foi manual/via build em
+cada fase (`typecheck`/`lint`/`test`/`build`, mais a verificação end-to-end da tela de
+login em §3.1). Os testes automatizados abaixo continuam como trabalho futuro:
 
 | Teste | Ferramenta | Cobre |
 |---|---|---|
-| Contraste automatizado dos componentes de risco (`Gauge`, `DomainBars`, `Badge variant="risk"`) | axe-core (via Vitest/Testing Library, já configurado) | Não deixar a correção da Fase 1 regredir silenciosamente |
+| Contraste automatizado dos componentes de risco (`Gauge`, `DomainBars`, `Badge variant="risk"`) | axe-core (via Vitest/Testing Library, já configurado) | Regressão do fix de contraste da Fase 1 |
 | Fechar aba/refresh no meio do wizard → progresso preservado | Playwright (já configurado, `tests/`) | `stores/wizard-store.ts` com `persist` |
 | Navegação por teclado (setas ↑↓) no `RadioGroup` do wizard | Playwright ou Testing Library | Migração de `question-step.tsx` |
 | Ordenação de coluna no `DataTable` | Testing Library | `getSortedRowModel` novo |
+| Login: credencial inválida vs. servidor indisponível | Playwright ou teste de integração do Auth.js | `ServerUnavailableError`/`code` (verificado manualmente em §3.1, não automatizado) |
 
 ---
 
-## 6. Resumo — arquivos desta spec
+## 6. Resumo — arquivos desta spec (estado final)
 
-**Fase 1 (correção, sem componente novo):** `privacidade/page.tsx`, `termos/page.tsx`,
-`gauge.tsx`, `domain-bars.tsx`, `lib/constants.ts`, `stores/wizard-store.ts`,
-`patients-view.tsx`, `avaliacoes/[id]/page.tsx`, `site-footer.tsx`, `sidebar-nav.tsx`,
-`relatorios/page.tsx`, `components/ui/dialog.tsx`, `components/ui/select.tsx`,
-`components/ui/badge.tsx`, colunas de ação de tabelas.
+**Fase 1:** `privacidade/page.tsx`, `termos/page.tsx`, `gauge.tsx`, `domain-bars.tsx`,
+`lib/constants.ts`, `stores/wizard-store.ts`, `patients-view.tsx`,
+`avaliacoes/[id]/page.tsx`, `site-footer.tsx`, `sidebar-nav.tsx`, `relatorios/page.tsx`,
+`components/ui/{dialog,select,badge}.tsx`, colunas de ação de 5 tabelas.
 
-**Fase 2 (design system, arquivos novos):** `components/ui/{alert,breadcrumb,tabs,
-tooltip,popover,avatar,progress,radio-group,calendar,command,spinner}.tsx` +
-alterações em `badge.tsx`, `data-table.tsx`, `question-step.tsx`, `button.tsx` +
-adendo ao `id.md`.
+**Fase 2 (criados):** `components/ui/{alert,breadcrumb,tabs,tooltip,popover,avatar,
+progress,radio-group,spinner}.tsx`, `documentacao/idVisual/design-system-uso.md`.
+**Fase 2 (modificados):** `badge.tsx`, `data-table.tsx`, `question-step.tsx`,
+`button.tsx`, `documentacao/idVisual/id.md` (§8.1). **Não criados:** `calendar.tsx`,
+`command.tsx` (deliberado).
 
-**Fase 3 (telas):** `dashboard/page.tsx` (+`loading.tsx` novo), `pacientes/page.tsx`,
-`pacientes/[id]/page.tsx`, `avaliacoes/page.tsx`, `avaliacoes/[id]/pacientes/[pid]/
-page.tsx`, `perfil/page.tsx` (×2, unificados), `paciente/inicio/page.tsx`,
-`question-step.tsx`, `progress-bar.tsx`, `app-showcase.tsx`, `solution.tsx`,
-`challenge.tsx`, `features.tsx`, `hero.tsx`, `demo-form.tsx`, `contato/page.tsx`,
-`login-form.tsx`, `brand-panel.tsx`.
+**Fase 2 (correção pós-hoc, §2.4):** `badge.tsx`, `breadcrumb.tsx` — import de `Slot`
+trocado pra `@radix-ui/react-slot` (regressão de bundle size encontrada e corrigida).
 
-**Fase 4 (backlog de backend, fora deste frontend):** busca de pacientes, `PUT /me`,
-escopo de atribuição de avaliação, Fase 5b (já registrada em `04-spec-aplicacao.md`),
-recuperação de senha, agregação de risco alto para o dashboard.
+**Fase 3:** `dashboard/page.tsx` + `loading.tsx` (novo), `patients-view.tsx`,
+`pacientes/[id]/page.tsx`, `lib/utils.ts` (+`formatRelativeDate`),
+`patient-info-card.tsx`, `questionnaires-view.tsx`,
+`avaliacoes/[id]/pacientes/[pid]/page.tsx`, `profile-card.tsx`,
+`available-questionnaires.tsx`, `question-step.tsx`, `questionnaire-wizard.tsx`,
+`progress-bar.tsx`, `challenge.tsx`, `hero.tsx`, `demo-form.tsx`, `contato/page.tsx`,
+`login-form.tsx`, `app/(auth)/layout.tsx`, `lib/auth/config.ts`
+(+`ServerUnavailableError`).
 
-**Bloqueado por decisão de produto (§0):** unificação da linguagem visual de risco
-entre `solution.tsx`/`app-showcase.tsx` (landing) e `gauge.tsx`/`domain-bars.tsx`
-(produto real) — decidir antes de tocar os arquivos de marketing na Fase 3.
+**Fase 3.1 (polimento login, pós-hoc):** `login-form.tsx` (segunda rodada de mudanças
+no mesmo arquivo — ver §3.1).
+
+**Fase 4:** nada tocado, backlog de backend inalterado.
+
+**Testes automatizados (§5):** nada criado — pendência real, não fictícia.
