@@ -50,6 +50,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/login/google").permitAll()
+                        // Paciente ainda não tem sessão ao clicar o link de convite (PRD §14).
+                        .requestMatchers(HttpMethod.POST, "/convites/consumir").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

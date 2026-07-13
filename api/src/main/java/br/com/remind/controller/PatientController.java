@@ -1,11 +1,13 @@
 package br.com.remind.controller;
 
 import br.com.remind.controller.request.patient.InsertPatientRequest;
+import br.com.remind.controller.response.invite.InviteResponse;
 import br.com.remind.controller.response.patient.InsertPatientResponse;
 import br.com.remind.controller.response.patient.ListPatientQuestionnaireResponse;
 import br.com.remind.controller.response.patient.ListPatientResponse;
 import br.com.remind.controller.request.patient.UpdatePatientRequest;
 import br.com.remind.controller.response.patient.UpdatePatientResponse;
+import br.com.remind.service.invite.CreateInviteService;
 import br.com.remind.service.patient.DeletePatientService;
 import br.com.remind.service.patient.GetPatientService;
 import br.com.remind.service.patient.InsertPatientService;
@@ -30,6 +32,7 @@ public class PatientController {
     private final InsertPatientService insertPatientService;
     private final DeletePatientService deletePatientService;
     private final UpdatePatientService updatePatientService;
+    private final CreateInviteService createInviteService;
 
     @GetMapping
     public Page<ListPatientResponse> listPatient(Pageable pageable) {
@@ -62,5 +65,10 @@ public class PatientController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePatient(@PathVariable Long id) {
         deletePatientService.delete(id);
+    }
+
+    @PostMapping("/{patientId}/questionarios/{questionnaireId}/convites")
+    public InviteResponse createInvite(@PathVariable Long patientId, @PathVariable Long questionnaireId) {
+        return createInviteService.create(patientId, questionnaireId);
     }
 }

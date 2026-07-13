@@ -47,6 +47,11 @@ public class ConsumeInviteService {
             if (invite.getStatus() == InviteStatus.REVOKED || !Boolean.TRUE.equals(invite.getActive())) {
                 throw new ResponseStatusException(GONE, "Este convite não está mais disponível.");
             }
+            if (invite.getConsumed_at() != null) {
+                // Mesmo token clicado de novo (ex.: e-mail antigo reaberto) sem ter havido
+                // reenvio — distinto de expiração real (checada abaixo).
+                throw new ResponseStatusException(GONE, "Este link já foi utilizado.");
+            }
             throw new ResponseStatusException(GONE, "Este link expirou. Peça um novo convite ao seu psicólogo.");
         }
 

@@ -837,8 +837,54 @@ services exigem). Lição: qualquer `@Value` sem default e qualquer bean condici
 precisa ser conferido contra `src/test/resources/application.yaml` também, não só contra
 `application.yaml`/`application-prod.yaml`.
 
-**Passo 4 (endpoints REST) — ❌ ainda não iniciado.** Continua exatamente como descrito
-em §14 (APIs).
+**Passo 4 — Endpoints REST — ✅ concluído e validado com HTTP real (2026-07-12).**
+- `POST /pacientes/{patientId}/questionarios/{questionnaireId}/convites` — adicionado em
+  `PatientController` (segue o precedente já existente de recurso aninhado, igual
+  `/pacientes/{id}/avaliacoes`).
+- `POST /convites/{id}/reenviar`, `DELETE /convites/{id}`, `POST /convites/consumir` —
+  novo `InviteController` (`/convites`).
+- `controller/request/invite/ConsumeInviteRequest.java` (novo DTO, `@NotBlank token`).
+- `SecurityConfig`: `POST /convites/consumir` liberado como `permitAll()` (paciente ainda
+  sem sessão ao clicar o link) — os demais continuam exigindo Bearer JWT normalmente.
+
+**Dois bugs reais encontrados e corrigidos durante a validação com HTTP de verdade**
+(não capturados pelos testes de repository/contexto, só aparecem no fluxo completo):
+
+1. **Reenvio/reuso não resetava `consumed_at`/`opened_at`.** Ao reutilizar um convite já
+   aberto (`CreateInviteService`) ou reenviar (`ResendInviteService`), o token era
+   rotacionado mas `consumed_at` do consumo anterior continuava preenchido — como o
+   `UPDATE` atômico exige `consumed_at IS NULL`, o token novo nunca conseguiria ser
+   consumido (se autodestruía na hora de nascer). Corrigido zerando `opened_at`/
+   `consumed_at` nos dois services sempre que o token é rotacionado.
+2. **Mensagem errada ao reabrir o mesmo link já usado** (sem ter havido reenvio):
+   `ConsumeInviteService` caía no branch genérico "Este link expirou" mesmo quando o link
+   só tinha sido usado antes, não expirado de fato. Corrigido com uma checagem específica
+   (`consumed_at != null` → "Este link já foi utilizado.") antes do fallback de expiração.
+
+**Validação ponta a ponta via HTTP real** (backend local + Postgres local + Zoho SMTP
+real — paciente de teste com e-mail temporariamente apontado para
+`contato@remindapp.com.br`, revertido ao original depois, ver memória do projeto):
+1. Login como psicóloga seedada → JWT.
+2. `POST .../convites` → convite criado, `status=SENT`, e-mail chegou de verdade na
+   inbox.
+3. `POST /convites/consumir` (sem token de auth, rota pública) → JWT de escopo restrito
+   emitido corretamente (`scope=invite`, `questionnaireId` certo).
+4. `GET /questionarios/{id}` com o JWT restrito → **200** (dentro do escopo).
+5. `GET /pacientes` com o mesmo JWT restrito → **403** com a mensagem certa (fora do
+   escopo, INV-012 confirmado na prática).
+6. Reconsumir o mesmo token → **410**, mensagem certa (achado do bug #2 acima).
+7. `POST /convites/{id}/reenviar` → token rotacionado, novo e-mail enviado.
+8. Consumir o **token novo** do reenvio → **200** (prova o fix do bug #1 — sem ele, teria
+   dado 410 incorretamente).
+9. `DELETE /convites/{id}` (revoke) num convite nunca consumido → **204**, depois
+   consumir → **410** "não está mais disponível" (distinto do 409/expirado).
+10. Psicóloga diferente tentando convidar paciente de outra psicóloga →
+    **404** "Paciente não encontrado" (INV-011 confirmado, sem enumeração).
+
+Suíte automatizada re-executada depois dos 2 fixes: **36 testes, 0 falhas** (1 pulado).
+
+**Fase A completa** (passos 1–4). Falta só aplicar a migração de schema em produção via
+pgweb quando for deployar (ver checklist §19) e decidir os itens em aberto de §20.
 
 ### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ❌ não iniciada
 
