@@ -2,7 +2,10 @@
 
 - **Spec ID**: 002-convite-questionario
 - **Data**: 2026-07-12
-- **Status**: Proposta para aprovação — nenhuma alteração de código foi feita
+- **Status**: Em implementação parcial — **Fase C (e-mail) concluída e validada em
+  produção externa (Zoho)**; Fases A, B e D ainda não iniciadas. Ver §22 (Status de
+  Implementação) para o detalhe completo do que já existe em código vs. o que ainda é só
+  planejamento.
 - **Escopo**: Backend (`api/`) + Frontend (`remind-web/`)
 - **Baseado em**: auditoria completa do código-fonte atual (backend Spring Boot, frontend
   Next.js, schema SQL), leitura de `docs/specs/architecture.md`, `docs/specs/ontology.md`,
@@ -10,9 +13,12 @@
   `PRD.md` raiz (redesign UI/UX), e pesquisa externa sobre magic links, tokens de convite e
   padrões de intake de software clínico (SimplePractice/TherapyNotes). Ver §21.
 
-> **Nenhuma implementação foi feita.** Este documento é só planejamento, para guiar o
-> desenvolvimento subsequente (provavelmente um `technical-plan.md` + `tasks/` no mesmo
-> padrão de `docs/specs/001-login-google-psicologo/`).
+> **Atualização (2026-07-12)**: este documento nasceu como planejamento puro ("nenhuma
+> implementação foi feita"), mas a decisão de provedor de e-mail (§17) já foi tomada e a
+> Fase C (§18) já foi **implementada e testada de ponta a ponta** antes das demais fases —
+> ver §22 para o resumo do que rodou em código real. As seções 1–21 permanecem como o
+> planejamento original (atualizado in-line onde a implementação mudou alguma premissa);
+> §22 é o registro factual do que foi efetivamente construído.
 
 ---
 
@@ -675,3 +681,72 @@ Referências internas: `docs/specs/architecture.md`, `docs/specs/ontology.md`,
 `docs/specs/001-login-google-psicologo/` (formato de spec seguido),
 `.claude/specs/04-spec-aplicacao.md` (confirma a lacuna de atribuição já conhecida),
 `PRD.md` (raiz, redesign de UI/UX — confirma que este fluxo não foi cogitado ali).
+
+---
+
+## 22. Status de implementação (atualizado conforme o código evolui)
+
+> Diferente das seções 1–21 (planejamento), esta seção é **factual**: só descreve o que
+> existe de fato em código/config/infra neste momento, para não exigir que quem for
+> continuar a feature precise adivinhar o que já está pronto.
+
+### Fase C — E-mail transacional (Zoho SMTP) — ✅ concluída e validada (2026-07-12)
+
+**Infraestrutura de conta/DNS** (fora do repo, no Zoho + registro.br):
+- Conta Zoho Mail `contato@remindapp.com.br` com 2FA habilitado e senha de aplicativo
+  gerada para uso em SMTP.
+- Host/porta confirmados no painel: `smtppro.zoho.com`, porta `465` (SSL implícito, **não**
+  `smtp.zoho.com:587`/STARTTLS — variante genérica que estava no primeiro rascunho deste
+  PRD e foi corrigida depois de checar o painel real).
+- DNS de `remindapp.com.br` (registro.br) com os 3 registros de deliverability:
+  - **SPF** (TXT, `@`): `v=spf1 include:zohomail.com ~all`.
+  - **DKIM** (TXT, `remind._domainkey`): chave RSA 2048 bits gerada pelo Zoho.
+  - **MX** (`@`): `mx.zoho.com` (10), `mx2.zoho.com` (20), `mx3.zoho.com` (50).
+  - Todos os 3 confirmados propagados via `nslookup` e verificados no painel do Zoho.
+- **Lição aprendida durante a validação**: o primeiro teste de envio rodou sem nenhum
+  erro (o SMTP aceitou a mensagem), mas o e-mail nunca chegou — a causa era o **MX
+  ausente**. SPF + DKIM + SMTP corretos não bastam; MX é quem decide se o e-mail chega
+  à caixa. Isso não gera exceção do lado de quem envia, só se percebe pelo aviso do
+  próprio painel Zoho ou pela ausência do e-mail. Vale relembrar isso em qualquer setup
+  futuro de e-mail transacional em domínio novo.
+
+**Código** (`api/`):
+- `pom.xml`: dependência `spring-boot-starter-mail` adicionada.
+- `application.yaml` (dev) e `application-prod.yaml`: config `spring.mail.*` apontando
+  para `smtppro.zoho.com:465` com SSL; usuário/senha via `${ZOHO_MAIL_USERNAME}`/
+  `${ZOHO_MAIL_PASSWORD}` (opcionais localmente, obrigatórios em prod); propriedade
+  própria `remind.mail.from-name` (default `ReMind`).
+- `service/mail/MailService.java` (novo): `sendQuestionnaireInvite(to, patientName,
+  questionnaireTitle, inviteLink, expiresAt)`, usando `JavaMailSender` autoconfigurado
+  pelo Spring Boot — sem SDK de provedor terceiro. Template HTML embutido segue à risca
+  a paleta/fonte obrigatórias de `documentacao/idVisual/id.md`; nome do paciente e título
+  do questionário são escapados (`HtmlUtils.htmlEscape`) antes de entrar no HTML; o token/
+  link nunca é logado.
+- `service/mail/MailServiceManualTest.java` (novo, em `src/test/`): teste isolado — sem
+  `@SpringBootTest`/sem depender de Postgres local — que instancia `JavaMailSenderImpl`
+  diretamente e chama `MailService` de verdade. Gated por
+  `@EnabledIfEnvironmentVariable(named = "REMIND_MAIL_MANUAL_TEST", matches = "true")`,
+  então **não roda** em `mvn test` normal nem em CI — só quando alguém define essa
+  variável explicitamente junto com `ZOHO_MAIL_USERNAME`/`ZOHO_MAIL_PASSWORD` reais.
+  Executado manualmente em 2026-07-12: e-mail chegou na inbox de
+  `contato@remindapp.com.br` com sucesso.
+
+**Pendente para produção** (não feito ainda):
+- Cadastrar `ZOHO_MAIL_USERNAME`/`ZOHO_MAIL_PASSWORD` como variável de ambiente/segredo
+  no EasyPanel — até aqui só foi testado localmente, com as variáveis definidas na sessão
+  do PowerShell do desenvolvedor.
+- Nada mais depende disso estar em produção agora, porque **ainda não há nenhum código
+  que chame `MailService`** fora do teste manual (ver Fase A abaixo).
+
+### Fase A — Entidade `QuestionnaireInvite`, migração de schema, criação/consumo de token — ❌ não iniciada
+
+Nenhum código escrito ainda. Continua exatamente como descrito em §5 (Modelo de dados),
+§12 (banco de dados) e §13 (backend).
+
+### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ❌ não iniciada
+
+Nenhum código escrito ainda. Continua exatamente como descrito em §6, §7 e §14.
+
+### Fase D — Rate limiting e telemetria de convite — ❌ não iniciada
+
+Sem mudança em relação ao planejamento original (§18).
