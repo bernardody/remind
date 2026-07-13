@@ -671,6 +671,56 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
 6. **Rate limiting fica para a Fase D ou é bloqueante para ir a produção?** Proposto como
    adiável, mas é uma superfície de abuso nova (spam de e-mail via convites) que não
    existia antes.
+7. **Mensagem do WhatsApp em terceira pessoa soa estranho vindo do próprio psicólogo**
+   (achado do usuário testando em produção, 2026-07-13). O texto atual
+   (`features/invites/lib/whatsapp.ts`) diz *"Seu psicólogo(a) preparou o questionário..."*
+   — faz sentido no e-mail (mensagem vem de um sistema automatizado, `contato@remindapp.com.br`,
+   então falar do psicólogo em terceira pessoa é natural), mas no WhatsApp quem literalmente
+   aperta "Enviar" é o próprio psicólogo, na própria conversa dele com o paciente — soa como
+   se ele estivesse se referindo a si mesmo na terceira pessoa. Provável correção: reescrever
+   em primeira pessoa (ex. *"Preparei o questionário [...] pra você responder"*), já que o
+   canal WhatsApp é sempre "psicólogo específico → paciente dele", diferente do e-mail que é
+   "sistema → paciente". Pode precisar de um texto por canal (e-mail em 3ª pessoa,
+   WhatsApp em 1ª pessoa) em vez de reaproveitar a mesma string.
+8. **Preview de link do WhatsApp expõe o nome institucional/clínico do site antes mesmo
+   de o paciente clicar** (achado do usuário testando em produção, 2026-07-13). Causa
+   técnica confirmada: `app/convite/[token]/page.tsx` só sobrescreve `title`/`robots` no
+   `metadata`, então herda o `openGraph` do layout raiz (`app/layout.tsx`) —
+   `"ReMind — A primeira plataforma de avaliação de dependência digital"` como título do
+   card de preview, mais a descrição completa (*"Plataforma clínica para psicólogos
+   avaliarem e monitorarem o uso problemático de redes sociais em adolescentes..."*) como
+   subtítulo. O WhatsApp busca esses metadados (Open Graph) pra montar o card acima do
+   link automaticamente. Para um adolescente recebendo isso de repente na conversa com o
+   psicólogo, o efeito pode ser o oposto do pretendido — expõe publicamente (pra quem
+   estiver perto/olhando o celular) que é uma "avaliação de dependência" antes mesmo do
+   clique, quando a intenção do link é justamente ser discreto/pessoal. Provável correção:
+   `/convite/[token]` ganhar seu próprio `openGraph` neutro (ex. só `"ReMind"` como título,
+   sem descrição clínica, talvez até sem card nenhum — testar se dá pra suprimir o preview
+   por completo via `openGraph: false`/meta tags específicas) em vez de herdar o do site
+   institucional.
+9. **"Este acesso é restrito ao questionário do convite." aparece ao clicar em "Revogar"**
+   (achado do usuário testando em produção, 2026-07-13). Essa é literalmente a mensagem
+   de erro do `InviteScopedAuthorizationFilter` (`config/InviteScopedAuthorizationFilter.java`)
+   — **só aparece quando quem faz a requisição carrega um JWT de paciente com
+   `scope=invite`**, nunca para o token normal do psicólogo (o filtro nem entra em ação
+   pra ele, `readInviteScopeQuestionnaireId()` retorna vazio quando não há esse claim).
+   **Diagnóstico mais provável** (não reproduzido/confirmado ainda, mas coerente com a
+   mensagem exata): a sessão do NextAuth é um único cookie por navegador/domínio, sem
+   isolamento por aba. Se o convite (link real, recebido por e-mail/WhatsApp) foi aberto
+   em **qualquer aba do mesmo navegador** onde o psicólogo também estava logado, o
+   `signIn("invite", ...)` sobrescreve o cookie de sessão do navegador inteiro — a aba do
+   psicólogo continua mostrando a UI antiga (React não re-renderiza sozinho), mas a
+   **próxima ação que dispara uma chamada de API de verdade** (como clicar "Revogar")
+   usa o cookie atual, que agora é o do paciente/convite, não mais o do psicólogo — daí o
+   403 com essa mensagem específica. **Não é um bug no endpoint de revogar** — é
+   colisão de sessão entre testar o link do convite e estar logado como psicólogo no
+   mesmo navegador. Verificação sugerida da próxima vez que acontecer: checar
+   `GET /api/auth/session` nesse momento — se `user.type` estiver `"PATIENT"` em vez de
+   `"PSYCHOLOGIST"`, confirma a teoria. Caminhos de correção a avaliar: (a) documentar
+   como cuidado de teste (testar convite sempre em aba anônima/outro navegador — só
+   evita o sintoma, não resolve o risco de produto); (b) considerar se isso é um risco
+   real de produto também — ex. um psicólogo clicando no próprio link de convite pra
+   conferir como fica, sem querer, "sai" da própria conta.
 
 ---
 
