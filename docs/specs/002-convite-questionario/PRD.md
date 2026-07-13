@@ -623,9 +623,20 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
       SSL), SPF, DKIM e **MX** (faltava e foi a causa raiz do e-mail não chegar na 1ª
       tentativa — sem MX, a entrega falha mesmo com SPF/DKIM/SMTP corretos) todos
       configurados e confirmados; e-mail de teste (`MailServiceManualTest`) chegou na
-      inbox. **Falta apenas**: cadastrar `ZOHO_MAIL_USERNAME`/`ZOHO_MAIL_PASSWORD` como
-      variável de ambiente/segredo no EasyPanel antes de ativar em produção (validado só
-      localmente até aqui).
+      inbox.
+- [x] **`ZOHO_MAIL_USERNAME`/`ZOHO_MAIL_PASSWORD` cadastradas no EasyPanel em produção
+      (2026-07-12)** — **incidente real**: o código da Fase A/B foi ao ar (push) antes
+      dessas variáveis serem cadastradas em produção. Resultado: `MailService` (sem
+      default no `application-prod.yaml`) falhou com
+      `PlaceholderResolutionException: Could not resolve placeholder 'ZOHO_MAIL_USERNAME'`
+      na criação do bean — e como `MailService` é dependência de `ResendInviteService` →
+      `InviteController`, **o contexto Spring inteiro falhou ao subir**, derrubando toda
+      a API (502 do EasyPanel, "Service is not reachable") — inclusive login normal, não
+      só o fluxo de convite. Diagnosticado direto pelo log do container (o log cita o
+      nome exato da variável faltando). Corrigido cadastrando as 2 variáveis e reiniciando
+      o serviço. **Lição**: variáveis de ambiente sem default em `application-prod.yaml`
+      viram ponto único de falha pra todo o backend, não só pra quem as usa
+      diretamente — cadastrar no EasyPanel é pré-requisito do deploy, não pós-deploy.
 - [ ] Verificar timezone dos timestamps (`sent_at`, `opened_at`, `expires_at`) contra o
       mesmo cuidado de timezone já necessário na Fase 4 (container em UTC vs. horário
       local do usuário).
@@ -652,10 +663,11 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
    questionários não convidados. Se o objetivo de produto é realmente restringir
    (não só notificar), essa migração precisa entrar em algum momento — recomenda-se
    tratar como Fase 2 explícita, não implícita neste documento.
-5. **Prazo de expiração de 7 dias é aceitável clinicamente?** Proposto por analogia com
-   produtos de referência, mas o contexto é adolescentes com avaliação de risco — um
-   prazo muito longo pode atrasar identificação de risco alto. Vale confirmar com quem
-   define o protocolo clínico.
+5. ~~**Prazo de expiração de 7 dias é aceitável clinicamente?**~~ — **resolvido
+   (2026-07-12): sim, mantido em 7 dias.** Confirmado pelo usuário depois de testar em
+   produção e ver o texto real do e-mail ("expira em 19/07/2026", 7 dias após o envio em
+   12/07). Nenhuma mudança de código — `remind.invite.expiration-days: 7` (já configurado
+   desde a Fase C) já era exatamente isso.
 6. **Rate limiting fica para a Fase D ou é bloqueante para ir a produção?** Proposto como
    adiável, mas é uma superfície de abuso nova (spam de e-mail via convites) que não
    existia antes.
@@ -983,6 +995,36 @@ re-executada depois do fix: 36 testes, 0 falhas.
 aberto) — não implementada, já que `PUT /pacientes/me/senha` também não existe ainda
 (ver Fase A). Sem isso, hoje o paciente que só usa convites nunca ganha login próprio —
 aceitável como está, mas é uma decisão de produto pendente.
+
+### Teste real em produção (2026-07-12) — ✅ ponta a ponta, e 1 bug real de UX corrigido
+
+Usuário testou o fluxo completo em produção depois do restart (ver incidente do
+`ZOHO_MAIL_USERNAME` acima): recebeu o e-mail de convite de verdade e entrou direto no
+questionário **sem precisar de senha**, confirmando a decisão central desta feature
+funcionando de ponta a ponta com dado real.
+
+**Bug de UX real encontrado no teste** (não capturado nas validações anteriores via
+curl, porque essas não renderizavam o app shell completo com a barra lateral): a sessão
+de convite herdava a navegação normal do paciente (`AppShell`/`SidebarNav` — "Início" e
+"Perfil"). Como o `InviteScopedAuthorizationFilter` bloqueia (403) qualquer rota fora do
+próprio questionário, clicar em "Perfil" ou "Início" **quebrava a aplicação** (a página
+tentava chamar `GET /questionarios` ou `GET /pacientes/{id}` e recebia 403 não tratado).
+Esse era exatamente o "limitação aceita para v1" anotado antes na Fase B — só que na
+prática não é aceitável, quebra mesmo.
+
+**Corrigido**: `AppShell` ganhou um prop `restricted` (setado quando
+`session.user.questionnaireId` existe, ou seja, sessão nascida de convite) que esconde a
+barra lateral inteira (desktop e o `Sheet` mobile) e o botão de abrir o menu mobile —
+sobra só o logo (sem link, já que "Início" também quebraria) e o menu do usuário (avatar
++ "Sair", que continua funcionando — `signOut()` não bate em nenhuma rota bloqueada).
+Arquivos: `app/(app)/layout.tsx`, `components/layout/app-shell.tsx`,
+`components/layout/topbar.tsx`. Validado de novo via HTTP real (mesma técnica de
+`signIn()` via curl): página do wizard renderiza com a pergunta real, "Perfil"/"Início"
+ausentes do HTML, "Rafael" (nome do usuário) presente — confirma que só a navegação
+sumiu, o resto do shell funciona normal. `typecheck`/`lint` limpos.
+
+**Decisão confirmada pelo usuário**: prazo de expiração de 7 dias mantido como está —
+ver §20 dúvida #5, resolvida.
 
 ### Fase D — Rate limiting e telemetria de convite — ❌ não iniciada
 

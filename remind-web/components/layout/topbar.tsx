@@ -18,6 +18,8 @@ interface TopbarProps {
   userName: string;
   userEmail: string;
   onOpenMobileNav: () => void;
+  /** Sem sheet de navegação pra abrir em sessão de convite (escopo restrito). */
+  hideMobileNavButton?: boolean;
 }
 
 function initials(name: string, email: string) {
@@ -27,18 +29,27 @@ function initials(name: string, email: string) {
   return source.slice(0, 2).toUpperCase();
 }
 
-export function Topbar({ userName, userEmail, onOpenMobileNav }: TopbarProps) {
+export function Topbar({
+  userName,
+  userEmail,
+  onOpenMobileNav,
+  hideMobileNavButton = false,
+}: TopbarProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 sm:px-6 lg:px-8">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-foreground lg:hidden"
-        onClick={onOpenMobileNav}
-        aria-label="Abrir navegação"
-      >
-        <Menu className="size-5" />
-      </Button>
+      {hideMobileNavButton ? (
+        <span />
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-foreground lg:hidden"
+          onClick={onOpenMobileNav}
+          aria-label="Abrir navegação"
+        >
+          <Menu className="size-5" />
+        </Button>
+      )}
 
       <span className="hidden lg:block" />
 
