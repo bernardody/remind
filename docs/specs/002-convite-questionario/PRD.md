@@ -738,10 +738,55 @@ Referências internas: `docs/specs/architecture.md`, `docs/specs/ontology.md`,
 - Nada mais depende disso estar em produção agora, porque **ainda não há nenhum código
   que chame `MailService`** fora do teste manual (ver Fase A abaixo).
 
-### Fase A — Entidade `QuestionnaireInvite`, migração de schema, criação/consumo de token — ❌ não iniciada
+### Fase A — Entidade `QuestionnaireInvite`, migração de schema, criação/consumo de token — 🟡 em andamento (passo 1/4 concluído em 2026-07-12)
 
-Nenhum código escrito ainda. Continua exatamente como descrito em §5 (Modelo de dados),
-§12 (banco de dados) e §13 (backend).
+**Passo 1 — Migração de schema — ✅ concluído.**
+- `api/data/schema.sql`: adicionado `DROP TABLE IF EXISTS questionnaire_invites CASCADE;`
+  ao bloco de reset, e `CREATE TABLE questionnaire_invites` (+ 4 FKs, `UNIQUE(token_hash)`,
+  e índice único parcial `UNIQUE(id_patient, id_questionnaire) WHERE active = true` — no
+  máximo 1 convite ativo por par) ao final do arquivo. `users.password` **não precisou de
+  alteração** — já era nullable (confirmado direto no Postgres local, `\d users`).
+- DDL aplicado **manualmente** no Postgres local (porta 5432 nativa do Windows) — só o
+  incremento novo, **não** o `schema.sql` inteiro (que começa com `DROP TABLE` em todas as
+  tabelas e apagaria os dados locais existentes, já que não há Flyway/Liquibase). Tabela
+  confirmada via `\d questionnaire_invites`: 4 FKs, as 2 constraints únicas e o índice
+  parcial, todos presentes.
+- **Achado colateral, fora do escopo deste PRD**: o Postgres local está com drift
+  preexistente — `scale_risk_bands` e `questionnaire_scale_results` (tabelas da Fase 5a,
+  presentes em `schema.sql`) **não existem** na base local, embora o `ddl-auto: validate`
+  devesse acusar isso ao subir o backend. Mesmo padrão do drift já documentado
+  anteriormente (memória `db-schema-drift-users`), só que em tabelas diferentes — não foi
+  corrigido inicialmente por estar fora do escopo desta feature — mas acabou sendo
+  corrigido de qualquer forma no passo 2 (ver abaixo), porque bloqueava a única forma
+  real de validar a entidade nova (o backend não subia de jeito nenhum, mesmo sem
+  relação com `questionnaire_invites`).
+- **Ainda pendente dentro do passo 1**: aplicar o mesmo DDL em **produção via pgweb antes
+  do próximo deploy do `/api`** (mesma ordem — schema antes do código — já validada
+  necessária na Fase 5a). Não fazer isso ainda, só quando os passos 2–4 desta fase
+  estiverem prontos para deploy junto.
+
+**Passo 2 — Entidade `QuestionnaireInvite` + `InviteStatus` + repository — ✅ concluído.**
+- `enums/InviteStatus.java` (`PENDING, SENT, OPENED, ANSWERED, EXPIRED, REVOKED`).
+- `domain/QuestionnaireInvite.java` — segue exatamente o padrão das entidades existentes
+  (`@Builder`, campos snake_case tipo `token_hash`/`expires_at` espelhando as colunas,
+  como já é feito em `birth_date`/`answered_at`/`risk_label`).
+- `repository/QuestionnaireInviteRepository.java` — `findByPatientAndQuestionnaireAndActiveTrue`
+  (derivado normalmente) e `findByTokenHash` (via `@Query` JPQL explícita — **primeira
+  `@Query` do projeto**, necessária porque o Spring Data tenta interpretar o `_` de
+  `token_hash` como separador de caminho aninhado ao derivar o nome do método, e erra;
+  `@Query("select qi from QuestionnaireInvite qi where qi.token_hash = :tokenHash")`
+  resolve sem abrir mão do padrão snake_case do domínio).
+- **Validado de verdade**, não só por compilar: subi o backend localmente
+  (`./mvnw spring-boot:run`) com `ddl-auto: validate` e confirmei
+  `Started RemindApplication` sem erro de schema — a entidade bate 100% com a tabela
+  criada no passo 1. Isso só foi possível depois de corrigir o drift preexistente
+  (`scale_risk_bands`/`questionnaire_scale_results` recriadas localmente, DDL do próprio
+  `schema.sql`), senão o boot falhava por causa deles antes mesmo de chegar a validar
+  `questionnaire_invites`.
+
+**Passos 3–4 (services de criação/consumo/reenvio/revogação, filtro de JWT de escopo
+restrito, endpoints REST) — ❌ ainda não iniciados.** Continuam exatamente como descrito
+em §13 (backend) e §14 (APIs).
 
 ### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ❌ não iniciada
 
