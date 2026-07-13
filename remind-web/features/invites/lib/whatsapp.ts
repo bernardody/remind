@@ -33,7 +33,7 @@ export function buildWhatsAppInviteLink({
 
   const message = [
     `Olá, ${firstName}!`,
-    `Seu psicólogo(a) preparou o questionário "${questionnaireTitle}" para você responder — leva só alguns minutos:`,
+    `Preparei o questionário "${questionnaireTitle}" pra você responder — leva só alguns minutos:`,
     inviteLink,
     `Esse link é pessoal e expira em ${formatDateTime(expiresAt)}.`,
   ].join("\n\n");

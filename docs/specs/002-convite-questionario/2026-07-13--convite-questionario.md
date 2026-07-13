@@ -323,17 +323,16 @@ Pendências levantadas no PRD (`PRD.md` §20) ainda sem decisão fechada:
 4. **Rate limiting** — bloqueante para produção com uso real em escala, ou
    aceitável adiar para a Fase D? Superfície de abuso nova (spam de e-mail via
    convites) que não existia antes desta funcionalidade.
-5. **Mensagem do WhatsApp em terceira pessoa** — achado de teste em produção
-   (2026-07-13): o texto atual soa estranho vindo do próprio psicólogo (ele
-   mesmo clica "Enviar" na própria conversa). Provável correção: texto em
-   primeira pessoa para o canal WhatsApp, mantendo terceira pessoa no e-mail
-   (que vem de um remetente institucional). Ver `PRD.md` §20.7.
-6. **Preview de link do WhatsApp expõe metadados institucionais/clínicos** —
-   achado de teste em produção (2026-07-13): `/convite/[token]` herda o
-   Open Graph do layout raiz (nome e descrição clínica do produto), visível no
-   card de preview antes mesmo do clique — potencialmente indiscreto para um
-   adolescente. Correção provável: Open Graph próprio e neutro para essa rota.
-   Ver `PRD.md` §20.8.
+5. ~~**Mensagem do WhatsApp em terceira pessoa**~~ — corrigido (2026-07-13):
+   `features/invites/lib/whatsapp.ts` reescrito em primeira pessoa ("Preparei
+   o questionário... pra você responder"); o e-mail (`MailService.java`)
+   continua em terceira pessoa, sem alteração, por vir de remetente
+   institucional. Ver `PRD.md` §20.7.
+6. ~~**Preview de link do WhatsApp expõe metadados institucionais/clínicos**~~ —
+   corrigido (2026-07-13): `app/convite/[token]/page.tsx` ganhou `openGraph`/
+   `twitter` próprios ("ReMind" + "Você recebeu um link de acesso."),
+   sobrescrevendo o Open Graph clínico herdado do layout raiz. Ver `PRD.md`
+   §20.8.
 7. **Colisão de sessão ao testar o link de convite logado como psicólogo no
    mesmo navegador** — comportamento observado (`PRD.md` §20.9), atribuído a
    cookie de sessão único por navegador (não por aba), não a um bug do

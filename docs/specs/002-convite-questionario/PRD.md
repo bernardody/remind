@@ -676,33 +676,20 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
 6. **Rate limiting fica para a Fase D ou é bloqueante para ir a produção?** Proposto como
    adiável, mas é uma superfície de abuso nova (spam de e-mail via convites) que não
    existia antes.
-7. **Mensagem do WhatsApp em terceira pessoa soa estranho vindo do próprio psicólogo**
-   (achado do usuário testando em produção, 2026-07-13). O texto atual
-   (`features/invites/lib/whatsapp.ts`) diz *"Seu psicólogo(a) preparou o questionário..."*
-   — faz sentido no e-mail (mensagem vem de um sistema automatizado, `contato@remindapp.com.br`,
-   então falar do psicólogo em terceira pessoa é natural), mas no WhatsApp quem literalmente
-   aperta "Enviar" é o próprio psicólogo, na própria conversa dele com o paciente — soa como
-   se ele estivesse se referindo a si mesmo na terceira pessoa. Provável correção: reescrever
-   em primeira pessoa (ex. *"Preparei o questionário [...] pra você responder"*), já que o
-   canal WhatsApp é sempre "psicólogo específico → paciente dele", diferente do e-mail que é
-   "sistema → paciente". Pode precisar de um texto por canal (e-mail em 3ª pessoa,
-   WhatsApp em 1ª pessoa) em vez de reaproveitar a mesma string.
-8. **Preview de link do WhatsApp expõe o nome institucional/clínico do site antes mesmo
-   de o paciente clicar** (achado do usuário testando em produção, 2026-07-13). Causa
-   técnica confirmada: `app/convite/[token]/page.tsx` só sobrescreve `title`/`robots` no
-   `metadata`, então herda o `openGraph` do layout raiz (`app/layout.tsx`) —
-   `"ReMind — A primeira plataforma de avaliação de dependência digital"` como título do
-   card de preview, mais a descrição completa (*"Plataforma clínica para psicólogos
-   avaliarem e monitorarem o uso problemático de redes sociais em adolescentes..."*) como
-   subtítulo. O WhatsApp busca esses metadados (Open Graph) pra montar o card acima do
-   link automaticamente. Para um adolescente recebendo isso de repente na conversa com o
-   psicólogo, o efeito pode ser o oposto do pretendido — expõe publicamente (pra quem
-   estiver perto/olhando o celular) que é uma "avaliação de dependência" antes mesmo do
-   clique, quando a intenção do link é justamente ser discreto/pessoal. Provável correção:
-   `/convite/[token]` ganhar seu próprio `openGraph` neutro (ex. só `"ReMind"` como título,
-   sem descrição clínica, talvez até sem card nenhum — testar se dá pra suprimir o preview
-   por completo via `openGraph: false`/meta tags específicas) em vez de herdar o do site
-   institucional.
+7. ~~**Mensagem do WhatsApp em terceira pessoa soa estranho vindo do próprio
+   psicólogo**~~ — corrigido (2026-07-13). `features/invites/lib/whatsapp.ts`
+   reescrito em primeira pessoa (*"Preparei o questionário [...] pra você
+   responder"*), já que o canal WhatsApp é sempre "psicólogo específico →
+   paciente dele". O e-mail (`MailService.java`, *"Seu psicólogo(a) te
+   convidou..."*) permanece em terceira pessoa, sem alteração — faz sentido lá
+   por vir de um remetente institucional (`contato@remindapp.com.br`).
+8. ~~**Preview de link do WhatsApp expõe o nome institucional/clínico do site
+   antes mesmo de o paciente clicar**~~ — corrigido (2026-07-13).
+   `app/convite/[token]/page.tsx` ganhou `openGraph`/`twitter` próprios
+   (`title: "ReMind"`, `description: "Você recebeu um link de acesso."`),
+   sobrescrevendo o Open Graph clínico herdado do layout raiz
+   (`app/layout.tsx`) — o card de preview no WhatsApp deixa de mostrar a
+   tagline/descrição de "avaliação de dependência digital".
 9. **"Este acesso é restrito ao questionário do convite." aparece ao clicar em "Revogar"**
    (achado do usuário testando em produção, 2026-07-13). Essa é literalmente a mensagem
    de erro do `InviteScopedAuthorizationFilter` (`config/InviteScopedAuthorizationFilter.java`)
