@@ -65,7 +65,7 @@ export function InviteDialog({
     try {
       const invite = await createInvite.mutateAsync(Number(questionnaireId));
       await copyLinkSilently(invite.inviteLink);
-      toast.success("Convite enviado por e-mail e link copiado.");
+      toast.success("Convite criado e link copiado.");
       setReadyInvite(invite);
     } catch (err) {
       toast.error(
@@ -89,8 +89,8 @@ export function InviteDialog({
           </DialogTitle>
           <DialogDescription>
             {readyInvite
-              ? "O e-mail já foi enviado. Envie também por WhatsApp ou copie o link."
-              : "O paciente recebe um e-mail com um link direto para responder — sem precisar entrar com senha."}
+              ? "Recomendamos enviar por WhatsApp — é o canal que o paciente costuma checar primeiro. Um e-mail de backup já foi enviado automaticamente."
+              : "O paciente recebe um link direto para responder, sem precisar entrar com senha — o ideal é enviar por WhatsApp; um e-mail de backup também é enviado automaticamente."}
           </DialogDescription>
         </DialogHeader>
 

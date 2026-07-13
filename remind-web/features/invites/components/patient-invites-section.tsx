@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, MoreHorizontal, Send } from "lucide-react";
+import { MessageCircle, MoreHorizontal, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -131,9 +131,9 @@ export function PatientInvitesSection({
         <LoadingState rows={2} />
       ) : invites.length === 0 ? (
         <EmptyState
-          icon={Mail}
+          icon={MessageCircle}
           title="Nenhum convite enviado ainda"
-          description="Convide o paciente a responder um questionário por e-mail, sem precisar de senha."
+          description="Convide o paciente a responder um questionário por WhatsApp ou e-mail, sem precisar de senha."
         />
       ) : (
         <div className="flex flex-col gap-2">
@@ -189,7 +189,8 @@ export function PatientInvitesSection({
           <DialogHeader>
             <DialogTitle>Convite reenviado</DialogTitle>
             <DialogDescription>
-              O e-mail já foi enviado de novo. Envie também por WhatsApp ou copie o link.
+              Recomendamos enviar por WhatsApp de novo — um e-mail de backup também já foi
+              reenviado automaticamente.
             </DialogDescription>
           </DialogHeader>
           {resentReady && (
