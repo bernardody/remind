@@ -6,6 +6,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  mail:
+    host: smtppro.zoho.com
+    port: 465
+    username: ${ZOHO_MAIL_USERNAME:}
+    password: ${ZOHO_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+        socketFactory:
+          class: javax.net.ssl.SSLSocketFactory
+          port: 465
 
 server:
   error:
@@ -20,3 +34,8 @@ jwt:
 google:
   # OAuth 2.0 Client ID do Google usado como audiência esperada do ID token (REQ-002).
   client-id: ${GOOGLE_CLIENT_ID:}
+
+remind:
+  mail:
+    # Nome de exibição do remetente; o endereço vem de spring.mail.username (contato@remindapp.com.br).
+    from-name: ReMind
