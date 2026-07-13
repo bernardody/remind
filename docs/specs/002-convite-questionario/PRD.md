@@ -1026,6 +1026,40 @@ sumiu, o resto do shell funciona normal. `typecheck`/`lint` limpos.
 **Decisão confirmada pelo usuário**: prazo de expiração de 7 dias mantido como está —
 ver §20 dúvida #5, resolvida.
 
+### Canal adicional — Envio por WhatsApp via `wa.me` — ✅ implementado (2026-07-13)
+
+Pedido do usuário depois do teste em produção: pacientes (adolescentes) provavelmente
+olham WhatsApp muito mais que e-mail. **Decisão registrada antes de implementar** (ver
+reflexão pedida e respondida na conversa): não integrar a API do WhatsApp Business
+(exigiria conta verificada, template pré-aprovado pela Meta — não dá pra mandar texto
+livre na primeira mensagem — e custo por conversa). Em vez disso, **link `wa.me`
+(click-to-chat)**: zero API, zero aprovação, zero custo — o backend/frontend só monta a
+URL com o telefone já cadastrado do paciente e uma mensagem pronta; quem efetivamente
+manda continua sendo o psicólogo, clicando "Enviar" dentro do próprio WhatsApp. Trade-off
+aceito conscientemente: não é automático como o e-mail, é "preparado com um clique a
+menos manual".
+
+**Implementado, só frontend, sem mudança de backend** (o telefone do paciente e o link do
+convite já existiam, só faltava juntar os dois):
+- `features/invites/lib/whatsapp.ts` — monta o link (`https://wa.me/55<telefone>?text=...`,
+  mensagem personalizada com primeiro nome do paciente, título do questionário, o link e a
+  data de expiração formatada).
+- `features/invites/components/invite-ready-actions.tsx` — par de botões reutilizável
+  ("Enviar por WhatsApp" abre o link em nova aba; "Copiar link" reforça o que já é
+  copiado automaticamente).
+- `InviteDialog` (criação) e o novo diálogo de confirmação do reenvio em
+  `PatientInvitesSection` passam a mostrar essas ações **depois** de criar/reenviar —
+  nunca antes, e nunca a partir da listagem (o link não é reexposto fora desse momento,
+  mesma regra de segurança do §16 — coerente também para o canal novo).
+- Página do paciente (`app/(app)/psicologo/pacientes/[id]/page.tsx`) passou a repassar
+  `patient.name`/`patient.phone` pra `PatientInvitesSection` → `InviteDialog`.
+
+Validado: `typecheck`/`lint` limpos; página do paciente buscada via SSR (com sessão real
+de psicóloga) continua renderizando normal, sem erro, com a seção "Convites" presente.
+Não foi possível clicar de verdade no botão "Enviar por WhatsApp" num browser (mesma
+limitação de ambiente já registrada acima) — a lógica de montagem do link foi só
+revisada por leitura, não executada interativamente.
+
 ### Fase D — Rate limiting e telemetria de convite — ❌ não iniciada
 
 Sem mudança em relação ao planejamento original (§18).

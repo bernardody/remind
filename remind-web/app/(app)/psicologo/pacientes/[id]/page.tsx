@@ -136,7 +136,11 @@ export default async function PacienteDetailPage({ params }: PacienteDetailPageP
         </Card>
       </div>
 
-      <PatientInvitesSection patientId={patientId} />
+      <PatientInvitesSection
+        patientId={patientId}
+        patientName={patient.name}
+        patientPhone={patient.phone}
+      />
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">Avaliações respondidas</h2>

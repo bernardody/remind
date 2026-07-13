@@ -16,6 +16,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -25,9 +33,10 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { InviteDialog } from "@/features/invites/components/invite-dialog";
+import { InviteReadyActions } from "@/features/invites/components/invite-ready-actions";
 import { InviteStatusBadge } from "@/features/invites/components/invite-status-badge";
 import { usePatientInvites, useResendInvite, useRevokeInvite } from "@/features/invites/api";
-import type { PatientInvite } from "@/features/invites/schemas";
+import type { Invite, PatientInvite } from "@/features/invites/schemas";
 import { ApiError } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils";
 
@@ -51,9 +60,23 @@ function statusDetail(invite: PatientInvite): string {
   return "—";
 }
 
-export function PatientInvitesSection({ patientId }: { patientId: number }) {
+interface PatientInvitesSectionProps {
+  patientId: number;
+  patientName: string;
+  patientPhone: string;
+}
+
+export function PatientInvitesSection({
+  patientId,
+  patientName,
+  patientPhone,
+}: PatientInvitesSectionProps) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<PatientInvite | null>(null);
+  const [resentReady, setResentReady] = useState<{
+    invite: Invite;
+    questionnaireTitle: string;
+  } | null>(null);
 
   const { data, isLoading, isError, refetch } = usePatientInvites(patientId, {
     size: PAGE_SIZE,
@@ -66,6 +89,7 @@ export function PatientInvitesSection({ patientId }: { patientId: number }) {
       const resent = await resendInvite.mutateAsync(invite.id);
       await copyLinkSilently(resent.inviteLink);
       toast.success("Convite reenviado e link copiado.");
+      setResentReady({ invite: resent, questionnaireTitle: invite.questionnaireTitle });
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : "Não foi possível reenviar o convite.",
@@ -156,7 +180,34 @@ export function PatientInvitesSection({ patientId }: { patientId: number }) {
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
         patientId={patientId}
+        patientName={patientName}
+        patientPhone={patientPhone}
       />
+
+      <Dialog open={!!resentReady} onOpenChange={(open) => !open && setResentReady(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convite reenviado</DialogTitle>
+            <DialogDescription>
+              O e-mail já foi enviado de novo. Envie também por WhatsApp ou copie o link.
+            </DialogDescription>
+          </DialogHeader>
+          {resentReady && (
+            <InviteReadyActions
+              patientName={patientName}
+              patientPhone={patientPhone}
+              questionnaireTitle={resentReady.questionnaireTitle}
+              inviteLink={resentReady.invite.inviteLink}
+              expiresAt={resentReady.invite.expiresAt}
+            />
+          )}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setResentReady(null)}>
+              Concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!revokeTarget} onOpenChange={(open) => !open && setRevokeTarget(null)}>
         <AlertDialogContent>
