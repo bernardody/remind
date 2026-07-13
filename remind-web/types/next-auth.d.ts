@@ -6,6 +6,9 @@ declare module "next-auth" {
     type: UserType;
     expiresIn: number;
     profileComplete: boolean;
+    /** Só presente quando a sessão nasceu de um convite consumido (provider "invite"). */
+    questionnaireId?: number;
+    questionnaireTitle?: string;
   }
 
   interface Session {
@@ -17,6 +20,8 @@ declare module "next-auth" {
       email?: string | null;
       type: UserType;
       profileComplete: boolean;
+      questionnaireId?: number;
+      questionnaireTitle?: string;
     };
   }
 }
@@ -27,5 +32,7 @@ declare module "@auth/core/jwt" {
     userType?: UserType;
     expiresAt?: number;
     profileComplete?: boolean;
+    questionnaireId?: number;
+    questionnaireTitle?: string;
   }
 }

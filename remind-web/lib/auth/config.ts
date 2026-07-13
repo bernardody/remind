@@ -5,6 +5,7 @@ import {
   LoginRequestSchema,
   LoginResponseSchema,
 } from "@/features/auth/schemas";
+import { ConsumeInviteResponseSchema } from "@/features/invites/schemas";
 
 /**
  * `code` chega ao cliente via `result.code` do `signIn()` (com `redirect:
@@ -13,6 +14,18 @@ import {
  */
 class ServerUnavailableError extends CredentialsSignin {
   code = "server-unavailable";
+}
+
+/**
+ * `code` carrega a mensagem real do backend (docs/specs/002-convite-questionario
+ * §15 — "link expirado", "já foi utilizado" etc.) — diferente do login, aqui
+ * não há razão de segurança pra genericizar a mensagem (não revela nada sobre
+ * contas, só sobre o estado de um token que o próprio paciente recebeu).
+ */
+class InviteConsumeError extends CredentialsSignin {
+  constructor(public code: string) {
+    super();
+  }
 }
 
 // Tipos de Session/User/JWT aumentados em `types/next-auth.d.ts`.
@@ -93,6 +106,59 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    // Consome um convite de questionário (docs/specs/002-convite-questionario) e
+    // estabelece uma sessão de paciente de escopo restrito — reaproveita 100%
+    // do wizard/middleware existentes (o backend já limita o que esse JWT
+    // autoriza via `InviteScopedAuthorizationFilter`, independente do que o
+    // Next perceba como "sessão de paciente válida").
+    Credentials({
+      id: "invite",
+      credentials: { token: {} },
+      async authorize(credentials) {
+        const token = typeof credentials?.token === "string" ? credentials.token : "";
+        if (!token) return null;
+
+        let res: Response;
+        try {
+          res = await fetch(`${API_URL}/convites/consumir`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          });
+        } catch {
+          throw new ServerUnavailableError();
+        }
+
+        if (res.status >= 500) throw new ServerUnavailableError();
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const message =
+            json && typeof json === "object" && "message" in json &&
+            typeof (json as Record<string, unknown>).message === "string"
+              ? ((json as Record<string, unknown>).message as string)
+              : "Não foi possível validar o convite.";
+          throw new InviteConsumeError(message);
+        }
+
+        const body = ConsumeInviteResponseSchema.safeParse(json);
+        if (!body.success) return null;
+
+        const claims = decodeJwtPayload(body.data.accessToken);
+        return {
+          id: (claims.email as string | undefined) ?? `invite-${body.data.questionnaireId}`,
+          email: claims.email as string | undefined,
+          name: claims.sub as string | undefined,
+          accessToken: body.data.accessToken,
+          type: "PATIENT",
+          expiresIn: body.data.expiresIn,
+          profileComplete: true,
+          questionnaireId: body.data.questionnaireId,
+          questionnaireTitle: body.data.questionnaireTitle,
+        };
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -101,6 +167,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.userType = user.type;
         token.expiresAt = Date.now() + user.expiresIn * 1000;
         token.profileComplete = user.profileComplete;
+        token.questionnaireId = user.questionnaireId;
+        token.questionnaireTitle = user.questionnaireTitle;
       }
       return token;
     },
@@ -109,6 +177,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.expiresAt = token.expiresAt ?? 0;
       session.user.type = token.userType ?? "PATIENT";
       session.user.profileComplete = token.profileComplete ?? true;
+      session.user.questionnaireId = token.questionnaireId;
+      session.user.questionnaireTitle = token.questionnaireTitle;
       return session;
     },
   },

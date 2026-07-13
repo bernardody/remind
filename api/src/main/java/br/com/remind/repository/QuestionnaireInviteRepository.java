@@ -3,6 +3,8 @@ package br.com.remind.repository;
 import br.com.remind.domain.Patient;
 import br.com.remind.domain.Questionnaire;
 import br.com.remind.domain.QuestionnaireInvite;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +21,8 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
     Optional<QuestionnaireInvite> findByTokenHash(@Param("tokenHash") String tokenHash);
 
     Optional<QuestionnaireInvite> findByPatientAndQuestionnaireAndActiveTrue(Patient patient, Questionnaire questionnaire);
+
+    Page<QuestionnaireInvite> findByPatientAndActiveTrue(Patient patient, Pageable pageable);
 
     /**
      * Consumo atômico do token (INV-008, PRD §16): só marca {@code OPENED}/{@code consumed_at}

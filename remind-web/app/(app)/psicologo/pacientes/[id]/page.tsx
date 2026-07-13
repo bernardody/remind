@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
+import { PatientInvitesSection } from "@/features/invites/components/patient-invites-section";
 import { PatientInfoCard } from "@/features/patients/components/patient-info-card";
 import { PatientQuestionnairesTable } from "@/features/patients/components/patient-questionnaires-table";
 import type { Patient, PatientQuestionnaire } from "@/features/patients/schemas";
@@ -134,6 +135,8 @@ export default async function PacienteDetailPage({ params }: PacienteDetailPageP
           </CardContent>
         </Card>
       </div>
+
+      <PatientInvitesSection patientId={patientId} />
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">Avaliações respondidas</h2>

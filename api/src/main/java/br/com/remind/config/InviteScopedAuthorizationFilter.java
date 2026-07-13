@@ -31,6 +31,11 @@ public class InviteScopedAuthorizationFilter extends OncePerRequestFilter {
 
     private static final Pattern GET_QUESTIONNAIRE = Pattern.compile("^/questionarios/(\\d+)$");
     private static final Pattern ANSWER_QUESTIONNAIRE = Pattern.compile("^/questionarios/(\\d+)/responder$");
+    // Auto-serviço do paciente (sem patientId, resolve pelo JWT) — a própria página do
+    // wizard usa isso pra checar "já respondido?" antes de renderizar (ver
+    // app/(app)/paciente/questionarios/[id]/responder/page.tsx no frontend). Sem essa
+    // rota liberada, essa checagem recebe 403 em vez do 404 esperado e a página quebra.
+    private static final Pattern MY_RESULT = Pattern.compile("^/questionarios/(\\d+)/resultado$");
     private static final String SET_OWN_PASSWORD_PATH = "/pacientes/me/senha";
 
     @Override
@@ -70,6 +75,10 @@ public class InviteScopedAuthorizationFilter extends OncePerRequestFilter {
         }
 
         if ("GET".equals(method) && matchesQuestionnaireId(GET_QUESTIONNAIRE, path, questionnaireId)) {
+            return true;
+        }
+
+        if ("GET".equals(method) && matchesQuestionnaireId(MY_RESULT, path, questionnaireId)) {
             return true;
         }
 

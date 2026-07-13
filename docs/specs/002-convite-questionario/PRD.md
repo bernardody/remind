@@ -913,9 +913,76 @@ produção via pgweb quando for deployar (ver checklist §19), criar o endpoint
 ainda não existe (necessário antes da Fase B se o fluxo depender de definir senha), e
 decidir os itens em aberto de §20.
 
-### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ❌ não iniciada
+### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ✅ concluída e validada (2026-07-12)
 
-Nenhum código escrito ainda. Continua exatamente como descrito em §6, §7 e §14.
+**Decisão de arquitetura tomada** (não estava explícita no planejamento original): como o
+paciente "entra" via convite sem senha, reaproveitando 100% do wizard/sessão já
+existentes? Duas opções levantadas — (a) adicionar um segundo provider `Credentials`
+("invite") ao NextAuth que troca o token por uma sessão normal, reaproveitando
+`requireRole`/middleware/wizard sem tocar neles; (b) construir um mini-fluxo paralelo,
+público, desacoplado da sessão. Escolhida a opção (a): menor superfície nova, reaproveita
+tudo que já é testado em produção. `types/next-auth.d.ts` ganhou `questionnaireId`/
+`questionnaireTitle` opcionais em `User`/`Session` (só presentes em sessões de convite)
+para o client saber pra onde redirecionar depois do `signIn()`.
+
+**Backend — pequeno adicional que faltava**: não existia endpoint pra listar os convites
+de um paciente (o psicólogo não tinha como ver status/reenviar/revogar pela UI sem isso).
+Adicionado `GET /pacientes/{patientId}/convites` (`ListPatientInvitesService` +
+`ListPatientInviteResponse` — sem `inviteLink`, nunca reexposto fora da criação/reenvio) +
+`findByPatientAndActiveTrue` no repository.
+
+**Frontend criado**:
+- `features/invites/{schemas.ts,api.ts}` — Zod + hooks TanStack Query
+  (`usePatientInvites`, `useCreateInvite`, `useResendInvite`, `useRevokeInvite`), mesmo
+  padrão de `features/patients/`.
+- `features/invites/components/{invite-status-badge,invite-dialog,patient-invites-section}.tsx`
+  — seção "Convites" na página de detalhe do paciente (`app/(app)/psicologo/pacientes/[id]/page.tsx`),
+  reaproveitando `Dialog`/`AlertDialog`/`DropdownMenu`/`EmptyState`/`LoadingState` do
+  design system, sem componente novo. Link copiado pro clipboard automaticamente ao
+  criar/reenviar (nunca reexibido depois — token só existe em memória nesse momento).
+- `lib/auth/config.ts` — novo provider `Credentials({ id: "invite" })`, chama
+  `POST /convites/consumir`, propaga erro específico do backend via `CredentialsSignin.code`
+  (sem genericizar mensagem — diferente do login, não há razão de segurança aqui).
+- `app/convite/[token]/page.tsx` + `features/invites/components/consume-invite-view.tsx`
+  — rota pública nova (fora de `(app)`/`(auth)`, fora do matcher do `middleware.ts`),
+  Client Component chama `signIn("invite", {token})` e redireciona ao wizard já existente
+  via `session.user.questionnaireId`.
+
+**Registro de design (skill `impeccable`, registro "product")**: telas do psicólogo
+seguem o registro "restrained" (nada de card grid genérico, reaproveita exatamente os
+componentes/paddings já usados na mesma página — earned familiarity, não novidade
+visual). A página `/convite/[token]` **não** reaproveita o `AuthBrandPanel` do login
+(tom "clínico/dado" — apropriado pra psicólogo, errado pra um adolescente respondendo
+pelo celular) — layout próprio, mínimo, calmo, consistente com o tom já estabelecido do
+wizard ("responda com calma, no seu tempo").
+
+**Validado com HTTP real, não com um browser de verdade** (sem ferramenta de automação de
+browser disponível neste ambiente — checked e comunicado explicitamente, não assumido):
+`npm run typecheck`/`npm run lint` limpos; backend + frontend (`next dev`, `API_URL`
+forçado pra localhost — **`.env.local` aponta pra produção por padrão**, cuidado ao rodar
+`npm run dev` sem sobrescrever) rodando lado a lado; fluxo completo replicado via curl
+imitando o que `signIn()` faz por baixo (`GET /api/auth/csrf` → `POST
+/api/auth/callback/invite` → `GET /api/auth/session`), confirmando a sessão criada com
+`questionnaireId` certo; página do wizard buscada via SSR com esses cookies, `200`, com o
+título **e o texto real de uma pergunta** na resposta — confirma que renderizou o wizard
+de verdade, não só o shell. Página do psicólogo também buscada via SSR logado — `200`,
+seção "Convites" presente. Endpoint de listagem testado direto via o proxy `/api/*`.
+
+**Bug crítico encontrado e corrigido nessa validação** (só apareceu testando via HTTP
+real, nenhum teste anterior pegou): a própria página do wizard
+(`responder/page.tsx`, código já existente) chama `GET /questionarios/{id}/resultado`
+(auto-serviço do paciente) pra checar "já respondido?" antes de renderizar — essa rota
+**não estava liberada** no `InviteScopedAuthorizationFilter`. Resultado: **403** em vez do
+404 esperado, a página não trata 403, e o Server Component lançava exceção não tratada →
+**erro 500 sempre que um paciente abria o link do convite**. Sem esse teste de ponta a
+ponta via SSR, esse bug só apareceria em produção, com um paciente de verdade. Corrigido
+adicionando `GET /questionarios/{id}/resultado` ao allow-list do filtro. Suíte completa
+re-executada depois do fix: 36 testes, 0 falhas.
+
+**Pendente**: tela opcional de "criar senha" (§6 passo 7, PRD §20 dúvida #3 ainda em
+aberto) — não implementada, já que `PUT /pacientes/me/senha` também não existe ainda
+(ver Fase A). Sem isso, hoje o paciente que só usa convites nunca ganha login próprio —
+aceitável como está, mas é uma decisão de produto pendente.
 
 ### Fase D — Rate limiting e telemetria de convite — ❌ não iniciada
 

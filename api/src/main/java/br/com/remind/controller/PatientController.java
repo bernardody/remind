@@ -2,12 +2,14 @@ package br.com.remind.controller;
 
 import br.com.remind.controller.request.patient.InsertPatientRequest;
 import br.com.remind.controller.response.invite.InviteResponse;
+import br.com.remind.controller.response.invite.ListPatientInviteResponse;
 import br.com.remind.controller.response.patient.InsertPatientResponse;
 import br.com.remind.controller.response.patient.ListPatientQuestionnaireResponse;
 import br.com.remind.controller.response.patient.ListPatientResponse;
 import br.com.remind.controller.request.patient.UpdatePatientRequest;
 import br.com.remind.controller.response.patient.UpdatePatientResponse;
 import br.com.remind.service.invite.CreateInviteService;
+import br.com.remind.service.invite.ListPatientInvitesService;
 import br.com.remind.service.patient.DeletePatientService;
 import br.com.remind.service.patient.GetPatientService;
 import br.com.remind.service.patient.InsertPatientService;
@@ -33,6 +35,7 @@ public class PatientController {
     private final DeletePatientService deletePatientService;
     private final UpdatePatientService updatePatientService;
     private final CreateInviteService createInviteService;
+    private final ListPatientInvitesService listPatientInvitesService;
 
     @GetMapping
     public Page<ListPatientResponse> listPatient(Pageable pageable) {
@@ -70,5 +73,10 @@ public class PatientController {
     @PostMapping("/{patientId}/questionarios/{questionnaireId}/convites")
     public InviteResponse createInvite(@PathVariable Long patientId, @PathVariable Long questionnaireId) {
         return createInviteService.create(patientId, questionnaireId);
+    }
+
+    @GetMapping("/{patientId}/convites")
+    public Page<ListPatientInviteResponse> listInvites(@PathVariable Long patientId, Pageable pageable) {
+        return listPatientInvitesService.list(patientId, pageable);
     }
 }
