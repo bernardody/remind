@@ -30,8 +30,8 @@ destinados a ele através desse caminho.
 - **Psicólogo**: atribuir um questionário a um paciente específico, acompanhar o
   status do convite (enviado/aberto/respondido/expirado), reenviar ou revogar.
 - **Paciente**: abrir um link recebido (e-mail ou WhatsApp) e responder o
-  questionário associado sem precisar logar antes; opcionalmente, definir uma senha
-  própria para acessos futuros.
+  questionário associado sem precisar logar antes e sem nunca precisar definir
+  uma senha própria.
 
 **Encaixe no sistema**: novo Bounded Context **Convites**, dependente de
 **Pacientes** e **Questionários** (`PRD.md` §17). Reaproveita a infraestrutura de
@@ -76,6 +76,15 @@ alterada por esta funcionalidade.
   o telefone já cadastrado do paciente e uma mensagem pronta; quem efetivamente
   envia é o próprio psicólogo, clicando "Enviar" dentro do WhatsApp. Trade-off
   aceito: não é automático como o e-mail, mas exige zero integração/aprovação/custo.
+- Q: O paciente precisa, em algum momento, definir uma senha própria? → A: Não.
+  O paciente nunca define nem altera senha — o único caminho de acesso do
+  paciente é abrir o link do convite. Login por senha para paciente continua
+  existindo só no sentido inverso já suportado hoje (o psicólogo pode, se
+  quiser, cadastrar uma senha manualmente para o paciente no formulário de
+  cadastro — fluxo atual, inalterado); não há tela nem endpoint de "criar minha
+  senha" para o paciente definir a própria. Decisão remove INV-014 desta
+  especificação (existia apenas no planejamento original do PRD, nunca chegou a
+  ser implementada) e fecha a Questão em Aberto #2 do PRD (§20.3).
 
 ---
 
@@ -97,18 +106,23 @@ usada no PRD e no código/testes, para preservar rastreabilidade).
 | INV-009 | WHEN o paciente conclui a resposta ao questionário associado THEN o sistema SHALL marcar o convite como `ANSWERED` e vincular a `QuestionnaireAnswer` gerada — sem exigir que a resposta em si saiba da existência de convites (o vínculo é feito por busca de convite ativo do par, sem alterar o fluxo de resposta já existente). |
 | INV-010 | IF um convite está `EXPIRED`, `REVOKED` ou `ANSWERED` THEN o sistema SHALL rejeitar qualquer tentativa de uso do token, com mensagem apropriada ao estado (expirado / revogado / já utilizado / já respondido são mensagens distintas). |
 | INV-011 | O sistema SHALL impedir que um psicólogo crie, reenvie ou revogue convite de paciente que não é seu (checagem de posse, mesmo padrão de `InsertPatientService`), retornando um erro que não distinga "paciente inexistente" de "paciente de outro psicólogo". |
-| INV-012 | O JWT de escopo restrito emitido a partir de um convite SHALL autorizar apenas: ler o `Questionnaire` do convite, responder esse `Questionnaire`, consultar se o paciente já respondeu (`GET /questionarios/{id}/resultado`), e definir a própria senha (INV-014) — SHALL NOT autorizar qualquer outro endpoint. |
+| INV-012 | O JWT de escopo restrito emitido a partir de um convite SHALL autorizar apenas: ler o `Questionnaire` do convite, responder esse `Questionnaire`, e consultar se o paciente já respondeu (`GET /questionarios/{id}/resultado`) — SHALL NOT autorizar qualquer outro endpoint. |
 | INV-013 | O sistema SHALL NOT expor, em qualquer resposta de API, o token em claro após sua criação/rotação inicial (nem em logs). |
-| INV-014 | O sistema SHALL permitir que um paciente (autenticado normalmente ou via sessão de convite) defina ou altere sua própria senha. |
 | INV-015 | O sistema SHALL permitir que o psicólogo liste os convites de um paciente seu, com status atual de cada um, sem reexpor o link/token depois do momento de criação/reenvio. |
 | INV-016 | O sistema SHALL apresentar o link pré-preenchido de WhatsApp como a ação principal recomendada ao psicólogo logo após criar/reenviar um convite, com "copiar link" como ação secundária — dado que o público do produto (frequentemente adolescente) tende a checar WhatsApp com muito mais frequência que e-mail; o envio automático por e-mail (INV-003) continua acontecendo em paralelo, como reforço, não como substituto. |
+
+> Nota: INV-014 não existe mais nesta numeração — era "paciente define a própria
+> senha", removido por decisão de escopo (Clarifications, Session 2026-07-13):
+> o paciente nunca define senha, só acessa pelo link. Numeração mantida sem
+> renumerar os demais IDs, para não quebrar rastreabilidade com o PRD/código.
 
 **Dados envolvidos (o quê, não como)**:
 - Do convite: paciente, questionário, psicólogo que convidou, hash do token,
   status, prazo de expiração, timestamps de envio/abertura/consumo, resposta
   vinculada quando concluído.
 - Do paciente: e-mail e telefone já cadastrados (usados como destino do convite,
-  não coletados de novo); senha, agora opcional no cadastro.
+  não coletados de novo); senha, opcional e definida apenas pelo psicólogo no
+  cadastro (fluxo atual, inalterado) — o paciente nunca define a própria senha.
 
 **Capacidades externas necessárias**:
 - Envio de e-mail transacional (Zoho Mail via SMTP).
@@ -135,13 +149,7 @@ usada no PRD e no código/testes, para preservar rastreabilidade).
    alterações).
 4. Ao concluir, o convite é marcado como respondido e vinculado à resposta.
 
-### Fluxo 3 — Paciente sem senha ainda
-1. Em qualquer momento (antes ou depois de responder), o paciente pode acessar a
-   tela de definir senha própria, para poder logar normalmente no futuro.
-2. Isso não bloqueia nem é pré-requisito para responder ao questionário do
-   convite.
-
-### Fluxo 4 — Psicólogo reenvia ou revoga um convite
+### Fluxo 3 — Psicólogo reenvia ou revoga um convite
 1. Na lista de convites do paciente, o psicólogo escolhe "Reenviar" (gera novo
    token, invalida o anterior, novo e-mail) ou "Revogar" (bloqueia o uso futuro
    do link, sem apagar o histórico).
@@ -202,14 +210,11 @@ externa.
   este tenta criar, reenviar ou revogar um convite para ele, então a operação é
   rejeitada sem revelar se o paciente existe. (INV-011)
 - **[IMP]** Dado um JWT de escopo restrito emitido por um convite, quando usado
-  em qualquer rota fora de ler/responder o questionário do convite, consultar
-  se já respondeu, ou definir senha, então o acesso é negado (403). (INV-012)
+  em qualquer rota fora de ler/responder o questionário do convite ou consultar
+  se já respondeu, então o acesso é negado (403). (INV-012)
 - **[SEF]** Dado um convite criado ou reenviado, quando qualquer resposta de API
   ou log do sistema é inspecionado depois desse momento, então o token em claro
   não aparece em nenhum lugar. (INV-013)
-- **[IMP]** Dado um paciente autenticado (por login normal ou por sessão de
-  convite), quando ele envia uma nova senha válida, então sua senha é definida/
-  atualizada. (INV-014)
 - **[IMP]** Dado um paciente com convites criados, quando o psicólogo consulta a
   lista de convites desse paciente, então vê o status atual de cada um, sem o
   link/token sendo reexposto. (INV-015)
@@ -221,7 +226,7 @@ externa.
   configuração de DNS do domínio (SPF/DKIM/MX) — fora do controle direto do
   código da aplicação.
 
-**Regra dos 60%**: 15 de 17 critérios são `[IMP]` (~88%).
+**Regra dos 60%**: 13 de 16 critérios são `[IMP]` (~81%).
 
 ---
 
@@ -258,8 +263,11 @@ Esta funcionalidade NÃO inclui (decisões deliberadas de escopo, ver `PRD.md` �
   está; o convite é um caminho adicional, não uma restrição do existente.
 - **Convite em lote** (vários pacientes de uma vez para o mesmo questionário) —
   cada convite é sempre 1 paciente + 1 questionário.
-- **Obrigatoriedade de senha própria** — um paciente pode, em tese, viver
-  indefinidamente só de convites, sem nunca aparecer na tela de login normal.
+- **Paciente definir a própria senha** — decisão fechada (Clarifications,
+  Session 2026-07-13): o paciente nunca define nem altera senha; o único
+  caminho de acesso do paciente é o link de convite. Não há tela nem endpoint
+  para isso (não confundir com o psicólogo definir uma senha manualmente para
+  o paciente no cadastro, que continua existindo e inalterado).
 - **Integração com a API do WhatsApp Business** — apenas link `wa.me`
   (click-to-chat), sem envio automático, template aprovado ou custo por
   conversa.
@@ -306,8 +314,8 @@ Pendências levantadas no PRD (`PRD.md` §20) ainda sem decisão fechada:
 
 1. **Convite em lote** — se algum dia necessário, é extensão direta do modelo
    atual (1 convite = 1 par), mas muda a UI para seleção múltipla.
-2. **Obrigatoriedade de senha própria** — hoje nunca é exigida; decisão de
-   produto pendente sobre se isso deve mudar para pacientes de uso recorrente.
+2. ~~**Obrigatoriedade de senha própria**~~ — resolvido (Clarifications, Session
+   2026-07-13): o paciente nunca define senha própria, em nenhum momento.
 3. **Migração de `/paciente/inicio` para "só atribuídos"** — deixaria de existir
    a inconsistência de um paciente logado normalmente ainda ver/responder
    questionários não convidados; recomendado tratar como fase explícita futura,

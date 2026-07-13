@@ -653,10 +653,15 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
    vez para o mesmo questionário)?** Este PRD assume 1 convite = 1 paciente + 1
    questionário; convite em lote é uma extensão direta se necessário, mas muda a UI
    (seleção múltipla).
-3. **Definir senha é obrigatório em algum momento, ou o paciente pode viver só de
-   convites para sempre?** Se nunca obrigatório, o paciente nunca aparece na tela de
-   login normal — é um modelo de uso válido (esperado para pacientes que só respondem
-   1–2 vezes) ou o produto espera que todo paciente eventualmente tenha login próprio?
+3. ~~**Definir senha é obrigatório em algum momento, ou o paciente pode viver só de
+   convites para sempre?**~~ — **resolvido (2026-07-13)**: o paciente nunca define
+   nem altera a própria senha, em nenhum momento — o único caminho de acesso do
+   paciente é o link de convite. `PUT /pacientes/me/senha` e a tela de "criar senha"
+   (§18 Fase A passo 4, §22 "Pendente" em Fase A/B) deixam de ser necessários e não
+   devem ser implementados; `INV-014` foi removido da spec funcional
+   (`2026-07-13--convite-questionario.md`). O psicólogo continua podendo, se quiser,
+   cadastrar uma senha manualmente para o paciente no formulário de cadastro (fluxo
+   atual, inalterado) — isso não muda.
 4. **`/paciente/inicio` deve migrar para "só questionários atribuídos"?** Este PRD manteve
    o comportamento atual (lista global) por segurança de escopo, mas isso deixa uma
    inconsistência: um paciente logado normalmente ainda vê e pode responder
@@ -970,10 +975,12 @@ teste (convite, resposta, resultado) limpos depois. Suíte completa re-executada
 testes, 0 falhas**.
 
 **Fase A completa** (passos 1–4 + INV-009). Falta só aplicar a migração de schema em
-produção via pgweb quando for deployar (ver checklist §19), criar o endpoint
-`PUT /pacientes/me/senha` que o `InviteScopedAuthorizationFilter` já pressupõe mas que
-ainda não existe (necessário antes da Fase B se o fluxo depender de definir senha), e
-decidir os itens em aberto de §20.
+produção via pgweb quando for deployar (ver checklist §19). `PUT /pacientes/me/senha`,
+que o `InviteScopedAuthorizationFilter` ainda referencia no allow-list, **não será
+implementado** — decisão de escopo (§20.3, 2026-07-13): o paciente nunca define a
+própria senha, então o endpoint é desnecessário. Manter a referência no filtro não
+tem efeito prático (rota inexistente nunca é chamada), mas vale remover numa próxima
+limpeza para não sugerir um endpoint que não existe.
 
 ### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ✅ concluída e validada (2026-07-12)
 
@@ -1041,10 +1048,9 @@ ponta via SSR, esse bug só apareceria em produção, com um paciente de verdade
 adicionando `GET /questionarios/{id}/resultado` ao allow-list do filtro. Suíte completa
 re-executada depois do fix: 36 testes, 0 falhas.
 
-**Pendente**: tela opcional de "criar senha" (§6 passo 7, PRD §20 dúvida #3 ainda em
-aberto) — não implementada, já que `PUT /pacientes/me/senha` também não existe ainda
-(ver Fase A). Sem isso, hoje o paciente que só usa convites nunca ganha login próprio —
-aceitável como está, mas é uma decisão de produto pendente.
+**Não será implementada**: tela opcional de "criar senha" (§6 passo 7) — decisão de
+escopo fechada (§20 dúvida #3, 2026-07-13): o paciente nunca define senha própria, só
+acessa via convite. `PUT /pacientes/me/senha` (ver Fase A) não é necessário.
 
 ### Teste real em produção (2026-07-12) — ✅ ponta a ponta, e 1 bug real de UX corrigido
 
