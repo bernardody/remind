@@ -59,6 +59,11 @@ public class SecurityConfig {
                 .addFilterAfter(
                         new IncompleteProfileAuthorizationFilter(userRepository),
                         BearerTokenAuthenticationFilter.class)
+                // Idem para tokens de convite (scope=invite): restringe ao questionário do
+                // convite (INV-012, docs/specs/002-convite-questionario/PRD.md §16).
+                .addFilterAfter(
+                        new InviteScopedAuthorizationFilter(),
+                        BearerTokenAuthenticationFilter.class)
                 .build();
     }
 

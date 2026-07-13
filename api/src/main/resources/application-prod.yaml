@@ -28,6 +28,9 @@ google:
 remind:
   mail:
     from-name: ReMind
+  invite:
+    base-url: https://remindapp.com.br
+    expiration-days: 7
 
 server:
   error:

@@ -39,3 +39,7 @@ remind:
   mail:
     # Nome de exibição do remetente; o endereço vem de spring.mail.username (contato@remindapp.com.br).
     from-name: ReMind
+  invite:
+    # Base do link de convite enviado por e-mail (docs/specs/002-convite-questionario/PRD.md §6/§16).
+    base-url: ${REMIND_INVITE_BASE_URL:http://localhost:3000}
+    expiration-days: 7

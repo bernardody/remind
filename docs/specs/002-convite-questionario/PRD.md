@@ -784,9 +784,61 @@ Referências internas: `docs/specs/architecture.md`, `docs/specs/ontology.md`,
   `schema.sql`), senão o boot falhava por causa deles antes mesmo de chegar a validar
   `questionnaire_invites`.
 
-**Passos 3–4 (services de criação/consumo/reenvio/revogação, filtro de JWT de escopo
-restrito, endpoints REST) — ❌ ainda não iniciados.** Continuam exatamente como descrito
-em §13 (backend) e §14 (APIs).
+**Passo 3 — Services (criação/reenvio/revogação/consumo) + filtro de JWT de escopo
+restrito — ✅ concluído (2026-07-12).**
+- `service/invite/InviteTokenGenerator.java` — gera o token opaco (256 bits, Base64
+  URL-safe) e seu hash SHA-256; só o hash é persistido (PRD §16).
+- `service/invite/CreateInviteService.java` — INV-001/002/004/011: cria ou reutiliza o
+  convite do par paciente/questionário, gera token, envia e-mail via `MailService`,
+  marca `SENT`.
+- `service/invite/ResendInviteService.java` — INV-006: rotaciona o token do mesmo
+  registro (não cria um segundo) e reenvia.
+- `service/invite/RevokeInviteService.java` — INV-007: marca `REVOKED` e libera o par
+  (`active=false`) para um convite futuro.
+- `service/invite/ConsumeInviteService.java` — INV-005/008/010: consumo atômico do token
+  via `QuestionnaireInviteRepository.consumeByTokenHash` (UPDATE condicional, não
+  select-then-update) e emissão do JWT de escopo restrito.
+- `service/login/AccessTokenService.java` ganhou `generateInviteScoped(...)` +
+  `INVITE_EXPIRES_IN` (1800s) — reaproveita o mesmo `JwtEncoder`/chaves RSA já
+  configurados, com claims extras `scope=invite` e `questionnaireId` (como `String`, para
+  evitar ambiguidade de tipo numérico na (de)serialização do JWT).
+- `config/InviteScopedAuthorizationFilter.java` — mesmo padrão de
+  `IncompleteProfileAuthorizationFilter`: bloqueia (403) qualquer rota fora de
+  `GET/POST /questionarios/{id}[/responder]` (só o `{id}` do claim) e
+  `PUT /pacientes/me/senha`, quando o JWT carrega `scope=invite`. Registrado em
+  `SecurityConfig` via `addFilterAfter(..., BearerTokenAuthenticationFilter.class)`.
+- Novos DTOs (`controller/response/invite/{InviteResponse,ConsumeInviteResponse}`) +
+  `mapper/invite/InviteMapper`. Config nova: `remind.invite.base-url` (dev
+  `http://localhost:3000`, prod `https://remindapp.com.br`) e
+  `remind.invite.expiration-days` (7, default).
+
+**Validado de verdade, não só compilado**:
+1. Subi o backend local de novo (`./mvnw spring-boot:run`) — contexto completo iniciou
+   sem erro, o que já valida a sintaxe da `@Query` JPQL do consumo atômico (Spring Data
+   valida `@Query` no bootstrap do repository, não na primeira chamada).
+2. Escrevi `QuestionnaireInviteRepositoryTest` (`@DataJpaTest`, H2, mesmo padrão de
+   `UserRepositoryTest`) com 6 casos cobrindo o consumo atômico: sucesso, expirado,
+   revogado/inativo, já respondido, e **dupla tentativa no mesmo token retornando 0 na
+   segunda** (prova sequencial de uso único — a atomicidade real contra corrida vem do
+   próprio `UPDATE ... WHERE consumed_at IS NULL AND expires_at > NOW()` condicional,
+   que o Postgres executa com lock de linha). Todos os 6 passaram.
+3. Rodei a suíte inteira (`./mvnw test`) — **36 testes, 0 falhas** (1 pulado, o
+   `MailServiceManualTest` gated).
+
+**Bug real encontrado e corrigido nesse processo**: os testes de contexto completo já
+existentes (`RemindApplicationTests`, `LoginGoogleE2ETest`, 6 testes no total) começaram
+a falhar com `APPLICATION FAILED TO START` — `MailService` exige um bean
+`JavaMailSender`, que o Spring só autoconfigura quando `spring.mail.host` está presente,
+e o `application.yaml` de teste (`api/src/test/resources/application.yaml`, H2) não
+tinha isso. Corrigido adicionando `spring.mail.host`/`username` mínimos (só para o bean
+existir — nenhum teste de contexto completo dispara envio real) e
+`remind.invite.base-url`/`mail.from-name` (propriedades sem default que os novos
+services exigem). Lição: qualquer `@Value` sem default e qualquer bean condicional novo
+precisa ser conferido contra `src/test/resources/application.yaml` também, não só contra
+`application.yaml`/`application-prod.yaml`.
+
+**Passo 4 (endpoints REST) — ❌ ainda não iniciado.** Continua exatamente como descrito
+em §14 (APIs).
 
 ### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ❌ não iniciada
 
