@@ -4,6 +4,7 @@ import br.com.remind.calculator.questionnaire.QuestionnaireResultCalculator;
 import br.com.remind.controller.request.questionnaire.AnswerQuestionnaireRequest;
 import br.com.remind.controller.response.questionnaire.AnswerQuestionnaireResponse;
 import br.com.remind.domain.*;
+import br.com.remind.enums.InviteStatus;
 import br.com.remind.mapper.questionnaire.AnswerQuestionnaireMapper;
 import br.com.remind.repository.*;
 import br.com.remind.service.user.AuthenticatedUserService;
@@ -28,6 +29,7 @@ public class AnswerQuestionnaireService {
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final PatientRepository patientRepository;
+    private final QuestionnaireInviteRepository questionnaireInviteRepository;
     private final AuthenticatedUserService authenticatedUserService;
     private final AnswerQuestionnaireMapper answerQuestionnaireMapper;
     private final AnswerQuestionnaireValidator answerQuestionnaireValidator;
@@ -62,6 +64,17 @@ public class AnswerQuestionnaireService {
                 .build();
 
         questionnaireAnswerRepository.save(questionnaireAnswer);
+
+        // INV-009 (docs/specs/002-convite-questionario): se esta resposta veio de um convite,
+        // marca o convite como respondido e vincula a resposta gerada. Sem efeito para
+        // respostas fora do fluxo de convite (findBy... simplesmente não encontra nada).
+        questionnaireInviteRepository.findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire)
+                .ifPresent(invite -> {
+                    invite.setStatus(InviteStatus.ANSWERED);
+                    invite.setQuestionnaireAnswer(questionnaireAnswer);
+                    invite.setUpdated_at(LocalDate.now());
+                    questionnaireInviteRepository.save(invite);
+                });
 
         List<PatientQuestionResponse> responses = request.getResponses().stream()
                 .map(responseRequest -> {

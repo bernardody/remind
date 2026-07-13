@@ -883,8 +883,35 @@ real — paciente de teste com e-mail temporariamente apontado para
 
 Suíte automatizada re-executada depois dos 2 fixes: **36 testes, 0 falhas** (1 pulado).
 
-**Fase A completa** (passos 1–4). Falta só aplicar a migração de schema em produção via
-pgweb quando for deployar (ver checklist §19) e decidir os itens em aberto de §20.
+### INV-009 — Fechar o ciclo com `AnswerQuestionnaireService` — ✅ concluído (2026-07-12)
+
+Gap encontrado depois do passo 4: nada transicionava o convite para `ANSWERED` quando o
+paciente efetivamente terminava de responder — `AnswerQuestionnaireService` (código já em
+produção) não sabia que convites existiam. Sem isso, um convite respondido com sucesso
+ficaria preso em `OPENED` para sempre.
+
+**Corrigido** (opção (a) discutida: o próprio `AnswerQuestionnaireService` busca e
+atualiza o convite, em vez de um listener/evento separado): depois de salvar a
+`QuestionnaireAnswer`, busca `findByPatientAndQuestionnaireAndActiveTrue` — se existir um
+convite ativo para o par, marca `status=ANSWERED` e vincula `id_questionnaire_answer`. Sem
+efeito para respostas fora do fluxo de convite (o `findBy...` simplesmente não encontra
+nada — nenhuma mudança de comportamento para o fluxo já existente e testado em produção).
+
+**Validado com HTTP real, não só teoricamente**: inserido um convite manualmente via SQL
+(hash SHA-256 calculado à mão, sem precisar do Zoho/e-mail real para este teste
+específico), consumido via `/convites/consumir`, e usado o JWT de escopo restrito para
+**responder de verdade** as 11 perguntas do questionário via
+`POST /questionarios/1/responder` (endpoint já existente, sem nenhuma alteração). Resultado
+confirmado direto no Postgres: `questionnaire_invites.status = 'ANSWERED'` e
+`id_questionnaire_answer` apontando para o `QuestionnaireAnswer` real gerado. Dados de
+teste (convite, resposta, resultado) limpos depois. Suíte completa re-executada: **36
+testes, 0 falhas**.
+
+**Fase A completa** (passos 1–4 + INV-009). Falta só aplicar a migração de schema em
+produção via pgweb quando for deployar (ver checklist §19), criar o endpoint
+`PUT /pacientes/me/senha` que o `InviteScopedAuthorizationFilter` já pressupõe mas que
+ainda não existe (necessário antes da Fase B se o fluxo depender de definir senha), e
+decidir os itens em aberto de §20.
 
 ### Fase B — Frontend (`features/invites/`, página `/convite/[token]`) — ❌ não iniciada
 
