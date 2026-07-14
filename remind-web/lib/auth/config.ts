@@ -28,6 +28,19 @@ class InviteConsumeError extends CredentialsSignin {
   }
 }
 
+/**
+ * `code` carrega a mensagem real do backend (spec 001-login-google-psicologo
+ * §Caminhos alternativos — "e-mail não verificado", "apenas psicólogos", "e-mail
+ * ainda não tem acesso liberado"). Diferente do login por senha, aqui não há
+ * razão de segurança pra genericizar: o e-mail já veio verificado pelo próprio
+ * Google, então a mensagem não revela nada que a pessoa não soubesse.
+ */
+class GoogleLoginError extends CredentialsSignin {
+  constructor(public code: string) {
+    super();
+  }
+}
+
 // Tipos de Session/User/JWT aumentados em `types/next-auth.d.ts`.
 
 const API_URL = (process.env.API_URL ?? "http://localhost:8080").replace(
@@ -156,6 +169,58 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           profileComplete: true,
           questionnaireId: body.data.questionnaireId,
           questionnaireTitle: body.data.questionnaireTitle,
+        };
+      },
+    }),
+    // Login de psicólogo via Google (docs/specs/001-login-google-psicologo) — o
+    // ID token vem do botão Google Identity Services no client
+    // (google-sign-in-button.tsx) e é validado de verdade pelo backend em
+    // POST /login/google (assinatura, emissor, audiência, email_verified). O
+    // e-mail precisa já existir como psicólogo cadastrado (REQ-006, revertido
+    // em 2026-07-13); e-mail desconhecido ou de paciente é rejeitado (403).
+    Credentials({
+      id: "google",
+      credentials: { idToken: {} },
+      async authorize(credentials) {
+        const idToken = typeof credentials?.idToken === "string" ? credentials.idToken : "";
+        if (!idToken) return null;
+
+        let res: Response;
+        try {
+          res = await fetch(`${API_URL}/login/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+        } catch {
+          throw new ServerUnavailableError();
+        }
+
+        if (res.status >= 500) throw new ServerUnavailableError();
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const message =
+            json && typeof json === "object" && "message" in json &&
+            typeof (json as Record<string, unknown>).message === "string"
+              ? ((json as Record<string, unknown>).message as string)
+              : "Não foi possível entrar com o Google.";
+          throw new GoogleLoginError(message);
+        }
+
+        const body = LoginResponseSchema.safeParse(json);
+        if (!body.success) return null;
+
+        const claims = decodeJwtPayload(body.data.accessToken);
+        return {
+          id: (claims.email as string | undefined) ?? "google-user",
+          email: claims.email as string | undefined,
+          name: claims.sub as string | undefined,
+          accessToken: body.data.accessToken,
+          type: body.data.type,
+          expiresIn: body.data.expiresIn,
+          profileComplete: body.data.profileComplete,
         };
       },
     }),

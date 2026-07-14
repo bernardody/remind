@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  GOOGLE_LOGIN_ENABLED,
+  GoogleSignInButton,
+} from "@/features/auth/components/google-sign-in-button";
 import { LoginRequestSchema, type LoginRequest } from "@/features/auth/schemas";
 import { HOME_BY_USER_TYPE, ROUTES } from "@/lib/constants";
 
@@ -62,6 +66,10 @@ export function LoginForm() {
     );
     router.refresh();
   }
+
+  const handleGoogleError = useCallback((message: string) => {
+    setFormError(message);
+  }, []);
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-8">
@@ -108,6 +116,18 @@ export function LoginForm() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {GOOGLE_LOGIN_ENABLED && (
+        <>
+          <GoogleSignInButton onError={handleGoogleError} />
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">ou entre com email</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
 
       <Form {...form}>
         <form
