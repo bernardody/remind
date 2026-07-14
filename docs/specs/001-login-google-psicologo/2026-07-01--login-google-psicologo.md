@@ -33,6 +33,22 @@ esta funcionalidade.
 - Q: O que uma conta de psicólogo com perfil incompleto pode fazer com o token emitido? → A: Token restrito — só autoriza o endpoint de conclusão de perfil (e leitura do próprio perfil); demais endpoints retornam 403 até o perfil ficar completo.
 - Q: Ao vincular o Google a uma conta de psicólogo existente, os dados de perfil (ex.: nome) devem ser sobrescritos pelos do Google? → A: Não; manter os dados existentes, apenas adicionar o vínculo da identidade Google.
 
+### Session 2026-07-13
+- Q: Deve continuar existindo o auto-cadastro de qualquer e-mail do Google como
+  psicólogo novo (REQ-006 original)? → A: **Não — decisão revertida.** Ao discutir
+  como conceder acesso a um psicólogo novo, ficou claro que o auto-cadastro
+  significava que **qualquer pessoa** com conta Google (sem nenhuma aprovação)
+  virava psicólogo na aplicação — sem lista de e-mails autorizados, sem convite,
+  sem aprovação. Para um produto clínico isso é uma superfície de abuso real, não
+  só teórica. Novo comportamento: o e-mail precisa já existir como `User` (mesmo
+  processo hoje usado pros psicólogos seed, via SQL/pgweb) **antes** do primeiro
+  login com Google; e-mail desconhecido é rejeitado (403), não vira conta. Não
+  muda o vínculo de conta já cadastrada (REQ-004/REQ-012/REQ-014, inalterados) —
+  só fecha o caminho de autocriação. Provisionar acesso continua manual por
+  enquanto (sem painel admin, ver Não-Objetivos); um fluxo de convite por e-mail
+  pro psicólogo (nos moldes do convite de paciente, Spec 002) é uma extensão
+  futura possível, não decidida ainda.
+
 ---
 
 ## Requisitos Funcionais
@@ -46,7 +62,7 @@ Sintaxe EARS (SHALL/WILL/MAY). Todos testáveis.
 | REQ-003 | IF o ID token é inválido ou expirado, OU `email_verified` é falso, THEN o sistema SHALL rejeitar a requisição e SHALL NOT criar ou vincular qualquer conta. |
 | REQ-004 | WHEN o email do token corresponde a uma conta de psicólogo existente THEN o sistema SHALL vincular a identidade Google a essa conta e emitir o token de acesso da aplicação. |
 | REQ-005 | WHEN o email do token corresponde a uma conta de paciente THEN o sistema SHALL rejeitar o acesso, pois apenas psicólogos podem usar esta funcionalidade. |
-| REQ-006 | WHEN o email do token não corresponde a nenhuma conta existente THEN o sistema SHALL criar uma nova conta de psicólogo com o nome e email do Google, marcá-la como perfil incompleto e emitir o token de acesso da aplicação. |
+| REQ-006 | WHEN o email do token não corresponde a nenhuma conta existente THEN o sistema SHALL rejeitar o acesso (403) e SHALL NOT criar conta nova — o e-mail precisa ser previamente cadastrado como psicólogo (fora deste fluxo) antes do primeiro login com Google. *(Revertido em 2026-07-13; requisito original permitia auto-cadastro de qualquer e-mail — ver Clarifications.)* |
 | REQ-007 | O sistema SHALL emitir o mesmo formato de token de acesso usado pelo login por email/senha (token, tempo de expiração e tipo de usuário). |
 | REQ-008 | O sistema SHALL indicar no resultado do login se o psicólogo autenticado precisa completar o perfil. |
 | REQ-009 | Uma conta de psicólogo criada via Google SHALL poder existir sem senha, CPF, telefone e endereço até a conclusão do perfil. |
@@ -68,10 +84,12 @@ Sintaxe EARS (SHALL/WILL/MAY). Todos testáveis.
 
 ## Interações do Usuário
 
-### Fluxo 1 — Primeiro acesso (conta nova)
-1. O psicólogo autoriza a aplicação na tela do Google e o backend recebe o ID token.
-2. O sistema valida o token e verifica que o email não existe.
-3. O sistema cria a conta de psicólogo (perfil incompleto) e emite o token de acesso.
+### Fluxo 1 — Primeiro acesso (conta pré-cadastrada, perfil incompleto)
+1. O e-mail do psicólogo já foi cadastrado previamente (fora deste fluxo, hoje via
+   SQL/pgweb) como conta pendente, sem senha/CPF/telefone.
+2. O psicólogo autoriza a aplicação na tela do Google e o backend recebe o ID token.
+3. O sistema valida o token, encontra a conta pelo e-mail e vincula a identidade
+   Google a ela (sem criar conta nova).
 4. O resultado indica que o perfil deve ser completado.
 
 ### Fluxo 2 — Login recorrente (conta já vinculada)
@@ -90,6 +108,8 @@ Sintaxe EARS (SHALL/WILL/MAY). Todos testáveis.
 - **Token inválido/expirado**: acesso negado, sem criação/vínculo (REQ-003).
 - **Email não verificado**: acesso negado (REQ-003).
 - **Email de paciente**: acesso negado, apenas psicólogos (REQ-005).
+- **E-mail desconhecido (não pré-cadastrado)**: acesso negado (403), nenhuma conta é
+  criada (REQ-006, revertido em 2026-07-13 — ver Clarifications).
 - **Login por senha em conta só-Google**: negado com orientação de usar o Google (REQ-011).
 - **Conta pendente tentando operação protegida**: negado (403) até concluir o perfil (REQ-013).
 - **Vínculo em conta existente**: dados de perfil não são sobrescritos pelos do Google (REQ-014).
@@ -100,9 +120,9 @@ Sintaxe EARS (SHALL/WILL/MAY). Todos testáveis.
 
 Taxonomia: `[IMP]` Implementável · `[SEF]` Efeito colateral · `[EXT]` Verificação externa.
 
-- **[IMP]** Dado um ID token válido de um email inexistente, quando enviado ao
-  backend, então uma conta de psicólogo com perfil incompleto é criada e um token de
-  acesso é retornado. (REQ-006)
+- **[IMP]** Dado um ID token válido de um email inexistente (não pré-cadastrado),
+  quando enviado ao backend, então o acesso é negado (403) e nenhuma conta é criada.
+  (REQ-006, revertido em 2026-07-13)
 - **[IMP]** Dado um ID token válido cujo email é de um psicólogo existente, quando
   enviado, então a identidade Google é vinculada e um token de acesso é retornado. (REQ-004)
 - **[IMP]** Dado um ID token válido cujo email é de um paciente, quando enviado,
@@ -167,6 +187,10 @@ O sistema SHALL NOT:
 - **REQ-NR003**: O sistema SHALL NOT permitir que uma conta de paciente autentique via Google.
 - **REQ-NR004**: O sistema SHALL NOT armazenar o ID token do Google nem utilizá-lo
   como token de sessão da aplicação.
+- **REQ-NR005**: O sistema SHALL NOT criar automaticamente uma conta de psicólogo
+  para um e-mail que não estava previamente cadastrado — decisão revertida em
+  2026-07-13 (ver Clarifications); o auto-cadastro original (REQ-006) permitia
+  que qualquer conta Google virasse psicólogo sem aprovação.
 
 ---
 
@@ -174,3 +198,9 @@ O sistema SHALL NOT:
 
 Nenhuma pendência bloqueante. Decisões de escopo confirmadas com o usuário (ver
 `decision-log.md`).
+
+**Novo item (2026-07-13)**: como provisionar o e-mail do psicólogo antes do primeiro
+login (pré-requisito do REQ-006 revertido)? Hoje é manual (SQL/pgweb, mesmo processo
+dos psicólogos seed). Se o volume crescer, um fluxo de convite por e-mail (reaproveitando
+o padrão de token opaco do convite de paciente, Spec 002) é a extensão natural — não
+decidido/implementado ainda, não bloqueante.

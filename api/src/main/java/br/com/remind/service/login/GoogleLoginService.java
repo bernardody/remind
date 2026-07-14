@@ -16,12 +16,18 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 /**
  * Orquestra o login via Google: valida o ID token, confere {@code email_verified}, localiza a
- * conta pelo email e ramifica em <b>criar</b> (Conta Pendente), <b>vincular</b> (psicólogo
- * existente) ou <b>rejeitar</b> (paciente / token inválido). Em caso de sucesso emite o Token de
+ * conta pelo email e ramifica em <b>vincular</b> (psicólogo já cadastrado) ou <b>rejeitar</b>
+ * (e-mail não cadastrado / paciente / token inválido). Em caso de sucesso emite o Token de
  * Acesso da Aplicação com a indicação de perfil incompleto.
  *
- * <p>Cobre REQ-001, REQ-003, REQ-004, REQ-005, REQ-006, REQ-008, REQ-012, REQ-014
- * (e negativos REQ-NR002/003/004). O ID token do Google não é persistido nem reutilizado como
+ * <p>O e-mail precisa já existir como conta de psicólogo — cadastrada previamente (hoje via
+ * SQL/pgweb, mesmo processo já usado pros psicólogos seed) — antes do primeiro login com Google;
+ * o sistema SHALL NOT criar conta de psicólogo automaticamente para e-mail desconhecido (decisão
+ * revertida em 2026-07-13, ver spec 001 REQ-006/Clarifications: o auto-cadastro original
+ * permitia que qualquer conta Google virasse psicólogo sem nenhuma aprovação).
+ *
+ * <p>Cobre REQ-001, REQ-003, REQ-004, REQ-005, REQ-008, REQ-012, REQ-014
+ * (e negativos REQ-NR002/003/004/005). O ID token do Google não é persistido nem reutilizado como
  * token de sessão (REQ-NR004).
  */
 @Service
@@ -40,9 +46,11 @@ public class GoogleLoginService {
             throw new ResponseStatusException(UNAUTHORIZED, "E-mail do Google não verificado.");
         }
 
-        User user = userRepository.findByEmail(claims.email())
-                .map(existing -> linkGoogleIdentity(existing, claims))
-                .orElseGet(() -> createPendingPsychologist(claims));
+        User existing = userRepository.findByEmail(claims.email())
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN,
+                        "Este e-mail ainda não tem acesso liberado. Peça para o administrador cadastrar sua conta."));
+
+        User user = linkGoogleIdentity(existing, claims);
 
         String token = accessTokenService.generate(user).getTokenValue();
 
@@ -70,26 +78,5 @@ public class GoogleLoginService {
         }
 
         return existing;
-    }
-
-    /**
-     * Cria uma Conta Pendente de psicólogo (sem senha/CPF/telefone), {@code profile_complete=false}
-     * e {@code google_sub} setado (REQ-006, REQ-012).
-     */
-    private User createPendingPsychologist(GoogleClaims claims) {
-        LocalDate now = LocalDate.now();
-
-        User pending = User.builder()
-                .name(claims.name())
-                .email(claims.email())
-                .googleSub(claims.sub())
-                .type(UserType.PSYCHOLOGIST)
-                .profileComplete(false)
-                .created_at(now)
-                .updated_at(now)
-                .active(true)
-                .build();
-
-        return userRepository.save(pending);
     }
 }

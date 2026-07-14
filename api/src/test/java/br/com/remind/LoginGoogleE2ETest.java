@@ -94,11 +94,16 @@ class LoginGoogleE2ETest {
     }
 
     @Test
-    void flow1and4_newAccount_pending_thenCompleteProfile() throws Exception {
+    void flow1and4_preRegisteredAccount_linksThenCompleteProfile() throws Exception {
+        userRepository.save(User.builder()
+                .name("Novo E2E").email("novo@e2e.com")
+                .type(UserType.PSYCHOLOGIST).profileComplete(false)
+                .created_at(LocalDate.now()).updated_at(LocalDate.now()).active(true)
+                .build());
         when(googleTokenVerifier.verify(eq("new-token")))
                 .thenReturn(new GoogleClaims("sub-new", "novo@e2e.com", true, "Novo E2E"));
 
-        // Fluxo 1: conta nova → pendente.
+        // Fluxo 1: conta pré-cadastrada e pendente → primeiro login vincula a identidade Google.
         String loginBody = mockMvc.perform(post("/login/google")
                         .contentType(APPLICATION_JSON)
                         .content("{\"idToken\":\"new-token\"}"))
@@ -233,10 +238,15 @@ class LoginGoogleE2ETest {
 
     @Test
     void ac10_passwordLogin_onGoogleOnlyAccount_isRejectedWithGoogleMessage() throws Exception {
+        userRepository.save(User.builder()
+                .name("Google Only").email("goonly@e2e.com")
+                .type(UserType.PSYCHOLOGIST).profileComplete(false)
+                .created_at(LocalDate.now()).updated_at(LocalDate.now()).active(true)
+                .build());
         when(googleTokenVerifier.verify(eq("goonly-token")))
                 .thenReturn(new GoogleClaims("sub-go", "goonly@e2e.com", true, "Google Only"));
 
-        // Cria a conta só-Google (sem senha).
+        // Conta pré-cadastrada, ainda sem senha: primeiro login vincula a identidade Google.
         mockMvc.perform(post("/login/google").contentType(APPLICATION_JSON)
                         .content("{\"idToken\":\"goonly-token\"}"))
                 .andExpect(status().isOk());

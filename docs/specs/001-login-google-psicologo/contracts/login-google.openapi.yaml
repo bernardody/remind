@@ -3,8 +3,10 @@ info:
   title: ReMind — Login com Google (Psicólogo)
   version: "1.0.0"
   description: >
-    Autentica um psicólogo a partir de um ID token do Google. Cria conta pendente,
-    vincula a conta existente ou rejeita, conforme o email do token.
+    Autentica um psicólogo a partir de um ID token do Google. Vincula a conta já
+    cadastrada (pendente ou completa) ou rejeita, conforme o email do token — não
+    cria conta nova para e-mail desconhecido (REQ-006 revertido em 2026-07-13, ver
+    spec funcional §Clarifications).
 paths:
   /login/google:
     post:
@@ -28,15 +30,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/LoginResponse"
               examples:
-                contaNovaPendente:
-                  summary: Email inexistente → conta pendente criada (REQ-006)
+                contaPreCadastradaPendente:
+                  summary: >
+                    Email de psicólogo pré-cadastrado (pendente, sem perfil completo)
+                    → identidade Google vinculada (REQ-004, REQ-012)
                   value:
                     accessToken: "eyJ..."
                     expiresIn: 600
                     type: "PSYCHOLOGIST"
                     profileComplete: false
                 psicologoExistente:
-                  summary: Psicólogo existente → identidade Google vinculada (REQ-004, REQ-014)
+                  summary: Psicólogo existente (perfil completo) → identidade Google vinculada (REQ-004, REQ-014)
                   value:
                     accessToken: "eyJ..."
                     expiresIn: 600
@@ -51,7 +55,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: Email pertence a um paciente — acesso negado. (REQ-005, REQ-NR003)
+          description: >
+            Email pertence a um paciente, ou não corresponde a nenhuma conta
+            cadastrada — acesso negado, nenhuma conta é criada. (REQ-005, REQ-006,
+            REQ-NR003, REQ-NR005)
           content:
             application/json:
               schema:

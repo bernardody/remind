@@ -30,7 +30,7 @@
 | REQ-003 | [I] | Token inválido/expirado/email não verif → rejeita, nada criado | TASK-003, TASK-004 | — | `GoogleTokenVerifierTest`, `GoogleLoginServiceTest`, `LoginGoogleE2ETest` | `GoogleTokenVerifier`, `GoogleLoginService` | Implemented |
 | REQ-004 | [I] | Email de psicólogo existente → vincula + token | TASK-004 | — | `GoogleLoginServiceTest`, `LoginGoogleE2ETest` | `GoogleLoginService` | Implemented |
 | REQ-005 | [I] | Email de paciente → rejeita | TASK-004 | — | `GoogleLoginServiceTest`, `GoogleLoginControllerIT`, `LoginGoogleE2ETest` | `GoogleLoginService` | Implemented |
-| REQ-006 | [I] | Email inexistente → cria conta pendente + token | TASK-004 (base: TASK-001) | — | `GoogleLoginServiceTest`, `LoginGoogleE2ETest` | `GoogleLoginService`, `User` | Implemented |
+| REQ-006 | [I] | Email inexistente → rejeita (403), sem criar conta *(revertido 2026-07-13; antes: criava conta pendente + token)* | TASK-004 (base: TASK-001) | — | `GoogleLoginServiceTest`, `GoogleLoginControllerIT`, `LoginGoogleE2ETest` | `GoogleLoginService`, `User` | Implemented |
 | REQ-007 | [I] | Mesmo formato de token do login por senha | TASK-002 | — | `AccessTokenServiceTest`, `LoginGoogleE2ETest` (paridade) | `AccessTokenService` | Implemented |
 | REQ-008 | [I] | Resultado indica se perfil precisa completar | TASK-002, TASK-004 | — | `LoginControllerTest`, `GoogleLoginServiceTest` | `LoginResponse`, `LoginController`, `GoogleLoginService` | Implemented |
 | REQ-009 | [I] | Conta pode existir sem senha/CPF/telefone/endereço | TASK-001 | — | `UserRepositoryTest` | `User`, `schema.sql` | Implemented |

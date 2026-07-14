@@ -29,7 +29,11 @@ Identidade base do sistema. Passa a suportar **Conta Pendente** (só-Google) e o
 | `active` | BOOLEAN NOT NULL | obrigatório | inalterado | existente |
 
 **Invariantes**:
-- Uma conta criada via Google inicia com `password = NULL`, `cpf = NULL`, `phone = NULL`, `profile_complete = FALSE`, `type = PSYCHOLOGIST`. (REQ-006, REQ-009)
+- Uma conta pendente pré-cadastrada (hoje via SQL/pgweb, antes do primeiro login
+  Google — REQ-006 revertido em 2026-07-13, deixou de ser criada automaticamente
+  pelo próprio login) tem `password = NULL`, `cpf = NULL`, `phone = NULL`,
+  `profile_complete = FALSE`, `type = PSYCHOLOGIST`, `google_sub = NULL` até o
+  primeiro login vincular a identidade. (REQ-006, REQ-009)
 - `google_sub` guarda o identificador único da conta Google para reconhecimento em logins subsequentes. (REQ-012)
 - Contas semeadas por senha (`insert.sql`) mantêm `profile_complete = TRUE` e `google_sub = NULL`.
 - Login por senha exige `password != NULL`; contas só-Google rejeitam login por senha. (REQ-011)

@@ -55,7 +55,24 @@ class GoogleLoginControllerIT {
     }
 
     @Test
-    void newEmail_createsPendingPsychologist_andIsPubliclyAccessible() throws Exception {
+    void unknownEmail_isRejectedWith403_andNoAccountIsCreated() throws Exception {
+        when(googleTokenVerifier.verify(eq("tok")))
+                .thenReturn(new GoogleClaims("sub-new", "novo@it.com", true, "Novo IT"));
+
+        mockMvc.perform(post("/login/google").contentType(APPLICATION_JSON)
+                        .content("{\"idToken\":\"tok\"}"))
+                .andExpect(status().isForbidden());
+
+        assertThat(userRepository.findByEmail("novo@it.com")).isEmpty();
+    }
+
+    @Test
+    void preRegisteredPendingPsychologist_linksGoogleIdentity_andIsPubliclyAccessible() throws Exception {
+        userRepository.save(User.builder()
+                .name("Novo IT").email("novo@it.com")
+                .type(UserType.PSYCHOLOGIST).profileComplete(false)
+                .created_at(LocalDate.now()).updated_at(LocalDate.now()).active(true)
+                .build());
         when(googleTokenVerifier.verify(eq("tok")))
                 .thenReturn(new GoogleClaims("sub-new", "novo@it.com", true, "Novo IT"));
 
@@ -66,9 +83,9 @@ class GoogleLoginControllerIT {
                 .andExpect(jsonPath("$.profileComplete").value(false))
                 .andExpect(jsonPath("$.accessToken").isNotEmpty());
 
-        User created = userRepository.findByEmail("novo@it.com").orElseThrow();
-        assertThat(created.getGoogleSub()).isEqualTo("sub-new");
-        assertThat(created.getProfileComplete()).isFalse();
+        User linked = userRepository.findByEmail("novo@it.com").orElseThrow();
+        assertThat(linked.getGoogleSub()).isEqualTo("sub-new");
+        assertThat(linked.getProfileComplete()).isFalse();
     }
 
     @Test

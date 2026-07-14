@@ -55,9 +55,30 @@ class GoogleLoginServiceTest {
     }
 
     @Test
-    void login_newEmail_createsPendingPsychologist() {
+    void login_unknownEmail_isRejectedWith403_withoutCreatingAccount() {
         when(googleTokenVerifier.verify(ID_TOKEN)).thenReturn(claims("novo@gmail.com", true));
         when(userRepository.findByEmail("novo@gmail.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> googleLoginService.login(ID_TOKEN))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
+                .isEqualTo(403);
+
+        verify(userRepository, never()).save(any(User.class));
+        verify(accessTokenService, never()).generate(any());
+    }
+
+    @Test
+    void login_preRegisteredPendingPsychologist_linksGoogleIdentity() {
+        User pending = User.builder()
+                .id(3L)
+                .name("Novo Psicólogo")
+                .email("novo@gmail.com")
+                .type(UserType.PSYCHOLOGIST)
+                .profileComplete(false)
+                .build();
+        when(googleTokenVerifier.verify(ID_TOKEN)).thenReturn(claims("novo@gmail.com", true));
+        when(userRepository.findByEmail("novo@gmail.com")).thenReturn(Optional.of(pending));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         stubTokenIssuance();
 
@@ -65,15 +86,7 @@ class GoogleLoginServiceTest {
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
-        User created = captor.getValue();
-
-        assertThat(created.getType()).isEqualTo(UserType.PSYCHOLOGIST);
-        assertThat(created.getProfileComplete()).isFalse();
-        assertThat(created.getGoogleSub()).isEqualTo("google-sub-xyz");
-        assertThat(created.getName()).isEqualTo("Novo Psicólogo");
-        assertThat(created.getPassword()).isNull();
-        assertThat(created.getCpf()).isNull();
-        assertThat(created.getPhone()).isNull();
+        assertThat(captor.getValue().getGoogleSub()).isEqualTo("google-sub-xyz");
 
         assertThat(response.accessToken()).isEqualTo("app-token");
         assertThat(response.type()).isEqualTo(UserType.PSYCHOLOGIST);
