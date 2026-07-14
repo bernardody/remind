@@ -1,6 +1,3 @@
-import { Info } from "lucide-react";
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import type { UserType } from "@/features/auth/schemas";
 
@@ -48,15 +45,6 @@ export function ProfileCard({ name, email, type }: ProfileCardProps) {
           ))}
         </CardContent>
       </Card>
-
-      <Alert variant="warning">
-        <Info />
-        <AlertTitle>Edição de perfil em breve</AlertTitle>
-        <AlertDescription>
-          Trocar dados pessoais e senha por aqui ainda depende de um recurso do
-          backend. Por enquanto, esses dados são somente leitura.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 }
