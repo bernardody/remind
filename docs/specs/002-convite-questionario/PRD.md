@@ -690,29 +690,28 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
    sobrescrevendo o Open Graph clínico herdado do layout raiz
    (`app/layout.tsx`) — o card de preview no WhatsApp deixa de mostrar a
    tagline/descrição de "avaliação de dependência digital".
-9. **"Este acesso é restrito ao questionário do convite." aparece ao clicar em "Revogar"**
-   (achado do usuário testando em produção, 2026-07-13). Essa é literalmente a mensagem
-   de erro do `InviteScopedAuthorizationFilter` (`config/InviteScopedAuthorizationFilter.java`)
-   — **só aparece quando quem faz a requisição carrega um JWT de paciente com
-   `scope=invite`**, nunca para o token normal do psicólogo (o filtro nem entra em ação
-   pra ele, `readInviteScopeQuestionnaireId()` retorna vazio quando não há esse claim).
-   **Diagnóstico mais provável** (não reproduzido/confirmado ainda, mas coerente com a
-   mensagem exata): a sessão do NextAuth é um único cookie por navegador/domínio, sem
-   isolamento por aba. Se o convite (link real, recebido por e-mail/WhatsApp) foi aberto
-   em **qualquer aba do mesmo navegador** onde o psicólogo também estava logado, o
-   `signIn("invite", ...)` sobrescreve o cookie de sessão do navegador inteiro — a aba do
-   psicólogo continua mostrando a UI antiga (React não re-renderiza sozinho), mas a
-   **próxima ação que dispara uma chamada de API de verdade** (como clicar "Revogar")
-   usa o cookie atual, que agora é o do paciente/convite, não mais o do psicólogo — daí o
-   403 com essa mensagem específica. **Não é um bug no endpoint de revogar** — é
-   colisão de sessão entre testar o link do convite e estar logado como psicólogo no
-   mesmo navegador. Verificação sugerida da próxima vez que acontecer: checar
-   `GET /api/auth/session` nesse momento — se `user.type` estiver `"PATIENT"` em vez de
-   `"PSYCHOLOGIST"`, confirma a teoria. Caminhos de correção a avaliar: (a) documentar
-   como cuidado de teste (testar convite sempre em aba anônima/outro navegador — só
-   evita o sintoma, não resolve o risco de produto); (b) considerar se isso é um risco
-   real de produto também — ex. um psicólogo clicando no próprio link de convite pra
-   conferir como fica, sem querer, "sai" da própria conta.
+9. ~~**"Este acesso é restrito ao questionário do convite." aparece ao clicar em
+   "Revogar"**~~ — confirmado e corrigido (2026-07-13). Reproduzido de novo pelo
+   usuário e diagnóstico confirmado lendo o código (não só suposição, como na
+   entrada original abaixo): a sessão do NextAuth é um único cookie por
+   navegador, compartilhado por todas as abas (`lib/auth/config.ts`, sem
+   `cookies`/`useSecureCookies` customizados); `signIn("invite", ...)` o
+   sobrescreve incondicionalmente para qualquer provider. Abrir o link do
+   convite em qualquer aba do mesmo navegador onde o psicólogo está logado
+   troca a sessão do navegador inteiro para a do paciente — a aba do
+   psicólogo continua com a UI antiga (React não re-renderiza sozinho), mas a
+   próxima chamada de API de verdade (ex. "Revogar") usa o cookie já trocado,
+   e o `InviteScopedAuthorizationFilter` corretamente rejeita com 403 (o
+   filtro em si não tem bug — `scope=invite` só existe em tokens emitidos por
+   `generateInviteScoped()`, nunca no login normal). **Confirmado como risco
+   real de produto**, não só cuidado de teste — qualquer psicólogo pode clicar
+   no próprio link só pra conferir e "sair" da própria conta sem perceber.
+   **Corrigido** em `features/invites/components/consume-invite-view.tsx`:
+   antes de chamar `signIn("invite", ...)`, verifica via `getSession()` se já
+   existe uma sessão de psicólogo ativa nesse navegador; se existir, mostra
+   uma tela de confirmação explícita ("Continuar como paciente") em vez de
+   trocar a sessão silenciosamente. Não reverte sessões já trocadas antes da
+   correção — precisam de novo login como psicólogo.
 
 ---
 

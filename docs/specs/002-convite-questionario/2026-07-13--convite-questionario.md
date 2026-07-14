@@ -333,9 +333,20 @@ Pendências levantadas no PRD (`PRD.md` §20) ainda sem decisão fechada:
    `twitter` próprios ("ReMind" + "Você recebeu um link de acesso."),
    sobrescrevendo o Open Graph clínico herdado do layout raiz. Ver `PRD.md`
    §20.8.
-7. **Colisão de sessão ao testar o link de convite logado como psicólogo no
-   mesmo navegador** — comportamento observado (`PRD.md` §20.9), atribuído a
-   cookie de sessão único por navegador (não por aba), não a um bug do
-   endpoint de revogar. Ainda não confirmado com certeza (`GET
-   /api/auth/session` não foi checado no momento exato do incidente). Avaliar
-   se é só cuidado de teste (usar aba anônima) ou um risco real de produto.
+7. ~~**Colisão de sessão ao testar o link de convite logado como psicólogo no
+   mesmo navegador**~~ — confirmado e corrigido (2026-07-13). Causa
+   confirmada lendo o código (não só suposição): NextAuth usa um único cookie
+   de sessão por navegador, compartilhado por todas as abas
+   (`lib/auth/config.ts`); `signIn("invite", ...)` o sobrescreve
+   incondicionalmente, então abrir o link do convite em qualquer aba do mesmo
+   navegador troca a sessão do psicólogo pela do paciente sem aviso — a
+   próxima chamada de API de verdade (ex.: "Revogar") usa esse cookie já
+   trocado e recebe o 403 do `InviteScopedAuthorizationFilter`. Confirmado
+   como risco real de produto, não só cuidado de teste (qualquer psicólogo
+   pode clicar no próprio link só pra conferir). Corrigido em
+   `features/invites/components/consume-invite-view.tsx`: antes de consumir o
+   token, verifica se já existe uma sessão de psicólogo ativa nesse navegador;
+   se existir, pede confirmação explícita ("Continuar como paciente") antes de
+   trocar a sessão, em vez de trocar silenciosamente. Sessões já trocadas
+   antes desta correção não são revertidas automaticamente — precisam de novo
+   login como psicólogo.
