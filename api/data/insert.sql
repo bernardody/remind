@@ -32,7 +32,7 @@ INSERT INTO patients (id_user, id_psychologist, birth_date, gender, created_at, 
 
 
 INSERT INTO questionnaires (title, created_at, updated_at, active) VALUES
-('Questionário Exemplo', '2026-02-17', '2026-02-17', true);
+('Questionário 1', '2026-02-17', '2026-02-17', true);
 
 
 INSERT INTO scales (name, created_at, updated_at, active) VALUES
