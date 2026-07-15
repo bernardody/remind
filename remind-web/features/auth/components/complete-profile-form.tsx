@@ -24,6 +24,7 @@ import {
 } from "@/features/auth/schemas";
 import { ApiError } from "@/lib/api/types";
 import { ROUTES } from "@/lib/constants";
+import { maskCEP, maskCPF, maskPhone, onlyDigits } from "@/lib/masks";
 
 /**
  * `PUT /psychologists/me/profile` (spec 001-login-google-psicologo) — única
@@ -76,7 +77,13 @@ export function CompleteProfileForm() {
                   <FormItem>
                     <FormLabel>CPF</FormLabel>
                     <FormControl>
-                      <Input placeholder="000.000.000-00" {...field} />
+                      <Input
+                        inputMode="numeric"
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                        {...field}
+                        onChange={(e) => field.onChange(maskCPF(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -89,7 +96,13 @@ export function CompleteProfileForm() {
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input placeholder="(00) 00000-0000" {...field} />
+                      <Input
+                        inputMode="numeric"
+                        placeholder="(00) 00000-0000"
+                        maxLength={15}
+                        {...field}
+                        onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -118,7 +131,11 @@ export function CompleteProfileForm() {
                   <FormItem>
                     <FormLabel>Número</FormLabel>
                     <FormControl>
-                      <Input inputMode="numeric" {...field} />
+                      <Input
+                        inputMode="numeric"
+                        {...field}
+                        onChange={(e) => field.onChange(onlyDigits(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,7 +179,13 @@ export function CompleteProfileForm() {
                 <FormItem className="sm:max-w-[10rem]">
                   <FormLabel>CEP</FormLabel>
                   <FormControl>
-                    <Input placeholder="00000-000" {...field} />
+                    <Input
+                      inputMode="numeric"
+                      placeholder="00000-000"
+                      maxLength={9}
+                      {...field}
+                      onChange={(e) => field.onChange(maskCEP(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
