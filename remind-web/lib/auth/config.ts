@@ -226,7 +226,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.accessToken = user.accessToken;
         token.userType = user.type;
@@ -234,6 +234,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.profileComplete = user.profileComplete;
         token.questionnaireId = user.questionnaireId;
         token.questionnaireTitle = user.questionnaireTitle;
+      }
+      // Disparado por `update({ profileComplete: true })` no client
+      // (complete-profile-form.tsx) — o JWT tem 10min e não é reemitido
+      // sozinho, então sem isso a sessão continuaria com perfil incompleto
+      // até o próximo login.
+      if (trigger === "update" && session?.profileComplete) {
+        token.profileComplete = true;
       }
       return token;
     },

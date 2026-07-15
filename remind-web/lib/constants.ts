@@ -58,6 +58,7 @@ export const ROUTES = {
     avaliacoes: "/psicologo/avaliacoes",
     relatorios: "/psicologo/relatorios",
     perfil: "/psicologo/perfil",
+    completarPerfil: "/psicologo/completar-perfil",
   },
   paciente: {
     inicio: "/paciente/inicio",

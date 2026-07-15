@@ -29,6 +29,23 @@ export default auth((req) => {
     }
   }
 
+  // Conta de psicólogo criada via Google fica com `profileComplete=false`
+  // até preencher CPF/telefone/endereço (spec 001-login-google-psicologo).
+  // O backend bloqueia (403) qualquer rota além de completar/ler o próprio
+  // perfil — sem esse redirect aqui, o dashboard quebrava com um erro
+  // genérico ao chamar `/pacientes` (ver docs internos do gap).
+  if (isAuthed && isPsicologo && session.user.type === "PSYCHOLOGIST") {
+    const isCompletarPerfil = nextUrl.pathname === ROUTES.psicologo.completarPerfil;
+    if (!session.user.profileComplete && !isCompletarPerfil) {
+      return NextResponse.redirect(
+        new URL(ROUTES.psicologo.completarPerfil, nextUrl),
+      );
+    }
+    if (session.user.profileComplete && isCompletarPerfil) {
+      return NextResponse.redirect(new URL(ROUTES.psicologo.dashboard, nextUrl));
+    }
+  }
+
   if (isAuthed && isLogin) {
     return NextResponse.redirect(
       new URL(HOME_BY_USER_TYPE[session.user.type], nextUrl),

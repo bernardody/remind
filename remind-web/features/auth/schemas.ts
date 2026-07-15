@@ -23,3 +23,44 @@ export const LoginResponseSchema = z.object({
   profileComplete: z.boolean().default(true),
 });
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+
+// Aceita digitar com ou sem pontuação, envia só dígitos (mesmo padrão de
+// features/patients/schemas.ts) — colunas `cpf`/`phone` em `users` são
+// VARCHAR(11).
+const cpfSchema = z
+  .string()
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((value) => value.length === 11, "CPF inválido");
+
+const phoneSchema = z
+  .string()
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((value) => value.length >= 10 && value.length <= 11, "Telefone inválido");
+
+/**
+ * `PUT /psychologists/me/profile` (spec 001-login-google-psicologo,
+ * `CompleteProfileRequest` real) — conclui o perfil de uma conta criada via
+ * Google (CPF/telefone/endereço ainda ausentes).
+ */
+export const CompleteProfileRequestSchema = z.object({
+  cpf: cpfSchema,
+  phone: phoneSchema,
+  street: z.string().min(1, "Informe a rua"),
+  // Mantido como string (mesmo padrão de cpf/phone/cep) pra não brigar com o
+  // tipo de `useForm` — convertido pra number só na hora de montar o body
+  // (`features/auth/api.ts`), já que `CompleteProfileRequest` no backend
+  // espera `Integer`.
+  number: z.string().regex(/^\d+$/, "Informe o número"),
+  cep: z
+    .string()
+    .transform((value) => value.replace(/\D/g, ""))
+    .refine((value) => value.length === 8, "CEP inválido"),
+  neighborhood: z.string().min(1, "Informe o bairro"),
+  city: z.string().min(1, "Informe a cidade"),
+});
+export type CompleteProfileRequest = z.infer<typeof CompleteProfileRequestSchema>;
+
+export const CompleteProfileResponseSchema = z.object({
+  profileComplete: z.boolean(),
+});
+export type CompleteProfileResponse = z.infer<typeof CompleteProfileResponseSchema>;
