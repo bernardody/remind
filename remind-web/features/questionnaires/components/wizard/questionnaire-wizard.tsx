@@ -27,7 +27,7 @@ export function QuestionnaireWizard({ questionnaire }: QuestionnaireWizardProps)
     [questionnaire.questions],
   );
 
-  const { currentStep, answers, start, answer, goNext, goPrev, goToStep } = useWizardStore();
+  const { currentStep, answers, start, answer, goNext, goPrev, goToStep, reset } = useWizardStore();
   const answerMutation = useAnswerQuestionnaire(questionnaire.id);
   const shouldReduceMotion = useReducedMotion();
 
@@ -50,6 +50,11 @@ export function QuestionnaireWizard({ questionnaire }: QuestionnaireWizardProps)
     answerMutation.mutate(
       { responses },
       {
+        // Limpa o progresso persistido (sessionStorage) assim que a resposta é aceita — sem
+        // isso, uma reaplicação futura do MESMO questionnaireId (docs/specs/
+        // 003-relatorios-evolucao-longitudinal/PRD.md §3) reabre o wizard com as respostas da
+        // rodada anterior pré-selecionadas, porque `start()` só reseta quando o id muda.
+        onSuccess: () => reset(),
         onError: () => toast.error("Não foi possível enviar suas respostas. Tente novamente."),
       },
     );

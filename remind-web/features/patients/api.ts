@@ -19,10 +19,15 @@ export function usePatients(params: PageParams) {
   });
 }
 
-export function usePatientQuestionnaires(id: number, params: PageParams) {
+export function usePatientQuestionnaires(
+  id: number,
+  params: PageParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: [...PATIENTS_KEY, id, "avaliacoes", params],
     queryFn: () => apiFetchPage<PatientQuestionnaire>(`/pacientes/${id}/avaliacoes`, params),
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, RefreshCw } from "lucide-react";
 
 import { DomainBars } from "@/components/charts/domain-bars";
 import { Gauge } from "@/components/charts/gauge";
@@ -9,6 +9,7 @@ import { TrendLine } from "@/components/charts/trend-line";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -26,20 +27,30 @@ import { formatDateTime } from "@/lib/utils";
 
 const PICKER_PAGE_SIZE = 100;
 
-/**
- * Tela de relatórios (Fase 5b, docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §5.2) —
- * evolução longitudinal de um paciente num questionário: linha do tempo, gráfico de evolução
- * por escala, snapshot mais recente e comparação primeira x última aplicação.
- */
 interface ReportsViewProps {
   /** Pré-seleção vinda de `?paciente=&questionario=` (link "Ver evolução" do resultado individual). */
   initialPatientId?: number;
   initialQuestionnaireId?: number;
 }
 
+/**
+ * Tela de relatórios (Fase 5b, docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §5.2) —
+ * evolução longitudinal de um paciente num questionário: linha do tempo, gráfico de evolução
+ * por escala, snapshot mais recente e comparação primeira x última aplicação.
+ *
+ * Seleção de paciente/questionário é "rascunho" (`pending*`), separada do que de fato dispara a
+ * busca (`applied*`) — só troca ao clicar "Carregar relatório". Trocar de paciente com um
+ * relatório já carregado na tela não disparava a busca nova de forma confiável (relatado pelo
+ * usuário); esse botão explícito remove a ambiguidade de "quando buscar" e também serve como
+ * atualização forçada quando a seleção não mudou.
+ */
 export function ReportsView({ initialPatientId, initialQuestionnaireId }: ReportsViewProps = {}) {
-  const [patientId, setPatientId] = useState<number | null>(initialPatientId ?? null);
-  const [questionnaireId, setQuestionnaireId] = useState<number | null>(
+  const [pendingPatientId, setPendingPatientId] = useState<number | null>(initialPatientId ?? null);
+  const [pendingQuestionnaireId, setPendingQuestionnaireId] = useState<number | null>(
+    initialQuestionnaireId ?? null,
+  );
+  const [appliedPatientId, setAppliedPatientId] = useState<number | null>(initialPatientId ?? null);
+  const [appliedQuestionnaireId, setAppliedQuestionnaireId] = useState<number | null>(
     initialQuestionnaireId ?? null,
   );
 
@@ -47,8 +58,11 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
     page: 0,
     size: PICKER_PAGE_SIZE,
   });
-  const { data: patientQuestionnaires, isLoading: loadingQuestionnaires } =
-    usePatientQuestionnaires(patientId ?? 0, { page: 0, size: PICKER_PAGE_SIZE });
+  const { data: patientQuestionnaires, isLoading: loadingQuestionnaires } = usePatientQuestionnaires(
+    pendingPatientId ?? 0,
+    { page: 0, size: PICKER_PAGE_SIZE },
+    { enabled: Boolean(pendingPatientId) },
+  );
 
   // Um paciente pode ter várias respostas pro mesmo questionário (reaplicação) — o picker
   // mostra cada questionário uma vez só, não uma linha por rodada.
@@ -61,12 +75,33 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
     return Array.from(seen.entries()).map(([id, title]) => ({ id, title }));
   }, [patientQuestionnaires]);
 
+  const patientHasNoQuestionnaires =
+    Boolean(pendingPatientId) && !loadingQuestionnaires && questionnaireOptions.length === 0;
+
   const {
     data: evolution,
     isLoading: loadingEvolution,
     isError: evolutionError,
     refetch,
-  } = usePatientEvolution(questionnaireId ?? 0, patientId ?? 0);
+  } = usePatientEvolution(appliedQuestionnaireId ?? 0, appliedPatientId ?? 0);
+
+  function handleSelectPatient(value: string) {
+    setPendingPatientId(Number(value));
+    setPendingQuestionnaireId(null);
+  }
+
+  function handleLoadReport() {
+    if (!pendingPatientId || !pendingQuestionnaireId) return;
+
+    if (pendingPatientId === appliedPatientId && pendingQuestionnaireId === appliedQuestionnaireId) {
+      // Seleção não mudou — botão vira "forçar atualização" (reconsulta o backend).
+      void refetch();
+      return;
+    }
+
+    setAppliedPatientId(pendingPatientId);
+    setAppliedQuestionnaireId(pendingQuestionnaireId);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,11 +110,8 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
           <div className="flex flex-1 flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">Paciente</span>
             <Select
-              value={patientId ? String(patientId) : undefined}
-              onValueChange={(value) => {
-                setPatientId(Number(value));
-                setQuestionnaireId(null);
-              }}
+              value={pendingPatientId ? String(pendingPatientId) : undefined}
+              onValueChange={handleSelectPatient}
               disabled={loadingPatients}
             >
               <SelectTrigger className="w-full">
@@ -98,13 +130,19 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
           <div className="flex flex-1 flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">Questionário</span>
             <Select
-              value={questionnaireId ? String(questionnaireId) : undefined}
-              onValueChange={(value) => setQuestionnaireId(Number(value))}
-              disabled={!patientId || loadingQuestionnaires}
+              value={pendingQuestionnaireId ? String(pendingQuestionnaireId) : undefined}
+              onValueChange={(value) => setPendingQuestionnaireId(Number(value))}
+              disabled={!pendingPatientId || loadingQuestionnaires || patientHasNoQuestionnaires}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
-                  placeholder={patientId ? "Selecione um questionário" : "Escolha um paciente primeiro"}
+                  placeholder={
+                    !pendingPatientId
+                      ? "Escolha um paciente primeiro"
+                      : patientHasNoQuestionnaires
+                        ? "Nenhum questionário respondido"
+                        : "Selecione um questionário"
+                  }
                 />
               </SelectTrigger>
               <SelectContent>
@@ -116,14 +154,28 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
               </SelectContent>
             </Select>
           </div>
+
+          <Button
+            onClick={handleLoadReport}
+            disabled={!pendingPatientId || !pendingQuestionnaireId || loadingEvolution}
+          >
+            <RefreshCw className="size-4" />
+            Carregar relatório
+          </Button>
         </CardContent>
       </Card>
 
-      {!patientId || !questionnaireId ? (
+      {patientHasNoQuestionnaires ? (
+        <EmptyState
+          icon={BarChart3}
+          title="Esse paciente ainda não respondeu a nenhum questionário"
+          description="Assim que ele responder pelo menos uma avaliação, o relatório fica disponível aqui."
+        />
+      ) : !appliedPatientId || !appliedQuestionnaireId ? (
         <EmptyState
           icon={BarChart3}
           title="Selecione um paciente e um questionário"
-          description="A evolução aparece aqui assim que houver ao menos uma aplicação respondida."
+          description="Depois clique em “Carregar relatório” pra ver a evolução."
         />
       ) : evolutionError ? (
         <ErrorState onRetry={() => refetch()} />
@@ -132,8 +184,8 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
       ) : !evolution || evolution.applications.length === 0 ? (
         <EmptyState
           icon={BarChart3}
-          title="Sem aplicações registradas"
-          description="Esse paciente ainda não respondeu este questionário."
+          title="Esse paciente ainda não respondeu ao questionário"
+          description="Assim que houver uma resposta, a evolução aparece aqui."
         />
       ) : (
         <ReportContent evolution={evolution} />

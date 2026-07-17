@@ -237,6 +237,7 @@ de 1 aplicação registrada.
 | 3 | Convite obrigatório na 1ª resposta muda comportamento hoje em produção (paciente podia responder sem convite) | Mudança deliberada e intencional desta spec — decisão do usuário nesta sessão, não efeito colateral acidental. |
 | 4 | Viés de resposta Likert gerando falso "piora/melhora" | Critério primário de tendência é cruzamento de faixa de risco, não delta bruto (§4.4). |
 | 5 | Tela "Início" e relatório dependem do mesmo `QuestionnaireInvite` como fonte de verdade | Já é a fonte de verdade de convite hoje (INV-002/008/009) — sem tabela nova, sem duplicação de estado. |
+| 6 | **(Encontrado em revisão pós-implementação)** `wizard-store.ts` persiste respostas em `sessionStorage` por `questionnaireId` e só reseta em `start()` quando o id muda — como a reaplicação reusa o mesmo `Questionnaire.id` (§3), a 2ª rodada reabria o wizard com as respostas da 1ª pré-selecionadas. Nunca era observável antes porque um `questionnaireId` só podia ser respondido uma vez. | Corrigido: `questionnaire-wizard.tsx` chama `reset()` no `onSuccess` do envio, limpando o progresso persistido assim que a resposta é aceita. |
 
 ---
 
