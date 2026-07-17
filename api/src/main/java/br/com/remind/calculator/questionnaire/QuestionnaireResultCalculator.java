@@ -15,8 +15,10 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -27,8 +29,18 @@ public class QuestionnaireResultCalculator {
     private final QuestionnaireScaleResultRepository questionnaireScaleResultRepository;
     private final ScaleRiskBandRepository scaleRiskBandRepository;
 
+    /**
+     * A média global é a média das médias por escala (cada escala pesa igual), não a média de
+     * todas as respostas brutas — senão escalas com mais perguntas (ex.: BSMAS com 4 itens)
+     * pesariam mais que escalas menores (ex.: SAS-SV com 2 itens) na nota geral.
+     */
     public void calculate(QuestionnaireAnswer questionnaireAnswer, List<PatientQuestionResponse> responses) {
-        BigDecimal average = average(responses);
+        Map<Scale, BigDecimal> scaleAverages = responses.stream()
+                .collect(Collectors.groupingBy(r -> r.getQuestion().getScale()))
+                .entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> average(entry.getValue())));
+
+        BigDecimal average = averageOf(scaleAverages.values());
 
         QuestionnaireResult result = QuestionnaireResult.builder()
                 .questionnaireResponse(questionnaireAnswer)
@@ -40,9 +52,7 @@ public class QuestionnaireResultCalculator {
 
         questionnaireResultRepository.save(result);
 
-        List<QuestionnaireScaleResult> scaleResults = responses.stream()
-                .collect(Collectors.groupingBy(r -> r.getQuestion().getScale()))
-                .entrySet().stream()
+        List<QuestionnaireScaleResult> scaleResults = scaleAverages.entrySet().stream()
                 .map(entry -> buildScaleResult(result, entry.getKey(), entry.getValue()))
                 .toList();
 
@@ -50,9 +60,7 @@ public class QuestionnaireResultCalculator {
     }
 
     private QuestionnaireScaleResult buildScaleResult(
-            QuestionnaireResult result, Scale scale, List<PatientQuestionResponse> scaleResponses) {
-        BigDecimal scaleAverage = average(scaleResponses);
-
+            QuestionnaireResult result, Scale scale, BigDecimal scaleAverage) {
         return QuestionnaireScaleResult.builder()
                 .questionnaireResult(result)
                 .scale(scale)
@@ -69,6 +77,12 @@ public class QuestionnaireResultCalculator {
                 .map(r -> BigDecimal.valueOf(r.getQuestionOption().getValue()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .divide(BigDecimal.valueOf(responses.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal averageOf(Collection<BigDecimal> values) {
+        return values.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(values.size()), 2, RoundingMode.HALF_UP);
     }
 
     /**
