@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, RefreshCw } from "lucide-react";
+import { Activity, BarChart3, RefreshCw } from "lucide-react";
 
 import { DomainBars } from "@/components/charts/domain-bars";
 import { Gauge } from "@/components/charts/gauge";
@@ -10,7 +10,13 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -266,10 +272,14 @@ function ReportContent({ evolution }: { evolution: PatientEvolution }) {
       </Card>
 
       <Card>
-        <CardContent className="flex flex-col items-center gap-4 py-8">
-          <span className="text-sm font-medium text-muted-foreground">
-            Aplicação mais recente — {formatDateTime(latest.answeredAt)}
-          </span>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="size-4 text-primary" />
+            Escore médio — aplicação mais recente
+          </CardTitle>
+          <CardDescription>{formatDateTime(latest.answeredAt)}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-4 pt-2 pb-8">
           <Gauge value={latest.average} />
         </CardContent>
       </Card>
@@ -277,7 +287,10 @@ function ReportContent({ evolution }: { evolution: PatientEvolution }) {
       {latest.scaleResults.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Escore por escala — mais recente</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="size-4 text-primary" />
+              Escore por escala — mais recente
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <DomainBars data={latest.scaleResults} />

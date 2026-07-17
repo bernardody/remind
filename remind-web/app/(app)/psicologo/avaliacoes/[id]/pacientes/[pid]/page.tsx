@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { TrendingUp } from "lucide-react";
+import { Activity, BarChart3, TrendingUp } from "lucide-react";
 
 import {
   Accordion,
@@ -110,7 +110,13 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
 
         <TabsContent value="resumo" className="flex flex-col gap-6">
           <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="size-4 text-primary" />
+                Escore médio
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4 pt-2 pb-8">
               <Gauge value={result.average} />
             </CardContent>
           </Card>
@@ -118,7 +124,10 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
           {result.scaleResults.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Escore por escala</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="size-4 text-primary" />
+                  Escore por escala
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <DomainBars data={result.scaleResults} />
