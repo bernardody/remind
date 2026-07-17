@@ -4,6 +4,7 @@ import { ClipboardList } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { QuestionnairePatientsTable } from "@/features/questionnaires/components/questionnaire-patients-table";
+import { QuestionnaireQuestionsDialog } from "@/features/questionnaires/components/questionnaire-questions-dialog";
 import type { QuestionnaireDetail } from "@/features/questionnaires/schemas";
 import { apiFetch } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/types";
@@ -36,6 +37,7 @@ export default async function AvaliacaoDetailPage({ params }: AvaliacaoDetailPag
       <PageHeader
         title={questionnaire.title}
         description={`Criado em ${formatDate(questionnaire.created_at)}`}
+        actions={<QuestionnaireQuestionsDialog questions={questionnaire.questions} />}
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
