@@ -43,4 +43,28 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
               and qi.active = true
             """)
     int consumeByTokenHash(@Param("tokenHash") String tokenHash);
+
+    /**
+     * Consumo atômico do convite ao responder (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md
+     * §4.1) — condiciona a transição pra ANSWERED a um estado "vivo", igual em espírito a
+     * {@link #consumeByTokenHash}, pra evitar que dois submits simultâneos do mesmo convite
+     * criem duas respostas (variante do incidente R10, `.claude/specs/04-spec-aplicacao.md` §7).
+     * Retorna 0 se não havia convite vivo (nunca convidado, já respondido, expirado ou revogado).
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update QuestionnaireInvite qi
+            set qi.status = br.com.remind.enums.InviteStatus.ANSWERED,
+                qi.updated_at = CURRENT_DATE
+            where qi.patient = :patient
+              and qi.questionnaire = :questionnaire
+              and qi.active = true
+              and qi.status not in (
+                  br.com.remind.enums.InviteStatus.ANSWERED,
+                  br.com.remind.enums.InviteStatus.EXPIRED,
+                  br.com.remind.enums.InviteStatus.REVOKED
+              )
+              and qi.expires_at > CURRENT_TIMESTAMP
+            """)
+    int markAnsweredIfLive(@Param("patient") Patient patient, @Param("questionnaire") Questionnaire questionnaire);
 }

@@ -78,15 +78,3 @@ export const AnswerQuestionnaireResponseSchema = z.object({
   answeredAt: z.string(),
 });
 export type AnswerQuestionnaireResponse = z.infer<typeof AnswerQuestionnaireResponseSchema>;
-
-/**
- * `GET /questionarios/respondidos` — auto-serviço do paciente (via JWT, sem
- * `patientId`). Mesmo shape de `ListPatientQuestionnaireResponse` (reaproveitado
- * no backend), mas do ponto de vista do próprio paciente, não do psicólogo.
- */
-export const MyAnsweredQuestionnaireSchema = z.object({
-  questionnaireId: z.number(),
-  questionnaireTitle: z.string(),
-  answeredAt: z.string(),
-});
-export type MyAnsweredQuestionnaire = z.infer<typeof MyAnsweredQuestionnaireSchema>;

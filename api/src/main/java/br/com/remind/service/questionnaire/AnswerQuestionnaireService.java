@@ -45,11 +45,20 @@ public class AnswerQuestionnaireService {
         Questionnaire questionnaire = questionnaireRepository.findByIdAndActiveTrue(questionnaireId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Questionário não encontrado"));
 
-        // `findByPatientAndQuestionnaire` (usada no resultado) assume no máximo 1 resposta por
-        // paciente/questionário — sem essa checagem, responder duas vezes quebra a consulta do
-        // resultado com "query did not return a unique result".
-        if (questionnaireAnswerRepository.findByPatientAndQuestionnaire(patient, questionnaire).isPresent()) {
-            throw new ResponseStatusException(HttpStatusCode.valueOf(409), "Você já respondeu este questionário");
+        // Convite vivo é obrigatório pra responder — inclusive na 1ª vez, não só em reaplicações
+        // (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §3/§4.1). Consumo atômico evita
+        // que dois submits simultâneos do mesmo convite gerem duas respostas.
+        int consumed = questionnaireInviteRepository.markAnsweredIfLive(patient, questionnaire);
+        if (consumed == 0) {
+            QuestionnaireInvite existingInvite = questionnaireInviteRepository
+                    .findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire)
+                    .orElse(null);
+
+            if (existingInvite != null && existingInvite.getStatus() == InviteStatus.ANSWERED) {
+                throw new ResponseStatusException(HttpStatusCode.valueOf(409), "Você já respondeu este questionário");
+            }
+            throw new ResponseStatusException(HttpStatusCode.valueOf(403),
+                    "Você precisa de um convite ativo do seu psicólogo para responder este questionário");
         }
 
         answerQuestionnaireValidator.validate(questionnaire, request);
@@ -65,12 +74,11 @@ public class AnswerQuestionnaireService {
 
         questionnaireAnswerRepository.save(questionnaireAnswer);
 
-        // INV-009 (docs/specs/002-convite-questionario): se esta resposta veio de um convite,
-        // marca o convite como respondido e vincula a resposta gerada. Sem efeito para
-        // respostas fora do fluxo de convite (findBy... simplesmente não encontra nada).
+        // INV-009: o convite já foi marcado ANSWERED atomicamente acima — aqui só vincula a
+        // resposta gerada a ele. Convite é reaproveitado a cada reaplicação (INV-002), então
+        // esse vínculo sempre reflete a rodada mais recente.
         questionnaireInviteRepository.findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire)
                 .ifPresent(invite -> {
-                    invite.setStatus(InviteStatus.ANSWERED);
                     invite.setQuestionnaireAnswer(questionnaireAnswer);
                     invite.setUpdated_at(LocalDate.now());
                     questionnaireInviteRepository.save(invite);

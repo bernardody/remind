@@ -1,11 +1,14 @@
-import { BarChart3 } from "lucide-react";
-
 import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState } from "@/components/shared/empty-state";
+import { ReportsView } from "@/features/results/components/reports-view";
 import { requireRole } from "@/lib/auth/session";
 
-export default async function RelatoriosPage() {
+interface RelatoriosPageProps {
+  searchParams: Promise<{ paciente?: string; questionario?: string }>;
+}
+
+export default async function RelatoriosPage({ searchParams }: RelatoriosPageProps) {
   await requireRole("PSYCHOLOGIST");
+  const { paciente, questionario } = await searchParams;
 
   return (
     <div>
@@ -13,10 +16,9 @@ export default async function RelatoriosPage() {
         title="Relatórios"
         description="Evolução longitudinal e comparativos por escala."
       />
-      <EmptyState
-        icon={BarChart3}
-        title="Em breve"
-        description="Em desenvolvimento — chegará em breve com a evolução dos seus pacientes ao longo do tempo."
+      <ReportsView
+        initialPatientId={paciente ? Number(paciente) : undefined}
+        initialQuestionnaireId={questionario ? Number(questionario) : undefined}
       />
     </div>
   );

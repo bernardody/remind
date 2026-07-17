@@ -49,3 +49,14 @@ export function useRevokeInvite(patientId: number) {
     },
   });
 }
+
+/**
+ * Auto-serviço do paciente: seus próprios convites (via JWT, sem `patientId`) — base da tela
+ * "Início" (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §4.5/§5.1).
+ */
+export function useMyInvites(params: PageParams) {
+  return useQuery({
+    queryKey: ["convites", "meus", params],
+    queryFn: () => apiFetchPage<PatientInvite>("/questionarios/convites", params),
+  });
+}

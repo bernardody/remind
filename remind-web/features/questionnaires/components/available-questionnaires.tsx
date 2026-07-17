@@ -9,39 +9,46 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
-import { useMyAnsweredQuestionnaires, useQuestionnaires } from "@/features/questionnaires/api";
-import type { Questionnaire } from "@/features/questionnaires/schemas";
+import { useMyInvites } from "@/features/invites/api";
+import type { PatientInvite } from "@/features/invites/schemas";
 import { ROUTES } from "@/lib/constants";
 
 const PAGE_SIZE = 20;
-// Catálogo de questionários é pequeno — busca tudo numa página só pra montar
-// o conjunto de "já respondidos", em vez de sincronizar paginação entre duas listas.
-const ANSWERED_LOOKUP_SIZE = 1000;
 
 /**
- * RF-18 — questionários disponíveis pro paciente responder. O backend não
- * escopa "atribuídos a este paciente" (PRD §3 dep. #5), então lista todos os
- * ativos via `/questionarios` sem fingir um status de pendente que não temos
- * dado pra sustentar (ver Spec 04 §5) — mas "já respondido" a gente sabe via
- * `/questionarios/respondidos`, então isso é marcado de verdade.
+ * `status` só reflete transições explícitas — expiração é checada dinamicamente contra
+ * `expiresAt` (o backend não marca EXPIRED em lote, só recusa o consumo/resposta quando
+ * `expires_at` já passou). Ver ConsumeInviteService/AnswerQuestionnaireService no backend.
+ */
+function isLive(invite: PatientInvite): boolean {
+  return (
+    (invite.status === "PENDING" || invite.status === "SENT" || invite.status === "OPENED") &&
+    new Date(invite.expiresAt).getTime() > Date.now()
+  );
+}
+
+/**
+ * RF-18 — questionários disponíveis pro paciente responder. Lista os próprios convites
+ * (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §4.5/§5.1), não mais o catálogo
+ * global de `/questionarios` — o convite passou a ser obrigatório pra responder, inclusive na
+ * 1ª vez, então "disponível" agora significa "tenho um convite vivo", não "existe no sistema".
+ * O paciente não precisa abrir o link de e-mail pra ver o item aqui: a simples existência do
+ * convite já é suficiente (não precisa "aceitar" nada).
  */
 export function AvailableQuestionnaires() {
   const [page, setPage] = useState(0);
-  const { data, isLoading, isError, refetch } = useQuestionnaires({ page, size: PAGE_SIZE });
-  const { data: answered } = useMyAnsweredQuestionnaires({ page: 0, size: ANSWERED_LOOKUP_SIZE });
+  const { data, isLoading, isError, refetch } = useMyInvites({ page, size: PAGE_SIZE });
 
-  const answeredIds = new Set(answered?.content.map((a) => a.questionnaireId) ?? []);
-
-  const columns: ColumnDef<Questionnaire>[] = [
+  const columns: ColumnDef<PatientInvite>[] = [
     {
-      accessorKey: "title",
+      accessorKey: "questionnaireTitle",
       header: "Avaliação",
       cell: ({ row }) => (
         <div className="flex items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
             <ClipboardList className="size-3.5" />
           </span>
-          <span className="font-medium text-foreground">{row.original.title}</span>
+          <span className="font-medium text-foreground">{row.original.questionnaireTitle}</span>
         </div>
       ),
     },
@@ -50,7 +57,9 @@ export function AvailableQuestionnaires() {
       header: () => <span className="sr-only">Ações</span>,
       enableSorting: false,
       cell: ({ row }) => {
-        if (answeredIds.has(row.original.id)) {
+        const invite = row.original;
+
+        if (invite.status === "ANSWERED") {
           return (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <CheckCircle2 className="size-3.5 text-primary" aria-hidden />
@@ -58,7 +67,8 @@ export function AvailableQuestionnaires() {
             </span>
           );
         }
-        if (!row.original.active) {
+
+        if (!isLive(invite)) {
           return (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Lock className="size-3.5" aria-hidden />
@@ -66,9 +76,10 @@ export function AvailableQuestionnaires() {
             </span>
           );
         }
+
         return (
           <Button size="sm" asChild>
-            <Link href={ROUTES.paciente.responder(row.original.id)}>
+            <Link href={ROUTES.paciente.responder(invite.questionnaireId)}>
               Responder
               <ArrowRight className="size-3.5" />
             </Link>
@@ -96,7 +107,7 @@ export function AvailableQuestionnaires() {
         <EmptyState
           icon={ClipboardList}
           title="Nenhuma avaliação disponível"
-          description="Assim que seu psicólogo disponibilizar uma avaliação, ela aparece aqui."
+          description="Assim que seu psicólogo enviar um convite, ele aparece aqui."
         />
       }
     />

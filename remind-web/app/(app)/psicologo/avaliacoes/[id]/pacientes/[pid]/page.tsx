@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrendingUp } from "lucide-react";
 
 import {
   Accordion,
@@ -9,13 +11,20 @@ import {
 import { DomainBars } from "@/components/charts/domain-bars";
 import { Gauge } from "@/components/charts/gauge";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { QuestionnaireDetail } from "@/features/questionnaires/schemas";
-import type { PatientAnswerDetail, PatientAnswers, PatientResult } from "@/features/results/schemas";
+import type {
+  PatientAnswerDetail,
+  PatientAnswers,
+  PatientEvolution,
+  PatientResult,
+} from "@/features/results/schemas";
 import { apiFetch } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/types";
 import { requireRole } from "@/lib/auth/session";
+import { ROUTES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 
 interface ResultadoPageProps {
@@ -31,8 +40,9 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
   let answers: PatientAnswers;
   let result: PatientResult;
   let questionnaire: QuestionnaireDetail;
+  let evolution: PatientEvolution | null;
   try {
-    [answers, result, questionnaire] = await Promise.all([
+    [answers, result, questionnaire, evolution] = await Promise.all([
       apiFetch<PatientAnswers>(
         `/questionarios/${questionnaireId}/pacientes/${patientId}/respostas`,
         { token: session.accessToken },
@@ -44,11 +54,19 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
       apiFetch<QuestionnaireDetail>(`/questionarios/${questionnaireId}`, {
         token: session.accessToken,
       }),
+      // Só usado pra decidir se mostra o link "Ver evolução" (docs/specs/
+      // 003-relatorios-evolucao-longitudinal/PRD.md §5.3) — nunca deve derrubar a página.
+      apiFetch<PatientEvolution>(
+        `/questionarios/${questionnaireId}/pacientes/${patientId}/evolucao`,
+        { token: session.accessToken },
+      ).catch(() => null),
     ]);
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 403)) notFound();
     throw err;
   }
+
+  const hasHistory = (evolution?.applications.length ?? 0) > 1;
 
   // Agrupa respostas por escala pra leitura clínica — `respostas` não traz a
   // escala de cada pergunta, só o detalhe do questionário tem esse mapeamento
@@ -70,6 +88,18 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
       <PageHeader
         title={answers.patientName}
         description={`${answers.questionnaireTitle} · respondido em ${formatDateTime(answers.answeredAt)}`}
+        actions={
+          hasHistory && (
+            <Button variant="outline" asChild>
+              <Link
+                href={`${ROUTES.psicologo.relatorios}?paciente=${patientId}&questionario=${questionnaireId}`}
+              >
+                <TrendingUp className="size-4" />
+                Ver evolução
+              </Link>
+            </Button>
+          )
+        }
       />
 
       <Tabs defaultValue="resumo">

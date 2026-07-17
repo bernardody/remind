@@ -10,7 +10,6 @@ import br.com.remind.enums.InviteStatus;
 import br.com.remind.mapper.invite.InviteMapper;
 import br.com.remind.repository.PatientRepository;
 import br.com.remind.repository.PsychologistRepository;
-import br.com.remind.repository.QuestionnaireAnswerRepository;
 import br.com.remind.repository.QuestionnaireInviteRepository;
 import br.com.remind.repository.QuestionnaireRepository;
 import br.com.remind.service.mail.MailService;
@@ -24,7 +23,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
@@ -38,7 +36,6 @@ public class CreateInviteService {
     private final PatientRepository patientRepository;
     private final PsychologistRepository psychologistRepository;
     private final QuestionnaireRepository questionnaireRepository;
-    private final QuestionnaireAnswerRepository questionnaireAnswerRepository;
     private final QuestionnaireInviteRepository questionnaireInviteRepository;
     private final AuthenticatedUserService authenticatedUserService;
     private final InviteTokenGenerator inviteTokenGenerator;
@@ -66,9 +63,9 @@ public class CreateInviteService {
         Questionnaire questionnaire = questionnaireRepository.findByIdAndActiveTrue(questionnaireId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Questionário não encontrado"));
 
-        if (questionnaireAnswerRepository.findByPatientAndQuestionnaire(patient, questionnaire).isPresent()) {
-            throw new ResponseStatusException(CONFLICT, "Paciente já respondeu este questionário"); // INV-004
-        }
+        // INV-004 removido (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §4.2): reenviar
+        // convite pra quem já respondeu é agora o mecanismo oficial de reaplicação/evolução
+        // longitudinal, não mais um estado de erro.
 
         // INV-002: reutiliza o convite existente do mesmo par paciente/questionário (se houver)
         // em vez de criar um segundo registro — mesma rotação de token usada no reenvio.

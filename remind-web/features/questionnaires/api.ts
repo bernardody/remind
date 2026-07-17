@@ -6,7 +6,6 @@ import type { PageParams } from "@/lib/api/types";
 import type {
   AnswerQuestionnaireRequest,
   AnswerQuestionnaireResponse,
-  MyAnsweredQuestionnaire,
   Questionnaire,
   QuestionnaireDetail,
   QuestionnairePatient,
@@ -16,14 +15,6 @@ export function useQuestionnaires(params: PageParams) {
   return useQuery({
     queryKey: ["questionnaires", params],
     queryFn: () => apiFetchPage<Questionnaire>("/questionarios", params),
-  });
-}
-
-/** RF-19 — auto-serviço do paciente: questionários que ele mesmo já respondeu. */
-export function useMyAnsweredQuestionnaires(params: PageParams) {
-  return useQuery({
-    queryKey: ["questionnaires", "respondidos", params],
-    queryFn: () => apiFetchPage<MyAnsweredQuestionnaire>("/questionarios/respondidos", params),
   });
 }
 
@@ -37,7 +28,10 @@ export function useAnswerQuestionnaire(questionnaireId: number) {
         body: data,
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["questionnaires", "respondidos"] });
+      // Tela "Início" lista pelos próprios convites (docs/specs/
+      // 003-relatorios-evolucao-longitudinal/PRD.md §5.1) — invalida essa chave, não mais
+      // "/questionarios/respondidos", pra refletir o convite recém-consumido (status ANSWERED).
+      void queryClient.invalidateQueries({ queryKey: ["convites", "meus"] });
     },
   });
 }

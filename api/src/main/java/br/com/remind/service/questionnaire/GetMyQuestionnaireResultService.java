@@ -42,8 +42,15 @@ public class GetMyQuestionnaireResultService {
         Questionnaire questionnaire = questionnaireRepository.findByIdAndActiveTrue(questionnaireId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Questionário não encontrado"));
 
-        QuestionnaireAnswer answer = questionnaireAnswerRepository.findByPatientAndQuestionnaire(patient, questionnaire)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Você ainda não respondeu este questionário"));
+        // Índice 0 = rodada mais recente (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §4.3).
+        List<QuestionnaireAnswer> answers = questionnaireAnswerRepository
+                .findAllByPatientAndQuestionnaireOrderByAnsweredAtDesc(patient, questionnaire);
+
+        if (answers.isEmpty()) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(404), "Você ainda não respondeu este questionário");
+        }
+
+        QuestionnaireAnswer answer = answers.get(0);
 
         QuestionnaireResult result = questionnaireResultRepository.findByQuestionnaireResponse(answer)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Resultado não encontrado"));

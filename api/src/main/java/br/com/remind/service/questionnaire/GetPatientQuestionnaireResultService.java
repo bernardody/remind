@@ -41,8 +41,17 @@ public class GetPatientQuestionnaireResultService {
             throw new ResponseStatusException(HttpStatusCode.valueOf(403), "Você não tem permissão para ver o resultado deste paciente");
         }
 
-        QuestionnaireAnswer answer = questionnaireAnswerRepository.findByPatientAndQuestionnaire(patient, questionnaire)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Paciente ainda não respondeu este questionário"));
+        // Índice 0 = rodada mais recente (findAll... já vem ordenado desc) — este endpoint
+        // devolve sempre "o resultado atual"; o histórico completo é servido por
+        // GetPatientQuestionnaireEvolutionService.
+        List<QuestionnaireAnswer> answers = questionnaireAnswerRepository
+                .findAllByPatientAndQuestionnaireOrderByAnsweredAtDesc(patient, questionnaire);
+
+        if (answers.isEmpty()) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(404), "Paciente ainda não respondeu este questionário");
+        }
+
+        QuestionnaireAnswer answer = answers.get(0);
 
         QuestionnaireResult result = questionnaireResultRepository.findByQuestionnaireResponse(answer)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Resultado não encontrado"));

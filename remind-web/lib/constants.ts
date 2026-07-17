@@ -86,12 +86,7 @@ export const PSYCHOLOGIST_NAV: NavItem[] = [
   { label: "Dashboard", href: ROUTES.psicologo.dashboard, icon: LayoutDashboard },
   { label: "Pacientes", href: ROUTES.psicologo.pacientes, icon: Users },
   { label: "Avaliações", href: ROUTES.psicologo.avaliacoes, icon: ClipboardList },
-  {
-    label: "Relatórios",
-    href: ROUTES.psicologo.relatorios,
-    icon: BarChart3,
-    badge: "Em breve",
-  },
+  { label: "Relatórios", href: ROUTES.psicologo.relatorios, icon: BarChart3 },
   { label: "Perfil", href: ROUTES.psicologo.perfil, icon: UserCircle },
 ];
 

@@ -24,7 +24,12 @@ public class GetPatientQuestionnaireAnswersService {
     private final AuthenticatedUserService authenticatedUserService;
     private final GetPatientQuestionnaireAnswersMapper getPatientQuestionnaireAnswersMapper;
 
-    public GetPatientQuestionnaireAnswersResponse get(Long questionnaireId, Long patientId) {
+    /**
+     * @param answerId rodada específica a exibir (docs/specs/003-relatorios-evolucao-longitudinal/
+     *                  PRD.md §4.3) — {@code null} devolve a mais recente, mesmo comportamento de
+     *                  antes de existir histórico de múltiplas rodadas.
+     */
+    public GetPatientQuestionnaireAnswersResponse get(Long questionnaireId, Long patientId, Long answerId) {
         User authenticatedUser = authenticatedUserService.get();
 
         Psychologist psychologist = psychologistRepository.findByUser(authenticatedUser)
@@ -40,8 +45,19 @@ public class GetPatientQuestionnaireAnswersService {
             throw new ResponseStatusException(HttpStatusCode.valueOf(403), "Você não tem permissão para ver as respostas deste paciente");
         }
 
-        QuestionnaireAnswer answer = questionnaireAnswerRepository.findByPatientAndQuestionnaire(patient, questionnaire)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Paciente ainda não respondeu este questionário"));
+        List<QuestionnaireAnswer> answers = questionnaireAnswerRepository
+                .findAllByPatientAndQuestionnaireOrderByAnsweredAtDesc(patient, questionnaire);
+
+        if (answers.isEmpty()) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(404), "Paciente ainda não respondeu este questionário");
+        }
+
+        QuestionnaireAnswer answer = answerId == null
+                ? answers.get(0)
+                : answers.stream()
+                        .filter(a -> a.getId().equals(answerId))
+                        .findFirst()
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Resposta não encontrada"));
 
         List<PatientQuestionResponse> responses = patientQuestionResponseRepository.findByQuestionnaireResponse(answer);
 
