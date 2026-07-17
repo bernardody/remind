@@ -18,10 +18,11 @@ import { ReviewStep } from "./review-step";
 
 interface QuestionnaireWizardProps {
   questionnaire: QuestionnaireDetail;
+  inviteId: number;
 }
 
 /** RF-18 — orquestra pergunta-a-passo, revisão e envio; estado vive em `wizard-store.ts`. */
-export function QuestionnaireWizard({ questionnaire }: QuestionnaireWizardProps) {
+export function QuestionnaireWizard({ questionnaire, inviteId }: QuestionnaireWizardProps) {
   const questions = useMemo(
     () => [...questionnaire.questions].sort((a, b) => a.order_number - b.order_number),
     [questionnaire.questions],
@@ -32,8 +33,8 @@ export function QuestionnaireWizard({ questionnaire }: QuestionnaireWizardProps)
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
-    start(questionnaire.id);
-  }, [questionnaire.id, start]);
+    start(questionnaire.id, inviteId);
+  }, [questionnaire.id, inviteId, start]);
 
   const reviewStepIndex = questions.length;
   const isReviewStep = currentStep === reviewStepIndex;

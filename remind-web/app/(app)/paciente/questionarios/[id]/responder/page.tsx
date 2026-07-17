@@ -79,7 +79,7 @@ export default async function ResponderPage({ params }: ResponderPageProps) {
           }
         />
       ) : (
-        <QuestionnaireWizard questionnaire={questionnaire} />
+        <QuestionnaireWizard questionnaire={questionnaire} inviteId={invite.id} />
       )}
     </div>
   );
