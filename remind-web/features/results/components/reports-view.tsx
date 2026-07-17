@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, RefreshCw } from "lucide-react";
 
 import { DomainBars } from "@/components/charts/domain-bars";
@@ -39,10 +39,12 @@ interface ReportsViewProps {
  * por escala, snapshot mais recente e comparação primeira x última aplicação.
  *
  * Seleção de paciente/questionário é "rascunho" (`pending*`), separada do que de fato dispara a
- * busca (`applied*`) — só troca ao clicar "Carregar relatório". Trocar de paciente com um
- * relatório já carregado na tela não disparava a busca nova de forma confiável (relatado pelo
- * usuário); esse botão explícito remove a ambiguidade de "quando buscar" e também serve como
- * atualização forçada quando a seleção não mudou.
+ * busca (`applied*`) — mas aplicada automaticamente assim que os dois estiverem escolhidos
+ * (efeito abaixo), não só ao clicar no botão. O botão "Carregar relatório" existe pra dois casos:
+ * forçar reconsulta quando a seleção não mudou, e destravar o fluxo quando o efeito ainda não
+ * rodou. Enquanto o rascunho diverge do que foi de fato carregado, a tela NUNCA mostra o
+ * conteúdo antigo — isso é o que causava a impressão de "trocou de paciente e não atualizou"
+ * (relatado pelo usuário): o `ReportContent` continuava preso ao paciente anterior.
  */
 export function ReportsView({ initialPatientId, initialQuestionnaireId }: ReportsViewProps = {}) {
   const [pendingPatientId, setPendingPatientId] = useState<number | null>(initialPatientId ?? null);
@@ -78,6 +80,26 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
   const patientHasNoQuestionnaires =
     Boolean(pendingPatientId) && !loadingQuestionnaires && questionnaireOptions.length === 0;
 
+  // Maioria dos pacientes só tem 1 questionário respondido — seleciona sozinho pra não exigir
+  // um clique extra num dropdown de opção única (ficava parecendo que o botão "não liberava").
+  useEffect(() => {
+    if (pendingQuestionnaireId === null && questionnaireOptions.length === 1) {
+      setPendingQuestionnaireId(questionnaireOptions[0].id);
+    }
+  }, [questionnaireOptions, pendingQuestionnaireId]);
+
+  // Aplica automaticamente assim que paciente + questionário estiverem escolhidos — o botão
+  // abaixo não é a única forma de disparar a busca, só um reforço manual.
+  useEffect(() => {
+    if (pendingPatientId && pendingQuestionnaireId) {
+      setAppliedPatientId(pendingPatientId);
+      setAppliedQuestionnaireId(pendingQuestionnaireId);
+    }
+  }, [pendingPatientId, pendingQuestionnaireId]);
+
+  const isSelectionApplied =
+    pendingPatientId === appliedPatientId && pendingQuestionnaireId === appliedQuestionnaireId;
+
   const {
     data: evolution,
     isLoading: loadingEvolution,
@@ -93,8 +115,8 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
   function handleLoadReport() {
     if (!pendingPatientId || !pendingQuestionnaireId) return;
 
-    if (pendingPatientId === appliedPatientId && pendingQuestionnaireId === appliedQuestionnaireId) {
-      // Seleção não mudou — botão vira "forçar atualização" (reconsulta o backend).
+    if (isSelectionApplied) {
+      // Seleção já era a mesma — vira "forçar atualização" (reconsulta o backend).
       void refetch();
       return;
     }
@@ -171,16 +193,18 @@ export function ReportsView({ initialPatientId, initialQuestionnaireId }: Report
           title="Esse paciente ainda não respondeu a nenhum questionário"
           description="Assim que ele responder pelo menos uma avaliação, o relatório fica disponível aqui."
         />
-      ) : !appliedPatientId || !appliedQuestionnaireId ? (
+      ) : !pendingPatientId || !pendingQuestionnaireId ? (
         <EmptyState
           icon={BarChart3}
           title="Selecione um paciente e um questionário"
-          description="Depois clique em “Carregar relatório” pra ver a evolução."
+          description="A evolução aparece aqui assim que houver ao menos uma aplicação respondida."
         />
+      ) : !isSelectionApplied || loadingEvolution ? (
+        // Rascunho ainda não é o que foi carregado (efeito de auto-aplicar ainda não rodou, ou
+        // busca em andamento) — nunca mostra o conteúdo de uma seleção diferente da atual.
+        <LoadingState rows={4} />
       ) : evolutionError ? (
         <ErrorState onRetry={() => refetch()} />
-      ) : loadingEvolution ? (
-        <LoadingState rows={4} />
       ) : !evolution || evolution.applications.length === 0 ? (
         <EmptyState
           icon={BarChart3}
