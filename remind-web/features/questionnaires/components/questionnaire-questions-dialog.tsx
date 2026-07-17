@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { Question } from "@/features/questionnaires/schemas";
+import { getScaleDisplayName } from "@/lib/scales";
 
 interface QuestionnaireQuestionsDialogProps {
   questions: Question[];
@@ -57,7 +58,7 @@ export function QuestionnaireQuestionsDialog({
             <AccordionItem key={scaleName} value={scaleName}>
               <AccordionTrigger>
                 <span className="flex flex-1 items-center justify-between gap-3 pr-2">
-                  <span>{scaleName}</span>
+                  <span>{getScaleDisplayName(scaleName)}</span>
                   <span className="text-xs font-normal text-muted-foreground">
                     {scaleQuestions.length}{" "}
                     {scaleQuestions.length === 1 ? "pergunta" : "perguntas"}

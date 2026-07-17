@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import type { ScaleResult } from "@/features/results/schemas";
 import { getRiskBandByLabel } from "@/lib/constants";
+import { getScaleDisplayName } from "@/lib/scales";
 import { cn } from "@/lib/utils";
 
 interface DomainBarsProps {
@@ -39,7 +40,7 @@ export function DomainBars({ data, max = 5, className }: DomainBarsProps) {
           <li key={entry.scaleId} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm font-semibold text-foreground">
-                {entry.scaleName}
+                {getScaleDisplayName(entry.scaleName)}
               </span>
               <span className="flex shrink-0 items-center gap-2.5">
                 <span className="text-sm tabular-nums text-muted-foreground">

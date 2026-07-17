@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import { RISK_BANDS } from "@/lib/constants";
+import { getScaleDisplayName } from "@/lib/scales";
 import { cn, formatDate } from "@/lib/utils";
 
 export interface TrendLinePoint {
@@ -44,10 +45,10 @@ export function TrendLine({ scaleName, data, max = 5, height = 220, className }:
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <span className="text-sm font-medium text-foreground">{scaleName}</span>
+      <span className="text-sm font-medium text-foreground">{getScaleDisplayName(scaleName)}</span>
       <div
         role="img"
-        aria-label={`Evolução de ${scaleName} ao longo de ${data.length} aplicações, de ${chartData[0].average.toFixed(1)} até ${chartData[chartData.length - 1].average.toFixed(1)}`}
+        aria-label={`Evolução de ${getScaleDisplayName(scaleName)} ao longo de ${data.length} aplicações, de ${chartData[0].average.toFixed(1)} até ${chartData[chartData.length - 1].average.toFixed(1)}`}
       >
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: -24 }}>

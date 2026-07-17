@@ -9,6 +9,7 @@ import type { QuestionnaireDetail } from "@/features/questionnaires/schemas";
 import { apiFetch } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/types";
 import { requireRole } from "@/lib/auth/session";
+import { getScaleDisplayName } from "@/lib/scales";
 import { formatDate } from "@/lib/utils";
 
 interface AvaliacaoDetailPageProps {
@@ -50,7 +51,7 @@ export default async function AvaliacaoDetailPage({ params }: AvaliacaoDetailPag
         </Badge>
         {scales.map((scale) => (
           <Badge key={scale} variant="outline" className="px-3 py-1 text-xs">
-            {scale}
+            {getScaleDisplayName(scale)}
           </Badge>
         ))}
       </div>
