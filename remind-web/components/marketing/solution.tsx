@@ -7,7 +7,7 @@ import type { BarDatum } from "@/components/charts/bar-chart";
 import { getRiskBandByLabel } from "@/lib/constants";
 
 const BENEFITS = [
-  "Escalas validadas prontas para aplicar (CARS, UCLA, SPI e novas escalas).",
+  "Escalas validadas prontas para aplicar (CARS, UCLA, SPI, SISES, BSMAS, SMD Scale, FoMOs e SAS-SV).",
   "Relatórios clínicos gerados automaticamente a cada resposta.",
   "Histórico de evolução por paciente, com comparação entre avaliações.",
 ];
@@ -85,6 +85,10 @@ export function Solution() {
               <Legend color={riskColor("Moderado")} label="Moderado" />
               <Legend color={riskColor("Baixo")} label="Baixo" />
             </div>
+
+            <p className="mt-4 text-[11px] italic leading-relaxed text-muted-foreground/70">
+              *Nome e dados ilustrativos — este paciente não é real.
+            </p>
           </Card>
         </Reveal>
       </div>

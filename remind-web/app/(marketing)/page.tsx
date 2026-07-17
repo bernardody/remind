@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     "CARS",
     "UCLA",
     "SPI",
+    "SISES",
+    "BSMAS",
+    "SMD Scale",
+    "FoMOs",
+    "SAS-SV",
   ],
   alternates: { canonical: "/" },
 };

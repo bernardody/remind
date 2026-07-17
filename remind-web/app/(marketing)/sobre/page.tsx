@@ -43,7 +43,8 @@ export default function SobrePage() {
           <ul className="flex flex-col gap-3">
             <li>
               <strong className="text-foreground">Rigor científico.</strong>{" "}
-              Apenas instrumentos validados (CARS, UCLA, SPI e novas escalas).
+              Apenas instrumentos validados (CARS, UCLA, SPI, SISES, BSMAS,
+              SMD Scale, FoMOs e SAS-SV).
             </li>
             <li>
               <strong className="text-foreground">Clareza antes de densidade.</strong>{" "}

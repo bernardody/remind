@@ -13,7 +13,7 @@ export function AppShowcase() {
         <SectionHeading
           eyebrow="A plataforma"
           title="Veja como o ReMind funciona"
-          description="Uma interface clínica, calma e organizada — pensada para a densidade de dados do dia a dia do psicólogo."
+          description="Uma interface clínica, calma e organizada: pensada para a densidade de dados do dia a dia do psicólogo."
         />
 
         <Reveal className="mt-14">
@@ -104,6 +104,11 @@ export function AppShowcase() {
               </div>
             </div>
           </div>
+
+          <p className="mt-3 text-center text-xs italic text-muted-foreground/70">
+            *Pacientes, números e avaliações são ilustrativos — nenhum dado real
+            é exibido nesta simulação.
+          </p>
         </Reveal>
       </div>
     </section>

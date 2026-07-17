@@ -16,7 +16,7 @@ const FEATURES = [
     icon: BadgeCheck,
     title: "Escalas Psicométricas Validadas",
     description:
-      "Instrumentos com respaldo científico (CARS, UCLA, SPI) prontos para aplicação clínica.",
+      "Instrumentos com respaldo científico (CARS, UCLA, SPI, SISES, BSMAS, SMD Scale, FoMOs, SAS-SV) prontos para aplicação clínica.",
   },
   {
     icon: FileText,
