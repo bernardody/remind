@@ -46,10 +46,27 @@ export default auth((req) => {
     }
   }
 
+  // Sessão nascida de um convite (escopo restrito a 1 questionário, PRD
+  // docs/specs/002-convite-questionario §16/§20) — o backend bloqueia (403)
+  // qualquer rota fora do questionário do convite, incluindo `/questionarios/
+  // convites` (usada por `/paciente/inicio` e `/paciente/perfil`). Sem esse
+  // redirect, qualquer navegação de volta a essas rotas (inclusive o destino
+  // padrão pós-`/login`) cai num 403 em loop — mesma causa raiz corrigida em
+  // `confirmation.tsx`/`responder/page.tsx`.
+  if (isAuthed && isPaciente && session.user.questionnaireId) {
+    const restrictedHome = ROUTES.paciente.responder(session.user.questionnaireId);
+    const isRestrictedHome = nextUrl.pathname === restrictedHome;
+    if (!isRestrictedHome) {
+      return NextResponse.redirect(new URL(restrictedHome, nextUrl));
+    }
+  }
+
   if (isAuthed && isLogin) {
-    return NextResponse.redirect(
-      new URL(HOME_BY_USER_TYPE[session.user.type], nextUrl),
-    );
+    const home =
+      session.user.type === "PATIENT" && session.user.questionnaireId
+        ? ROUTES.paciente.responder(session.user.questionnaireId)
+        : HOME_BY_USER_TYPE[session.user.type];
+    return NextResponse.redirect(new URL(home, nextUrl));
   }
 
   return NextResponse.next();

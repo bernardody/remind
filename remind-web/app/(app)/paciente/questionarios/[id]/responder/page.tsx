@@ -59,6 +59,12 @@ export default async function ResponderPage({ params }: ResponderPageProps) {
 
   const alreadyAnswered = invite.status === "ANSWERED";
   const canAnswer = isLive(invite);
+  // Sessão nascida de um convite (escopo restrito a este questionário, PRD
+  // docs/specs/002-convite-questionario §16/§20) — o backend bloqueia (403)
+  // qualquer rota fora do escopo, incluindo `/questionarios/convites` (usada
+  // por `/paciente/inicio`). Link "Voltar ao início" pra essa sessão quebra
+  // sempre; ver mesmo tratamento em `wizard/confirmation.tsx`.
+  const isInviteScoped = !!session.user.questionnaireId;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -68,18 +74,25 @@ export default async function ResponderPage({ params }: ResponderPageProps) {
           icon={CircleCheck}
           title={alreadyAnswered ? "Questionário já respondido" : "Convite indisponível"}
           description={
-            alreadyAnswered
+            (alreadyAnswered
               ? "Você já enviou suas respostas pra esta avaliação."
-              : "Este convite expirou ou não está mais disponível. Peça um novo ao seu psicólogo."
+              : "Este convite expirou ou não está mais disponível. Peça um novo ao seu psicólogo.") +
+            (isInviteScoped ? " Você já pode fechar esta página." : "")
           }
           action={
-            <Button asChild>
-              <Link href={ROUTES.paciente.inicio}>Voltar ao início</Link>
-            </Button>
+            isInviteScoped ? undefined : (
+              <Button asChild>
+                <Link href={ROUTES.paciente.inicio}>Voltar ao início</Link>
+              </Button>
+            )
           }
         />
       ) : (
-        <QuestionnaireWizard questionnaire={questionnaire} inviteId={invite.id} />
+        <QuestionnaireWizard
+          questionnaire={questionnaire}
+          inviteId={invite.id}
+          restricted={isInviteScoped}
+        />
       )}
     </div>
   );

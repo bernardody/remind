@@ -19,10 +19,12 @@ import { ReviewStep } from "./review-step";
 interface QuestionnaireWizardProps {
   questionnaire: QuestionnaireDetail;
   inviteId: number;
+  /** Sessão de escopo restrito a este questionário (convite) — ver `Confirmation`. */
+  restricted?: boolean;
 }
 
 /** RF-18 — orquestra pergunta-a-passo, revisão e envio; estado vive em `wizard-store.ts`. */
-export function QuestionnaireWizard({ questionnaire, inviteId }: QuestionnaireWizardProps) {
+export function QuestionnaireWizard({ questionnaire, inviteId, restricted = false }: QuestionnaireWizardProps) {
   const questions = useMemo(
     () => [...questionnaire.questions].sort((a, b) => a.order_number - b.order_number),
     [questionnaire.questions],
@@ -65,7 +67,7 @@ export function QuestionnaireWizard({ questionnaire, inviteId }: QuestionnaireWi
     return (
       <Card>
         <CardContent>
-          <Confirmation questionnaireTitle={questionnaire.title} />
+          <Confirmation questionnaireTitle={questionnaire.title} restricted={restricted} />
         </CardContent>
       </Card>
     );

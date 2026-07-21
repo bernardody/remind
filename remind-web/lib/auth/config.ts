@@ -69,8 +69,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/login" },
   session: {
     strategy: "jwt",
-    // Alinhado ao expiresIn real do backend (10min) — sem refresh (PRD R1).
-    maxAge: 600,
+    // Teto do cookie/JWT do Auth.js — precisa cobrir o token mais longo emitido
+    // pelo backend (convite de questionário, 30min/INVITE_EXPIRES_IN), não só o
+    // login normal (10min/EXPIRES_IN). Um teto maior aqui NÃO afrouxa o login
+    // normal: quem decide se a sessão está de fato válida é `session.expiresAt`
+    // (setado abaixo a partir do `expiresIn` real de cada provider), checado em
+    // `requireSession()`/`middleware.ts` — sem esse teto maior, o cookie do
+    // paciente convidado era destruído aos 10min e ele perdia as respostas do
+    // questionário antes dos 30min que o backend pretendia dar (PRD R1).
+    maxAge: 1800,
   },
   providers: [
     Credentials({
