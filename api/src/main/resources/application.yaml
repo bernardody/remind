@@ -36,6 +36,9 @@ google:
   client-id: ${GOOGLE_CLIENT_ID:}
 
 remind:
+  cors:
+    # Dev: só o frontend local. Nunca usar "*" (ver PRODUCTION_AUDIT.md).
+    allowed-origins: http://localhost:3000
   mail:
     # Nome de exibição do remetente; o endereço vem de spring.mail.username (contato@remindapp.com.br).
     from-name: ReMind

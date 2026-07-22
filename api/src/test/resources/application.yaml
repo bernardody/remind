@@ -30,6 +30,8 @@ google:
   client-id: test-google-client-id
 
 remind:
+  cors:
+    allowed-origins: http://localhost:3000
   mail:
     from-name: ReMind
   invite:

@@ -22,17 +22,17 @@ Nenhum desses itens é difícil de corrigir individualmente. O problema é o ac�
 
 Itens que **bloqueiam produção**. Cada um pode causar dano direto e imediato a psicólogos/pacientes reais ou comprometer a integridade/segurança do sistema inteiro.
 
-1. ~~**Chave privada RSA de assinatura de JWT commitada no repositório e usada em produção sem override**~~ **⚠️ PARCIALMENTE CORRIGIDO em 2026-07-21 — ação manual do usuário ainda pendente.** O repositório é **público no GitHub**, então a chave já esteve exposta publicamente. Código corrigido: `application-prod.yaml` agora exige a chave via `file:/app/secrets/authz.{pem,pub}`, materializado em runtime por `api/docker-entrypoint.sh` a partir de `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` (nunca mais embutida na imagem); os arquivos `authz.pem`/`authz.pub` foram removidos do índice do git e gitignorados; um novo par foi gerado só para dev local. **Continua bloqueador até você:** (1) gerar um par de chaves NOVO e real para produção, (2) configurar `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` no EasyPanel, (3) redeployar, e (4) avaliar remover a chave antiga do histórico do git ou tornar o repo privado. Ver seção "Bugs Encontrados" (B-SEC-1) para o passo a passo.
+1. ~~**Chave privada RSA de assinatura de JWT commitada no repositório e usada em produção sem override**~~ **✅ CORRIGIDO e ROTACIONADO em 2026-07-21.** O repositório é público no GitHub, então a chave antiga já esteve exposta publicamente — foi tratada como comprometida. Correção: `application-prod.yaml` agora exige a chave via `file:/app/secrets/authz.{pem,pub}`, materializado em runtime por `api/docker-entrypoint.sh` a partir de `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` (nunca mais embutida na imagem); `authz.pem`/`authz.pub` antigos removidos do índice do git e gitignorados (commit `a4e63e7`). Usuário gerou um par novo de produção, configurou as env vars no EasyPanel e confirmou deploy bem-sucedido — chave antiga agora é inútil (assinatura não corresponde mais à chave pública que o backend valida). Pendente, não bloqueante: avaliar remover a chave antiga do histórico do git (`git filter-repo`/BFG + force-push) e/ou tornar o repositório privado — higiene, já que a rotação (não a limpeza de histórico) é o que neutraliza o risco real.
 
 2. **Faixas de risco clínico (`risk_label`) são placeholders idênticos para as 8 escalas cadastradas**, sem nenhum corte validado na literatura (`api/data/insert.sql:49-77`, `migration_2026-07-16_novas_escalas.sql:132-145` — o próprio código admite "cortes placeholder... trocar pelos cortes clínicos reais quando definidos"). O psicólogo vê "Alto risco"/"Moderado"/"Baixo" como se fosse resultado clínico validado, quando é um número genérico. Isso é uma decisão de produto com risco direto a pacientes.
 
-3. **Erros 5xx nunca são logados no backend** (`GlobalExceptionHandler.java`, nenhuma chamada de log em nenhum handler). Combinado com ausência total de Sentry/APM, um incidente em produção só é descoberto se o usuário reclamar — inaceitável para dado de saúde.
+3. ~~**Erros 5xx nunca são logados no backend**~~ **✅ CORRIGIDO em 2026-07-21.** (`GlobalExceptionHandler.java`, nenhuma chamada de log em nenhum handler). Combinado com ausência total de Sentry/APM, um incidente em produção só era descoberto se o usuário reclamasse. Ver B-BE-1.
 
-4. **Mensagens de exceção internas vazam em respostas HTTP mesmo em produção**, apesar de `application-prod.yaml` declarar `include-message: never` — essa config não tem efeito porque o `GlobalExceptionHandler` customizado sempre injeta `ex.getMessage()` no corpo da resposta (`GlobalExceptionHandler.java:53-87`). Vaza detalhes de driver JDBC, nomes de coluna/constraint, stack de exceção.
+4. ~~**Mensagens de exceção internas vazam em respostas HTTP mesmo em produção**~~ **✅ CORRIGIDO em 2026-07-21.** Apesar de `application-prod.yaml` declarar `include-message: never`, essa config não tinha efeito porque o `GlobalExceptionHandler` customizado sempre injetava `ex.getMessage()` no corpo da resposta — vazava detalhes de driver JDBC, nomes de coluna/constraint. Ver B-BE-1.
 
-5. **`MethodArgumentNotValidException` (falha de `@Valid`) retorna HTTP 500 em vez de 400**, com mensagem verbosa do Spring exposta ao cliente — nenhum handler dedicado existe. Qualquer erro de validação de formulário vira "erro de servidor" no frontend.
+5. ~~**`MethodArgumentNotValidException` (falha de `@Valid`) retorna HTTP 500 em vez de 400**~~ **✅ CORRIGIDO em 2026-07-21.** Ver B-BE-2.
 
-6. **Zero CI/CD** (`.github/workflows` não existe). Combinado com o fato já conhecido de que o deploy do `/api` é automático a cada push, nada impede hoje que um commit quebrado (não compila, testes falhando, `next build` falhando) chegue direto em produção.
+6. **Zero CI/CD** (`.github/workflows` não existe) — segue pendente. Combinado com o fato já conhecido de que o deploy do `/api` é automático a cada push, nada impede hoje que um commit quebrado (não compila, testes falhando, `next build` falhando) chegue direto em produção.
 
 7. ~~**[Fluxo paciente — P0] Tela de confirmação pós-envio quebra para 100% dos pacientes convidados.**~~ **✅ CORRIGIDO em 2026-07-21.** O único botão disponível ("Voltar ao início") batia numa rota bloqueada pelo `InviteScopedAuthorizationFilter` para sessões de escopo de convite, gerando 403 em loop de retry infinito. Ver detalhes e correção aplicada em Bugs Encontrados #B-PAC-1.
 
@@ -44,7 +44,7 @@ Itens que **bloqueiam produção**. Cada um pode causar dano direto e imediato a
 
 Não bloqueiam produção isoladamente, mas devem ser corrigidos rapidamente após ou junto com os críticos.
 
-- **CORS totalmente aberto** (`CorsConfig.java`: `*` em origin/method/header) — confirmado por três auditorias independentes (backend, frontend, DevOps).
+- ~~**CORS totalmente aberto**~~ **✅ CORRIGIDO em 2026-07-21** (`CorsConfig.java`: era `*` em origin/method/header, confirmado por três auditorias independentes — agora restrito a `remind.cors.allowed-origins` por ambiente, configurável via `CORS_ALLOWED_ORIGINS` em produção).
 - **Sem rate limiting/lockout em `/login`** — abre porta para força bruta contra contas de psicólogos e pacientes.
 - **Timing side-channel em `/login` permite enumerar e-mails cadastrados** (BCrypt só roda quando o usuário existe, diferença de latência mensurável).
 - **Open Redirect via `callbackUrl`** no pós-login (`login-form.tsx:63-66`, `google-sign-in-button.tsx:75-76`) — vetor de phishing pós-autenticação real e de exploração simples.
@@ -138,7 +138,7 @@ Simulação completa: recebimento do convite → wizard → envio → confirmaç
 Consolidado das auditorias de backend e frontend, por severidade.
 
 ## Crítico
-- Chave privada JWT commitada e reutilizada em produção (`authz.pem`) — ver Crítico #1.
+- ~~Chave privada JWT commitada e reutilizada em produção (`authz.pem`)~~ — ✅ corrigido e rotacionado em 2026-07-21, ver Crítico #1 / B-SEC-1.
 
 ## Alto
 - CORS aberto (`*` em origin/método/header).
@@ -181,7 +181,7 @@ Consolidado das auditorias de backend e frontend, por severidade.
 
 # Bugs Encontrados
 
-### B-SEC-1 — Chave privada de JWT commitada e usada em produção — ⚠️ CÓDIGO CORRIGIDO, AÇÃO MANUAL PENDENTE (2026-07-21)
+### B-SEC-1 — Chave privada de JWT commitada e usada em produção — ✅ CORRIGIDO E ROTACIONADO (2026-07-21)
 - **Descrição:** `authz.pem` (RSA privada) estava no repositório (público no GitHub) e era a mesma chave usada em produção (sem override em `application-prod.yaml`).
 - **Onde:** `api/src/main/resources/authz.pem`, `SecurityConfig.java:36-40,72-77`.
 - **Impacto:** qualquer pessoa com acesso ao repositório podia forjar JWT válido como qualquer usuário. Compromete 100% da autenticação.
@@ -190,13 +190,8 @@ Consolidado das auditorias de backend e frontend, por severidade.
   - `application-prod.yaml` agora aponta `jwt.private.key`/`jwt.public.key` para `file:/app/secrets/authz.pem`/`.pub` — caminhos que só existem dentro do container, escritos em runtime.
   - `api/docker-entrypoint.sh` (novo) decodifica `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` (PEM em base64, pra evitar problema de quebra de linha em painel de env var) e grava em `/app/secrets/` antes de subir o JAR — a chave real nunca é embutida na imagem Docker nem passa pelo git.
   - `authz.pem`/`authz.pub` removidos do índice do git e adicionados ao `.gitignore` (`api/.gitignore`); um par novo foi gerado só pra uso local de desenvolvimento (nunca usado em produção).
-- **Ainda pendente (só o usuário pode fazer):**
-  1. Gerar o par de chaves REAL de produção, ex.: `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out authz_prod.pem && openssl rsa -in authz_prod.pem -pubout -out authz_prod.pub`.
-  2. Codificar em base64 sem quebra de linha: `base64 -w0 authz_prod.pem` (Linux/Git Bash) e o mesmo para `authz_prod.pub`.
-  3. Configurar `JWT_PRIVATE_KEY_B64` e `JWT_PUBLIC_KEY_B64` como variáveis de ambiente no EasyPanel (nunca commitar esse valor).
-  4. Apagar os arquivos `authz_prod.pem`/`authz_prod.pub` da máquina local depois de colar no EasyPanel.
-  5. Redeployar — isso invalida TODAS as sessões ativas (esperado: a chave antiga estava comprometida).
-  6. Avaliar remover a chave antiga do histórico do git (`git filter-repo`/BFG + force-push) e/ou tornar o repositório privado — o vazamento já ocorreu (repo público), então isso é higiene, não a mitigação principal (a rotação é o que neutraliza o risco).
+- **Concluído pelo usuário (2026-07-21):** par de chaves real gerado fora do repositório, `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` configuradas no EasyPanel, arquivos locais temporários apagados, deploy feito e confirmado funcionando (commit `a4e63e7`, já em `origin/main`). Todas as sessões ativas anteriores foram invalidadas (esperado).
+- **Pendente, não bloqueante:** remover a chave antiga do histórico do git (`git filter-repo`/BFG + force-push) e/ou tornar o repositório privado — o vazamento já ocorreu (repo público), então isso é higiene, não a mitigação principal (a rotação já neutralizou o risco real).
 
 ### B-SEC-2 — Faixas de risco clínico placeholder idênticas para 8 escalas
 - **Descrição:** cortes de risco (Baixo/Moderado/Alto) são os mesmos três tercis genéricos para todas as escalas, sem corte validado na literatura.
@@ -243,16 +238,22 @@ Consolidado das auditorias de backend e frontend, por severidade.
 - **Prioridade:** Alta.
 - **Como corrigir:** validar `Number.isInteger` no frontend + `@ExceptionHandler(MethodArgumentTypeMismatchException.class)` retornando 400 no backend.
 
-### B-BE-1 — `GlobalExceptionHandler` vaza mensagens técnicas e nunca loga
-- **Onde:** `GlobalExceptionHandler.java:53-87`.
+### B-BE-1 — `GlobalExceptionHandler` vaza mensagens técnicas e nunca loga — ✅ CORRIGIDO (2026-07-21)
+- **Onde:** `GlobalExceptionHandler.java`.
 - **Impacto:** informação de infraestrutura vazada ao cliente; zero rastreabilidade de erro em produção.
 - **Prioridade:** Crítica.
-- **Como corrigir:** logar `ex` no servidor, devolver mensagem genérica ao cliente para exceções não mapeadas.
+- **Correção aplicada:** `handleRuntimeException`/`handleGenericException` agora logam a exceção completa (`log.error(..., ex)`) antes de responder, e retornam sempre `"Erro interno do servidor."` genérico ao cliente (nunca mais `ex.getMessage()`). `ResponseStatusException`/`IllegalArgumentException` (mensagens deliberadas do próprio código de negócio, seguras de expor) continuam retornando a mensagem original ao cliente, agora também logadas em WARN pra dar visibilidade de padrões de erro 4xx.
 
-### B-BE-2 — Falha de `@Valid` retorna 500 em vez de 400
+### B-BE-2 — Falha de `@Valid` retorna 500 em vez de 400 — ✅ CORRIGIDO (2026-07-21)
 - **Onde:** ausência de `@ExceptionHandler(MethodArgumentNotValidException.class)`.
 - **Prioridade:** Crítica (contrato de API quebrado).
-- **Como corrigir:** handler dedicado devolvendo 400 com lista de campos inválidos.
+- **Correção aplicada:** novo handler dedicado para `MethodArgumentNotValidException` retornando 400 com `errors: [{field, message}]` por campo inválido, em vez de cair no handler genérico (500).
+
+### B-SEC-CORS — CORS totalmente aberto — ✅ CORRIGIDO (2026-07-21)
+- **Onde:** `CorsConfig.java`.
+- **Impacto:** qualquer origem podia fazer requisições cross-origin à API.
+- **Prioridade:** Alta.
+- **Correção aplicada:** `allowedOrigins` agora vem de `remind.cors.allowed-origins` (dev: `http://localhost:3000`; prod: `https://remindapp.com.br,https://www.remindapp.com.br`, sobrescrevível via env var `CORS_ALLOWED_ORIGINS`); métodos/headers restritos ao necessário (`GET/POST/PUT/PATCH/DELETE/OPTIONS`, `Authorization`/`Content-Type`) em vez de `*`. Suíte de testes do backend (47 testes) passando após o ajuste — precisou também atualizar `src/test/resources/application.yaml` com a nova propriedade, que não tinha default no código (mesmo padrão de "falha explícita se não configurado" já usado pra `GOOGLE_CLIENT_ID`/chaves JWT).
 
 ### B-PAC-3 — Tela de erro de convite sem nenhuma ação disponível
 - **Onde:** `consume-invite-view.tsx:96-97`.
@@ -284,10 +285,10 @@ Consolidado das auditorias de backend e frontend, por severidade.
 
 | Área | Status | Observação |
 |---|---|---|
-| Segurança — Autenticação | ❌ | Chave JWT commitada e reutilizada em produção é bloqueador absoluto |
+| Segurança — Autenticação | ✅ | Chave JWT comprometida rotacionada em 2026-07-21; injeção via env var/runtime, nunca mais no git |
 | Segurança — Autorização/IDOR | ✅ | Isolamento cross-tenant confirmado correto em todos os endpoints auditados |
-| Segurança — Infra (CORS/CSP/Rate limit) | ❌ | CORS `*`, sem CSP, sem rate limit em login |
-| Backend — Tratamento de erro | ❌ | Vaza mensagem interna, não loga, status HTTP incorreto em validação |
+| Segurança — Infra (CORS/CSP/Rate limit) | ⚠️ | CORS corrigido (2026-07-21); ainda sem CSP, sem rate limit em login |
+| Backend — Tratamento de erro | ✅ | Corrigido em 2026-07-21: loga exceções, não vaza mensagem interna, 400 correto em validação |
 | Backend — Lógica de negócio | ⚠️ | Cálculo matemático correto; faixas de risco clínico são placeholder |
 | Frontend — Fluxo psicólogo | ⚠️ | Funcional, com bugs de validação e páginas de erro ausentes |
 | Frontend — Fluxo paciente | ❌ | Dois bugs P0 afetando 100% dos pacientes no fluxo principal |

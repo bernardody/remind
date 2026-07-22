@@ -38,6 +38,10 @@ jwt:
     key: file:/app/secrets/authz.pem
 
 remind:
+  cors:
+    # Nunca "*" (ver PRODUCTION_AUDIT.md B-SEC-CORS) — só o domínio real do frontend.
+    # Sobrescrevível via env var pra adicionar origem extra sem precisar de novo deploy.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://remindapp.com.br,https://www.remindapp.com.br}
   mail:
     from-name: ReMind
   invite:
