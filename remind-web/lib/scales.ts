@@ -1,22 +1,13 @@
 /**
- * Explicação curta do que cada escala mede, pra exibir ao lado da sigla
- * (psicólogos não decoram todas as siglas de cabeça). Chave é o `Scale.name`
- * exato vindo do backend (tabela `scales`) — ver api/data/insert.sql e
- * api/data/migration_2026-07-16_novas_escalas.sql.
+ * O `Scale.name` que vem do backend já é descritivo (ex. "Isolamento social",
+ * "Sinais de dependência") — não é mais uma sigla de instrumento clínico (ver
+ * migration_2026-07-22_renomeia_escalas.sql). Os itens de cada eixo são de
+ * autoria própria, inspirados na literatura, não a tradução de um instrumento
+ * validado; por isso o nome não pode mais alegar ser um instrumento com esse
+ * nome (CARS/UCLA/SPI/etc.) sem que os itens realmente sejam esse instrumento.
+ * Mantido como função (em vez de usar `scale.name` direto) só pra não obrigar
+ * todo call-site a mudar de novo se um dia isso precisar de tratamento extra.
  */
-const SCALE_DESCRIPTIONS: Record<string, string> = {
-  CARS: "adição a redes sociais",
-  UCLA: "solidão",
-  SPI: "uso problemático da internet",
-  SISES: "autoestima",
-  BSMAS: "uso excessivo de redes sociais",
-  "SMD Scale": "uso disfuncional de redes sociais",
-  FoMOs: "medo de ficar por fora",
-  "SAS-SV": "dependência de smartphone",
-};
-
-/** "SPI" -> "SPI (uso problemático da internet)"; sigla desconhecida volta como veio. */
 export function getScaleDisplayName(scaleName: string): string {
-  const description = SCALE_DESCRIPTIONS[scaleName];
-  return description ? `${scaleName} (${description})` : scaleName;
+  return scaleName;
 }

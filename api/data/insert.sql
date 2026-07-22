@@ -35,21 +35,28 @@ INSERT INTO questionnaires (title, created_at, updated_at, active) VALUES
 ('Questionário 1', '2026-02-17', '2026-02-17', true);
 
 
+-- Nomes descritivos, não siglas de instrumento clínico (ver
+-- migration_2026-07-22_renomeia_escalas.sql) — os itens de cada eixo são de
+-- autoria própria, inspirados na literatura sobre uso problemático de redes
+-- sociais, não a tradução de nenhum instrumento validado (CARS/UCLA/SPI/
+-- BSMAS/SMD Scale/FoMOs/SAS-SV/SISES), então não podem levar o nome desses
+-- instrumentos nem herdar seus pontos de corte publicados.
 INSERT INTO scales (name, created_at, updated_at, active) VALUES
-('CARS', '2026-02-17', '2026-02-17', true),
-('UCLA', '2026-02-17', '2026-02-17', true),
-('SPI', '2026-02-17', '2026-02-17', true),
-('BSMAS', '2026-07-16', '2026-07-16', true),
-('SMD Scale', '2026-07-16', '2026-07-16', true),
-('FoMOs', '2026-07-16', '2026-07-16', true),
-('SAS-SV', '2026-07-16', '2026-07-16', true),
-('SISES', '2026-07-16', '2026-07-16', true);
+('Uso compulsivo', '2026-02-17', '2026-02-17', true),
+('Isolamento social', '2026-02-17', '2026-02-17', true),
+('Conflitos por uso', '2026-02-17', '2026-02-17', true),
+('Sinais de dependência', '2026-07-16', '2026-07-16', true),
+('Prejuízo funcional', '2026-07-16', '2026-07-16', true),
+('Medo de ficar por fora', '2026-07-16', '2026-07-16', true),
+('Impacto físico', '2026-07-16', '2026-07-16', true),
+('Autoestima e comparação', '2026-07-16', '2026-07-16', true);
 
 
--- Faixas de risco por escala — cortes placeholder (tercis 0-2/2-3.5/3.5-5,
--- espelhando o RISK_BANDS que hoje só existe hardcoded no frontend), até
--- termos os pontos de corte clínicos reais de cada escala (CARS/UCLA/SPI/
--- BSMAS/SMD Scale/FoMOs/SAS-SV/SISES).
+-- Faixas de risco por eixo — tercis 0-2/2-3.5/3.5-5 sobre a escala de
+-- resposta 1-5 do próprio questionário (espelhando o RISK_BANDS hardcoded no
+-- frontend). É um referencial descritivo interno, não um ponto de corte
+-- clínico publicado — nenhum eixo daqui é um instrumento validado (ver
+-- comentário acima), então não há "corte real" a substituir depois.
 INSERT INTO scale_risk_bands (id_scale, label, min_value, max_value, created_at, updated_at, active) VALUES
 (1, 'Baixo', 0, 2, '2026-02-17', '2026-02-17', true),
 (1, 'Moderado', 2, 3.5, '2026-02-17', '2026-02-17', true),

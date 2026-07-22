@@ -7,7 +7,7 @@ import type { BarDatum } from "@/components/charts/bar-chart";
 import { getRiskBandByLabel } from "@/lib/constants";
 
 const BENEFITS = [
-  "Escalas validadas prontas para aplicar (CARS, UCLA, SPI, SISES, BSMAS, SMD Scale, FoMOs e SAS-SV).",
+  "Triagem própria por eixos, inspirada na literatura sobre dependência digital.",
   "Relatórios clínicos gerados automaticamente a cada resposta.",
   "Histórico de evolução por paciente, com comparação entre avaliações.",
 ];

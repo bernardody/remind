@@ -27,6 +27,7 @@ import {
 import { usePatientQuestionnaires, usePatients } from "@/features/patients/api";
 import { usePatientEvolution } from "@/features/results/api";
 import { ScaleComparisonBars } from "@/features/results/components/scale-comparison-bars";
+import { ScoreDisclaimer } from "@/features/results/components/score-disclaimer";
 import { TrendBadge } from "@/features/results/components/trend-badge";
 import type { ApplicationResult, PatientEvolution } from "@/features/results/schemas";
 import { formatDateTime } from "@/lib/utils";
@@ -241,6 +242,8 @@ function ReportContent({ evolution }: { evolution: PatientEvolution }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <ScoreDisclaimer />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Linha do tempo</CardTitle>

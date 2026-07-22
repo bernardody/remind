@@ -31,11 +31,11 @@ export default function SobrePage() {
             com rigor.
           </p>
           <p>
-            O ReMind transforma escalas psicométricas validadas em um fluxo
-            digital simples: o psicólogo cadastra o paciente, envia o
-            questionário, e a plataforma calcula os resultados e organiza a
-            evolução ao longo do tempo. O objetivo é devolver tempo clínico e
-            tornar visíveis os padrões que a análise manual deixa escapar.
+            O ReMind digitaliza a triagem: o psicólogo cadastra o paciente,
+            envia o questionário, e a plataforma calcula os resultados e
+            organiza a evolução ao longo do tempo. O objetivo é devolver
+            tempo clínico e tornar visíveis os padrões que a análise manual
+            deixa escapar.
           </p>
           <h2 className="mt-4 text-2xl font-bold text-foreground">
             Nossos princípios
@@ -43,8 +43,10 @@ export default function SobrePage() {
           <ul className="flex flex-col gap-3">
             <li>
               <strong className="text-foreground">Rigor científico.</strong>{" "}
-              Apenas instrumentos validados (CARS, UCLA, SPI, SISES, BSMAS,
-              SMD Scale, FoMOs e SAS-SV).
+              Triagem própria construída a partir de critérios descritos na
+              literatura sobre uso problemático de redes sociais — não é a
+              aplicação de instrumentos clínicos validados e não substitui
+              avaliação profissional formal.
             </li>
             <li>
               <strong className="text-foreground">Clareza antes de densidade.</strong>{" "}

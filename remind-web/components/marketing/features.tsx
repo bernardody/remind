@@ -14,9 +14,9 @@ import { Reveal } from "@/components/marketing/reveal";
 const FEATURES = [
   {
     icon: BadgeCheck,
-    title: "Escalas Psicométricas Validadas",
+    title: "Triagem Baseada em Evidências",
     description:
-      "Instrumentos com respaldo científico (CARS, UCLA, SPI, SISES, BSMAS, SMD Scale, FoMOs, SAS-SV) prontos para aplicação clínica.",
+      "Eixos de avaliação inspirados na literatura científica sobre dependência digital — não substitui avaliação clínica formal.",
   },
   {
     icon: FileText,

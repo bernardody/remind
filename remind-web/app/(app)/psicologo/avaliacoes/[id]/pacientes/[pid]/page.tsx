@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { QuestionnaireDetail } from "@/features/questionnaires/schemas";
+import { ScoreDisclaimer } from "@/features/results/components/score-disclaimer";
 import type {
   PatientAnswerDetail,
   PatientAnswers,
@@ -109,6 +110,8 @@ export default async function ResultadoPage({ params }: ResultadoPageProps) {
         </TabsList>
 
         <TabsContent value="resumo" className="flex flex-col gap-6">
+          <ScoreDisclaimer />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">

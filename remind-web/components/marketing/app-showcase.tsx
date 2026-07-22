@@ -71,9 +71,9 @@ export function AppShowcase() {
                   <p className="text-sm font-semibold">Avaliações recentes</p>
                   <div className="mt-3 space-y-2">
                     {[
-                      { name: "Rodrigo M. Prado", scale: "CARS", risk: "Moderado" },
-                      { name: "Ana C. Ribeiro", scale: "UCLA", risk: "Baixo" },
-                      { name: "Lucas Fernandes", scale: "SPI", risk: "Alto" },
+                      { name: "Rodrigo M. Prado", scale: "Uso compulsivo", risk: "Moderado" },
+                      { name: "Ana C. Ribeiro", scale: "Isolamento social", risk: "Baixo" },
+                      { name: "Lucas Fernandes", scale: "Conflitos por uso", risk: "Alto" },
                     ].map((row) => {
                       const band = getRiskBandByLabel(row.risk);
                       return (
