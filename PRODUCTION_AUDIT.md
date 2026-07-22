@@ -198,7 +198,25 @@ Consolidado das auditorias de backend e frontend, por severidade.
 - **Onde:** `api/data/insert.sql:49-77`, `migration_2026-07-16_novas_escalas.sql:132-145`.
 - **Impacto:** psicólogo recebe rótulo de risco clínico sem validade científica, apresentado como se fosse.
 - **Prioridade:** Crítica.
-- **Como corrigir:** inserir cortes reais por escala ou marcar `risk_label` como "preliminar/não validado" na UI até lá.
+
+**Investigação adicional (2026-07-21):** usuário forneceu `escalascorte.md`, um levantamento de literatura com o método de cálculo e/ou corte clínico publicado de 5 das 8 escalas (BSMAS, SMD Scale, FoMOs, SAS-SV — CARS/UCLA/SPI/SISES não têm corte numérico no documento, só propriedades psicométricas). Comparando com o que está implementado hoje (`insert.sql`/`migration_2026-07-16...sql`), a aplicação direta desses números **não é possível sem antes resolver um descompasso estrutural**:
+
+| Escala | Original (doc) | Implementado hoje | Descompasso |
+|---|---|---|---|
+| BSMAS | 6 itens, Likert 1-5, **soma** (6-30), corte ≥12 | 4 itens, Likert 1-5, **média** (1-5) | corte "12" é de uma soma de 6 itens; não se aplica a uma média de 4 |
+| SMD Scale | 9 itens **binários (Sim/Não)**, soma (0-9), corte ≥5 | 3 itens Likert 1-5, média | instrumento virou outra coisa — nem é mais binário |
+| FoMOs | 10 itens, soma (10-50), cortes 10-20/21-35/36-50 | 3 itens, média (1-5) | mesma escala numérica incompatível |
+| SAS-SV | 10 itens, **Likert 1-6**, soma (10-60), corte **por gênero** (H≥31/M≥33) | 2 itens, Likert 1-5, média | Likert diferente, itens muito reduzidos, e falta suporte a corte por gênero no schema (`scale_risk_bands` não tem coluna de gênero) |
+| UCLA | Likert **1-4** | Likert 1-5 | escala de resposta errada |
+| SISES | item único, Likert **1-7** | 3 itens, Likert 1-5 | virou multi-item, escala de resposta errada |
+| CARS, SPI | sem corte no doc | — | precisa de mais pesquisa se for usar corte numérico |
+
+`QuestionnaireResultCalculator.java` só sabe calcular **média**, nunca soma — outro motivo pelo qual os cortes de "soma" da literatura (12, 5, 21-35, 31/33) não podem ser colados direto na tabela `scale_risk_bands` hoje.
+
+- **Decisão de produto pendente (não é só código) — apresentada ao usuário em 2026-07-21, resposta: "decidir depois":**
+  1. **Implementar as escalas completas e fiéis** ao original (itens que faltam, escala de resposta correta por escala, motor de cálculo suportando soma além de média, corte por gênero no SAS-SV) — só assim os números do documento passam a ser aplicáveis com validade.
+  2. **Manter a versão reduzida atual** (menos itens, mais rápida pro paciente responder) e não usar os cortes da literatura original — precisaria de validação própria ou reposicionar a tela do psicólogo como "indicador de triagem", não "escala validada".
+- **Como corrigir (mínimo, enquanto a decisão não é tomada):** marcar `risk_label` como "preliminar/não validado" na UI, para não sugerir rigor científico que a implementação atual não tem.
 
 ### B-PAC-1 — Tela de confirmação pós-envio quebra para todo paciente convidado — ✅ CORRIGIDO (2026-07-21)
 - **Descrição:** botão "Voltar ao início" na tela final bate em rota bloqueada pelo filtro de escopo de convite, gerando 403 em loop.
