@@ -1,5 +1,14 @@
 HELP.md
 target/
+
+### Chaves JWT (nunca comitar — ver PRODUCTION_AUDIT.md B-SEC-1) ###
+# Cada dev gera seu próprio par local (openssl genpkey -algorithm RSA
+# -pkeyopt rsa_keygen_bits:2048 -out authz.pem && openssl rsa -in authz.pem
+# -pubout -out authz.pub, dentro de src/main/resources/). Produção NUNCA usa
+# esses arquivos — a chave real vem de env var, materializada em runtime
+# (ver api/docker-entrypoint.sh e application-prod.yaml).
+src/main/resources/authz.pem
+src/main/resources/authz.pub
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

@@ -22,7 +22,7 @@ Nenhum desses itens é difícil de corrigir individualmente. O problema é o ac�
 
 Itens que **bloqueiam produção**. Cada um pode causar dano direto e imediato a psicólogos/pacientes reais ou comprometer a integridade/segurança do sistema inteiro.
 
-1. **Chave privada RSA de assinatura de JWT commitada no repositório e usada em produção sem override** (`api/src/main/resources/authz.pem`, `SecurityConfig.java:36-40,72-77`, sem override em `application-prod.yaml`). Qualquer pessoa com acesso ao histórico do repositório pode forjar tokens válidos para **qualquer** psicólogo ou paciente, inclusive tokens de escopo de convite. Derruba toda a fronteira de autenticação e multi-tenant do produto. **Bloqueador absoluto.**
+1. ~~**Chave privada RSA de assinatura de JWT commitada no repositório e usada em produção sem override**~~ **⚠️ PARCIALMENTE CORRIGIDO em 2026-07-21 — ação manual do usuário ainda pendente.** O repositório é **público no GitHub**, então a chave já esteve exposta publicamente. Código corrigido: `application-prod.yaml` agora exige a chave via `file:/app/secrets/authz.{pem,pub}`, materializado em runtime por `api/docker-entrypoint.sh` a partir de `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` (nunca mais embutida na imagem); os arquivos `authz.pem`/`authz.pub` foram removidos do índice do git e gitignorados; um novo par foi gerado só para dev local. **Continua bloqueador até você:** (1) gerar um par de chaves NOVO e real para produção, (2) configurar `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` no EasyPanel, (3) redeployar, e (4) avaliar remover a chave antiga do histórico do git ou tornar o repo privado. Ver seção "Bugs Encontrados" (B-SEC-1) para o passo a passo.
 
 2. **Faixas de risco clínico (`risk_label`) são placeholders idênticos para as 8 escalas cadastradas**, sem nenhum corte validado na literatura (`api/data/insert.sql:49-77`, `migration_2026-07-16_novas_escalas.sql:132-145` — o próprio código admite "cortes placeholder... trocar pelos cortes clínicos reais quando definidos"). O psicólogo vê "Alto risco"/"Moderado"/"Baixo" como se fosse resultado clínico validado, quando é um número genérico. Isso é uma decisão de produto com risco direto a pacientes.
 
@@ -181,13 +181,22 @@ Consolidado das auditorias de backend e frontend, por severidade.
 
 # Bugs Encontrados
 
-### B-SEC-1 — Chave privada de JWT commitada e usada em produção
-- **Descrição:** `authz.pem` (RSA privada) está no repositório e é a mesma chave usada em produção (sem override em `application-prod.yaml`).
+### B-SEC-1 — Chave privada de JWT commitada e usada em produção — ⚠️ CÓDIGO CORRIGIDO, AÇÃO MANUAL PENDENTE (2026-07-21)
+- **Descrição:** `authz.pem` (RSA privada) estava no repositório (público no GitHub) e era a mesma chave usada em produção (sem override em `application-prod.yaml`).
 - **Onde:** `api/src/main/resources/authz.pem`, `SecurityConfig.java:36-40,72-77`.
-- **Impacto:** qualquer pessoa com acesso ao histórico do repo pode forjar JWT válido como qualquer usuário. Compromete 100% da autenticação.
+- **Impacto:** qualquer pessoa com acesso ao repositório podia forjar JWT válido como qualquer usuário. Compromete 100% da autenticação.
 - **Prioridade:** Crítica/P0.
-- **Como reproduzir:** extrair `authz.pem` do git, assinar um JWT RS256 com `email` de qualquer usuário-alvo.
-- **Como corrigir:** gerar novo par de chaves fora do controle de versão (env var/secret manager), remover do classpath e do histórico do git, tratar tokens já emitidos como comprometidos.
+- **Correção aplicada no código:**
+  - `application-prod.yaml` agora aponta `jwt.private.key`/`jwt.public.key` para `file:/app/secrets/authz.pem`/`.pub` — caminhos que só existem dentro do container, escritos em runtime.
+  - `api/docker-entrypoint.sh` (novo) decodifica `JWT_PRIVATE_KEY_B64`/`JWT_PUBLIC_KEY_B64` (PEM em base64, pra evitar problema de quebra de linha em painel de env var) e grava em `/app/secrets/` antes de subir o JAR — a chave real nunca é embutida na imagem Docker nem passa pelo git.
+  - `authz.pem`/`authz.pub` removidos do índice do git e adicionados ao `.gitignore` (`api/.gitignore`); um par novo foi gerado só pra uso local de desenvolvimento (nunca usado em produção).
+- **Ainda pendente (só o usuário pode fazer):**
+  1. Gerar o par de chaves REAL de produção, ex.: `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out authz_prod.pem && openssl rsa -in authz_prod.pem -pubout -out authz_prod.pub`.
+  2. Codificar em base64 sem quebra de linha: `base64 -w0 authz_prod.pem` (Linux/Git Bash) e o mesmo para `authz_prod.pub`.
+  3. Configurar `JWT_PRIVATE_KEY_B64` e `JWT_PUBLIC_KEY_B64` como variáveis de ambiente no EasyPanel (nunca commitar esse valor).
+  4. Apagar os arquivos `authz_prod.pem`/`authz_prod.pub` da máquina local depois de colar no EasyPanel.
+  5. Redeployar — isso invalida TODAS as sessões ativas (esperado: a chave antiga estava comprometida).
+  6. Avaliar remover a chave antiga do histórico do git (`git filter-repo`/BFG + force-push) e/ou tornar o repositório privado — o vazamento já ocorreu (repo público), então isso é higiene, não a mitigação principal (a rotação é o que neutraliza o risco).
 
 ### B-SEC-2 — Faixas de risco clínico placeholder idênticas para 8 escalas
 - **Descrição:** cortes de risco (Baixo/Moderado/Alto) são os mesmos três tercis genéricos para todas as escalas, sem corte validado na literatura.

@@ -11,8 +11,12 @@ RUN mvn package -DskipTests -B
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 8080
-# Sem isso, o container (Alpine, sem tzdata/TZ configurado) roda em UTC e todo
-# LocalDateTime.now() do backend (answered_at, created_at etc.) grava hora UTC
-# como se fosse local — 3h adiantado do horário de Brasília real.
-ENTRYPOINT ["java", "-Duser.timezone=America/Sao_Paulo", "-jar", "app.jar"]
+# `-Duser.timezone`: sem isso, o container (Alpine, sem tzdata/TZ configurado)
+# roda em UTC e todo LocalDateTime.now() do backend (answered_at, created_at
+# etc.) grava hora UTC como se fosse local — 3h adiantado do horário de
+# Brasília real. Chave JWT materializada em runtime pelo entrypoint — nunca
+# embutida na imagem (ver PRODUCTION_AUDIT.md B-SEC-1).
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -25,6 +25,18 @@ google:
   # OAuth 2.0 Client ID do Google (audiência esperada do ID token) — definido por ambiente.
   client-id: ${GOOGLE_CLIENT_ID}
 
+# A chave que assina os JWTs da aplicação NUNCA deve vir do classpath em
+# produção (ver PRODUCTION_AUDIT.md B-SEC-1 — a antiga vazou publicamente
+# comitada no repo). `docker-entrypoint.sh` escreve o par real, recebido via
+# env var (JWT_PRIVATE_KEY_B64/JWT_PUBLIC_KEY_B64), nesse caminho em runtime —
+# sem override aqui, o Spring cairia de volta pro classpath:authz.pem do
+# application.yaml, reintroduzindo a mesma falha.
+jwt:
+  public:
+    key: file:/app/secrets/authz.pub
+  private:
+    key: file:/app/secrets/authz.pem
+
 remind:
   mail:
     from-name: ReMind
