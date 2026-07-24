@@ -125,7 +125,7 @@ export function QuestionnairesView() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Info className="size-3.5 shrink-0" />
-          Avaliações são cadastradas pela equipe ReMind — sem opção de criar por aqui ainda.
+          Avaliações são cadastradas pela equipe ReMind, sem opção de criar por aqui ainda.
         </p>
         <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
           <SelectTrigger className="w-40">

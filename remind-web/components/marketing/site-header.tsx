@@ -41,7 +41,7 @@ export function SiteHeader() {
         <Link
           href={ROUTES.home}
           className="rounded-lg"
-          aria-label="ReMind — início"
+          aria-label="ReMind, início"
         >
           <Logo />
         </Link>

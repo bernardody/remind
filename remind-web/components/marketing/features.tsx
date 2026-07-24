@@ -16,7 +16,7 @@ const FEATURES = [
     icon: BadgeCheck,
     title: "Triagem Baseada em Evidências",
     description:
-      "Eixos de avaliação inspirados na literatura científica sobre dependência digital — não substitui avaliação clínica formal.",
+      "Eixos de avaliação inspirados na literatura científica sobre dependência digital, sem substituir a avaliação clínica formal.",
   },
   {
     icon: FileText,
@@ -58,7 +58,7 @@ export function Features() {
         <SectionHeading
           eyebrow="Recursos"
           title="Tudo o que você precisa com rigor científico"
-          description="Da aplicação da escala ao acompanhamento longitudinal — uma plataforma completa para a avaliação clínica da dependência digital."
+          description="Da aplicação da escala ao acompanhamento longitudinal: uma plataforma completa para a avaliação clínica da dependência digital."
         />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -106,7 +106,7 @@ export function AppShowcase() {
           </div>
 
           <p className="mt-3 text-center text-xs italic text-muted-foreground/70">
-            *Pacientes, números e avaliações são ilustrativos — nenhum dado real
+            *Pacientes, números e avaliações são ilustrativos, nenhum dado real
             é exibido nesta simulação.
           </p>
         </Reveal>

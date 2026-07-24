@@ -25,7 +25,7 @@ export function Gauge({ value, max = 5, size = 240, className }: GaugeProps) {
   const clamped = Math.min(Math.max(value, 0), max);
   const percent = (clamped / max) * 100;
   const data = [{ name: "score", value: percent, fill: band.color }];
-  const label = `Escore médio ${value.toFixed(1)} de ${max} — risco ${band.label.toLowerCase()}`;
+  const label = `Escore médio ${value.toFixed(1)} de ${max}, risco ${band.label.toLowerCase()}`;
   const chartHeight = size / 2 + 12;
 
   return (

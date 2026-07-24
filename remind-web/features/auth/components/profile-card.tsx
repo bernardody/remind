@@ -21,8 +21,8 @@ interface ProfileCardProps {
  */
 export function ProfileCard({ name, email, type }: ProfileCardProps) {
   const fields = [
-    { label: "Nome", value: name || "—" },
-    { label: "Email", value: email || "—" },
+    { label: "Nome", value: name || "-" },
+    { label: "Email", value: email || "-" },
     { label: "Perfil", value: TYPE_LABEL[type] },
   ];
 

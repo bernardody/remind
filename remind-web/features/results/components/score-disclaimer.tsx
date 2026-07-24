@@ -17,7 +17,7 @@ export function ScoreDisclaimer() {
       <AlertDescription>
         Este questionário é uma triagem própria do ReMind, com perguntas
         organizadas por eixo e inspiradas na literatura científica sobre uso
-        problemático de redes sociais — não é a aplicação de um instrumento
+        problemático de redes sociais, mas não é a aplicação de um instrumento
         clínico validado. As faixas "Baixo/Moderado/Alto" são um referencial
         descritivo interno, não um diagnóstico, e o resultado não substitui
         avaliação profissional.

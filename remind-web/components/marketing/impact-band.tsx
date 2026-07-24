@@ -13,13 +13,13 @@ export function ImpactBand() {
           </span>
           <p className="text-balance text-2xl font-bold leading-snug sm:text-3xl">
             Mais de <span className="underline decoration-2 underline-offset-4">210 milhões</span>{" "}
-            de pessoas no mundo apresentam comportamentos de dependência digital
-            — e a psicologia clínica ainda não tinha uma ferramenta feita para
+            de pessoas no mundo apresentam comportamentos de dependência digital,
+            e a psicologia clínica ainda não tinha uma ferramenta feita para
             medir isso com precisão.
           </p>
           <p className="max-w-2xl text-pretty text-base text-primary-foreground/80">
             O ReMind nasceu para dar estrutura, escala e clareza a quem cuida da
-            saúde mental — transformando respostas em dados clínicos confiáveis.
+            saúde mental, transformando respostas em dados clínicos confiáveis.
           </p>
         </Reveal>
       </div>

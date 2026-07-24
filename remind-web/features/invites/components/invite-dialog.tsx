@@ -89,8 +89,8 @@ export function InviteDialog({
           </DialogTitle>
           <DialogDescription>
             {readyInvite
-              ? "Recomendamos enviar por WhatsApp — é o canal que o paciente costuma checar primeiro. Um e-mail de backup já foi enviado automaticamente."
-              : "O paciente recebe um link direto para responder, sem precisar entrar com senha — o ideal é enviar por WhatsApp; um e-mail de backup também é enviado automaticamente."}
+              ? "Recomendamos enviar por WhatsApp: é o canal que o paciente costuma checar primeiro. Um e-mail de backup já foi enviado automaticamente."
+              : "O paciente recebe um link direto para responder, sem precisar entrar com senha. O ideal é enviar por WhatsApp; um e-mail de backup também é enviado automaticamente."}
           </DialogDescription>
         </DialogHeader>
 

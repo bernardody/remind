@@ -24,7 +24,7 @@ export default function SobrePage() {
       <section className="py-16 sm:py-20">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 text-base leading-relaxed text-muted-foreground sm:px-6 lg:px-8">
           <p>
-            A dependência digital é um fenômeno crescente — mais de 210 milhões
+            A dependência digital é um fenômeno crescente: mais de 210 milhões
             de pessoas no mundo apresentam comportamentos problemáticos no uso de
             redes sociais. Ainda assim, a psicologia clínica carecia de
             ferramentas próprias para medir, registrar e acompanhar esse quadro
@@ -44,7 +44,7 @@ export default function SobrePage() {
             <li>
               <strong className="text-foreground">Rigor científico.</strong>{" "}
               Triagem própria construída a partir de critérios descritos na
-              literatura sobre uso problemático de redes sociais — não é a
+              literatura sobre uso problemático de redes sociais, mas não é a
               aplicação de instrumentos clínicos validados e não substitui
               avaliação profissional formal.
             </li>

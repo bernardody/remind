@@ -67,7 +67,7 @@ export function AuthBrandPanel() {
           </h1>
           <p className="mt-4 text-base font-light leading-relaxed text-white/70">
             Avaliação de dependência digital com escalas psicométricas
-            validadas — para psicólogos que levam evidência a sério.
+            validadas, para psicólogos que levam evidência a sério.
           </p>
         </motion.div>
       </div>

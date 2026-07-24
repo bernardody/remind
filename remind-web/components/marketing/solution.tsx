@@ -44,7 +44,7 @@ export function Solution() {
           </h2>
           <p className="text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
             O ReMind digitaliza a coleta de respostas, calcula os escores e
-            organiza tudo em uma visão clínica clara — para você focar na
+            organiza tudo em uma visão clínica clara, para você focar na
             interpretação, não na operação.
           </p>
 
@@ -87,7 +87,7 @@ export function Solution() {
             </div>
 
             <p className="mt-4 text-[11px] italic leading-relaxed text-muted-foreground/70">
-              *Nome e dados ilustrativos — este paciente não é real.
+              *Nome e dados ilustrativos, este paciente não é real.
             </p>
           </Card>
         </Reveal>

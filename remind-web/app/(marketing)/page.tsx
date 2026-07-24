@@ -11,7 +11,7 @@ import { DemoForm } from "@/components/marketing/demo-form";
 import { SITE } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: `${SITE.name} — ${SITE.tagline}`,
+  title: `${SITE.name} · ${SITE.tagline}`,
   description: SITE.description,
   keywords: [
     "dependência digital",

@@ -278,7 +278,7 @@ function ReportContent({ evolution }: { evolution: PatientEvolution }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="size-4 text-primary" />
-            Escore médio — aplicação mais recente
+            Escore médio · aplicação mais recente
           </CardTitle>
           <CardDescription>{formatDateTime(latest.answeredAt)}</CardDescription>
         </CardHeader>
@@ -292,7 +292,7 @@ function ReportContent({ evolution }: { evolution: PatientEvolution }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="size-4 text-primary" />
-              Escore por escala — mais recente
+              Escore por escala · mais recente
             </CardTitle>
           </CardHeader>
           <CardContent>

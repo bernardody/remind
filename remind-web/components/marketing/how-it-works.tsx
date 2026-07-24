@@ -16,7 +16,7 @@ const STEPS = [
     icon: Send,
     title: "Envie o Questionário",
     description:
-      "Selecione a escala adequada e envie digitalmente — o paciente responde de onde estiver.",
+      "Selecione a escala adequada e envie digitalmente: o paciente responde de onde estiver.",
   },
   {
     n: "03",

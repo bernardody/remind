@@ -57,7 +57,7 @@ function statusDetail(invite: PatientInvite): string {
   if (invite.sentAt) {
     return `Enviado em ${formatDateTime(invite.sentAt)}`;
   }
-  return "—";
+  return "-";
 }
 
 interface PatientInvitesSectionProps {
@@ -189,7 +189,7 @@ export function PatientInvitesSection({
           <DialogHeader>
             <DialogTitle>Convite reenviado</DialogTitle>
             <DialogDescription>
-              Recomendamos enviar por WhatsApp de novo — um e-mail de backup também já foi
+              Recomendamos enviar por WhatsApp de novo: um e-mail de backup também já foi
               reenviado automaticamente.
             </DialogDescription>
           </DialogHeader>
