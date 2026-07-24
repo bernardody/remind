@@ -31,7 +31,7 @@ export function AuthBrandPanel() {
         ReMind
       </motion.span>
 
-      <div className="relative flex flex-1 flex-col justify-center gap-8 py-16">
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-8 py-16 text-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
