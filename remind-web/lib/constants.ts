@@ -23,8 +23,8 @@ export const SITE = {
     "https://remindapp.com.br",
   locale: "pt-BR",
   email: "remindappbr@gmail.com",
-  phone: "+55 (00) 00000-0000",
-  phoneHref: "tel:+550000000000",
+  phone: "+55 51 8156-4975",
+  phoneHref: "tel:+555181564975",
 } as const;
 
 export const BRAND_COLORS = {
