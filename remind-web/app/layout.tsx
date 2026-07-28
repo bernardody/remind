@@ -20,8 +20,11 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   applicationName: SITE.name,
-  authors: [{ name: SITE.name }],
+  authors: [{ name: SITE.name, url: SITE.url }],
   creator: SITE.name,
+  publisher: SITE.name,
+  category: "Health",
+  formatDetection: { telephone: false },
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -35,6 +38,11 @@ export const metadata: Metadata = {
     title: `${SITE.name} · ${SITE.tagline}`,
     description: SITE.description,
   },
+  // Cole aqui o código do Google Search Console (Configurações > Propriedade
+  // > Verificação > tag HTML) na env var da Vercel — sem precisar editar código.
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export const viewport: Viewport = {

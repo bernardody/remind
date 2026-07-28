@@ -9,6 +9,12 @@ export const metadata: Metadata = {
   title: "Sobre",
   description:
     "O ReMind nasceu para dar estrutura e clareza à avaliação clínica da dependência digital.",
+  keywords: [
+    "plataforma para psicólogos",
+    "software para psicólogos",
+    "avaliação clínica de dependência digital",
+    "escalas psicométricas validadas",
+  ],
   alternates: { canonical: "/sobre" },
 };
 

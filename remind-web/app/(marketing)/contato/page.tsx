@@ -10,6 +10,11 @@ import { SITE, ROUTES } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Contato",
   description: "Fale com a equipe do ReMind ou solicite uma demonstração.",
+  keywords: [
+    "demonstração ReMind",
+    "contato ReMind",
+    "software para psicólogos",
+  ],
   alternates: { canonical: "/contato" },
 };
 

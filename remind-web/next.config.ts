@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     remotePatterns: [],
+    formats: ["image/avif", "image/webp"],
   },
   async headers() {
     return [
