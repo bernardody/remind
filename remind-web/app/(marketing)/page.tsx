@@ -7,6 +7,7 @@ import { Solution } from "@/components/marketing/solution";
 import { HowItWorks } from "@/components/marketing/how-it-works";
 import { Features } from "@/components/marketing/features";
 import { AppShowcase } from "@/components/marketing/app-showcase";
+import { Recognition } from "@/components/marketing/recognition";
 import { DemoForm } from "@/components/marketing/demo-form";
 import { SITE } from "@/lib/constants";
 
@@ -41,6 +42,7 @@ export default function LandingPage() {
       <HowItWorks />
       <Features />
       <AppShowcase />
+      <Recognition />
       <DemoForm />
     </>
   );
