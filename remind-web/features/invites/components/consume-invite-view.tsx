@@ -15,7 +15,7 @@ interface ConsumeInviteViewProps {
   token: string;
 }
 
-type Step = "loading" | "confirm-switch" | "error";
+type Step = "checking" | "confirm" | "confirm-switch" | "loading" | "error";
 
 /**
  * Troca o token do convite por uma sessão de paciente de escopo restrito
@@ -23,17 +23,22 @@ type Step = "loading" | "confirm-switch" | "error";
  * Client Component porque `signIn()`/`getSession()` do next-auth/react só
  * funcionam no browser (mesmo padrão de `login-form.tsx`).
  *
+ * O token é de uso único, então o consumo só pode acontecer a partir de um
+ * clique explícito do paciente — nunca automático no carregamento da página.
+ * Um `useEffect` disparando o consumo sozinho é gasto por qualquer render da
+ * página que não seja o clique real do paciente (preview de link de app de
+ * mensagem, clique de teste do psicólogo, aba duplicada), derrubando o link
+ * antes da hora com "Este link já foi utilizado" (ver ConsumeInviteService).
+ *
  * NextAuth mantém um único cookie de sessão por navegador (não por aba). Se
  * já existir uma sessão de psicólogo ativa neste navegador, trocar direto sem
  * avisar a encerraria silenciosamente — o psicólogo perde a própria sessão ao
- * só clicar no link pra conferir. Por isso, nesse caso, pedimos confirmação
- * antes de consumir o convite; para qualquer outra situação (sem sessão, ou
- * sessão de paciente), consome direto, como antes.
+ * só abrir o link pra conferir. Por isso esse caso tem um aviso específico.
  */
 export function ConsumeInviteView({ token }: ConsumeInviteViewProps) {
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
-  const [step, setStep] = useState<Step>("loading");
+  const [step, setStep] = useState<Step>("checking");
   const [error, setError] = useState<string | null>(null);
 
   const consume = useCallback(async () => {
@@ -68,12 +73,7 @@ export function ConsumeInviteView({ token }: ConsumeInviteViewProps) {
       const existing = await getSession();
       if (cancelled) return;
 
-      if (existing?.user.type === "PSYCHOLOGIST") {
-        setStep("confirm-switch");
-        return;
-      }
-
-      void consume();
+      setStep(existing?.user.type === "PSYCHOLOGIST" ? "confirm-switch" : "confirm");
     }
 
     void start();
@@ -81,7 +81,7 @@ export function ConsumeInviteView({ token }: ConsumeInviteViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [consume]);
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-10 bg-background px-6 py-12">
@@ -103,6 +103,15 @@ export function ConsumeInviteView({ token }: ConsumeInviteViewProps) {
             </p>
             <Button onClick={() => void consume()} className="w-full">
               Continuar como paciente
+            </Button>
+          </div>
+        ) : step === "confirm" ? (
+          <div className="flex flex-col items-center gap-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              Você foi convidado a responder um questionário.
+            </p>
+            <Button onClick={() => void consume()} className="w-full">
+              Abrir questionário
             </Button>
           </div>
         ) : (
