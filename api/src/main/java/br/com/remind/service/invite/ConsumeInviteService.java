@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.GONE;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -38,7 +40,8 @@ public class ConsumeInviteService {
         QuestionnaireInvite invite = questionnaireInviteRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Convite não encontrado."));
 
-        int consumed = questionnaireInviteRepository.consumeByTokenHash(tokenHash);
+        LocalDateTime now = LocalDateTime.now();
+        int consumed = questionnaireInviteRepository.consumeByTokenHash(tokenHash, now, now.toLocalDate());
 
         if (consumed == 0) {
             if (invite.getStatus() == InviteStatus.ANSWERED) {

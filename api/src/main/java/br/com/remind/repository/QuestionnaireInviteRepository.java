@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface QuestionnaireInviteRepository extends JpaRepository<QuestionnaireInvite, Long> {
@@ -29,20 +31,27 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
      * se ainda não tiver sido consumido, não estiver expirado e estiver ativo — evita corrida
      * entre duas requisições com o mesmo token. Retorna quantas linhas foram afetadas (0 = não
      * consumiu; o chamador precisa então descobrir o motivo consultando o registro).
+     *
+     * {@code now}/{@code today} vêm da JVM (fixada em America/Sao_Paulo, ver
+     * docker-entrypoint.sh) em vez de {@code CURRENT_TIMESTAMP}/{@code CURRENT_DATE} do
+     * Postgres — essas funções nativas seguem o timezone da sessão do banco, que não é
+     * configurado em lugar nenhum deste projeto, então divergiam da hora gravada em
+     * {@code expires_at}/{@code sent_at} (JVM) em ambientes com o Postgres em UTC.
      */
     @Modifying(clearAutomatically = true)
     @Query("""
             update QuestionnaireInvite qi
             set qi.status = br.com.remind.enums.InviteStatus.OPENED,
-                qi.opened_at = CURRENT_TIMESTAMP,
-                qi.consumed_at = CURRENT_TIMESTAMP,
-                qi.updated_at = CURRENT_DATE
+                qi.opened_at = :now,
+                qi.consumed_at = :now,
+                qi.updated_at = :today
             where qi.token_hash = :tokenHash
               and qi.consumed_at is null
-              and qi.expires_at > CURRENT_TIMESTAMP
+              and qi.expires_at > :now
               and qi.active = true
             """)
-    int consumeByTokenHash(@Param("tokenHash") String tokenHash);
+    int consumeByTokenHash(@Param("tokenHash") String tokenHash, @Param("now") LocalDateTime now,
+            @Param("today") LocalDate today);
 
     /**
      * Consumo atômico do convite ao responder (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md
@@ -55,7 +64,7 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
     @Query("""
             update QuestionnaireInvite qi
             set qi.status = br.com.remind.enums.InviteStatus.ANSWERED,
-                qi.updated_at = CURRENT_DATE
+                qi.updated_at = :today
             where qi.patient = :patient
               and qi.questionnaire = :questionnaire
               and qi.active = true
@@ -64,7 +73,8 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
                   br.com.remind.enums.InviteStatus.EXPIRED,
                   br.com.remind.enums.InviteStatus.REVOKED
               )
-              and qi.expires_at > CURRENT_TIMESTAMP
+              and qi.expires_at > :now
             """)
-    int markAnsweredIfLive(@Param("patient") Patient patient, @Param("questionnaire") Questionnaire questionnaire);
+    int markAnsweredIfLive(@Param("patient") Patient patient, @Param("questionnaire") Questionnaire questionnaire,
+            @Param("now") LocalDateTime now, @Param("today") LocalDate today);
 }

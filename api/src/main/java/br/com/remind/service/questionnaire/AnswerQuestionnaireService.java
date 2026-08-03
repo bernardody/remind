@@ -45,10 +45,13 @@ public class AnswerQuestionnaireService {
         Questionnaire questionnaire = questionnaireRepository.findByIdAndActiveTrue(questionnaireId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Questionário não encontrado"));
 
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
+
         // Convite vivo é obrigatório pra responder — inclusive na 1ª vez, não só em reaplicações
         // (docs/specs/003-relatorios-evolucao-longitudinal/PRD.md §3/§4.1). Consumo atômico evita
         // que dois submits simultâneos do mesmo convite gerem duas respostas.
-        int consumed = questionnaireInviteRepository.markAnsweredIfLive(patient, questionnaire);
+        int consumed = questionnaireInviteRepository.markAnsweredIfLive(patient, questionnaire, now, today);
         if (consumed == 0) {
             QuestionnaireInvite existingInvite = questionnaireInviteRepository
                     .findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire)
