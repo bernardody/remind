@@ -101,7 +101,8 @@ class QuestionnaireInviteRepositoryTest {
     void consumeByTokenHash_marksOpenedAndConsumed_whenValidNotExpiredAndActive() {
         persistInvite("hash-valido", InviteStatus.SENT, LocalDateTime.now().plusDays(1), null, true);
 
-        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-valido");
+        LocalDateTime now = LocalDateTime.now();
+        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-valido", now, now.toLocalDate());
 
         assertThat(rows).isEqualTo(1);
 
@@ -115,8 +116,9 @@ class QuestionnaireInviteRepositoryTest {
     void consumeByTokenHash_returnsZero_secondTimeOnSameToken_provingSingleUse() {
         persistInvite("hash-reuso", InviteStatus.SENT, LocalDateTime.now().plusDays(1), null, true);
 
-        int first = questionnaireInviteRepository.consumeByTokenHash("hash-reuso");
-        int second = questionnaireInviteRepository.consumeByTokenHash("hash-reuso");
+        LocalDateTime now = LocalDateTime.now();
+        int first = questionnaireInviteRepository.consumeByTokenHash("hash-reuso", now, now.toLocalDate());
+        int second = questionnaireInviteRepository.consumeByTokenHash("hash-reuso", now, now.toLocalDate());
 
         assertThat(first).isEqualTo(1);
         assertThat(second).isEqualTo(0); // já consumido (consumed_at != null) — não consome de novo
@@ -126,7 +128,8 @@ class QuestionnaireInviteRepositoryTest {
     void consumeByTokenHash_returnsZero_whenExpired() {
         persistInvite("hash-expirado", InviteStatus.SENT, LocalDateTime.now().minusMinutes(1), null, true);
 
-        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-expirado");
+        LocalDateTime now = LocalDateTime.now();
+        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-expirado", now, now.toLocalDate());
 
         assertThat(rows).isEqualTo(0);
     }
@@ -135,7 +138,8 @@ class QuestionnaireInviteRepositoryTest {
     void consumeByTokenHash_returnsZero_whenInactive() {
         persistInvite("hash-revogado", InviteStatus.REVOKED, LocalDateTime.now().plusDays(1), null, false);
 
-        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-revogado");
+        LocalDateTime now = LocalDateTime.now();
+        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-revogado", now, now.toLocalDate());
 
         assertThat(rows).isEqualTo(0);
     }
@@ -144,7 +148,8 @@ class QuestionnaireInviteRepositoryTest {
     void consumeByTokenHash_returnsZero_whenAlreadyConsumedPreviously() {
         persistInvite("hash-ja-consumido", InviteStatus.ANSWERED, LocalDateTime.now().plusDays(1), LocalDateTime.now().minusHours(1), true);
 
-        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-ja-consumido");
+        LocalDateTime now = LocalDateTime.now();
+        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-ja-consumido", now, now.toLocalDate());
 
         assertThat(rows).isEqualTo(0);
     }

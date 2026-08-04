@@ -28,6 +28,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -85,7 +87,8 @@ class AnswerQuestionnaireServiceTest {
     @Test
     void answer_withoutAnyInvite_isRejectedWith403_andNeverPersistsAnswer() {
         stubPatientAndQuestionnaire();
-        when(questionnaireInviteRepository.markAnsweredIfLive(patient, questionnaire)).thenReturn(0);
+        when(questionnaireInviteRepository.markAnsweredIfLive(
+                any(), any(), any(LocalDateTime.class), any(LocalDate.class))).thenReturn(0);
         when(questionnaireInviteRepository.findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire))
                 .thenReturn(Optional.empty());
 
@@ -104,7 +107,8 @@ class AnswerQuestionnaireServiceTest {
                 .patient(patient).questionnaire(questionnaire).status(InviteStatus.ANSWERED).active(true).build();
 
         stubPatientAndQuestionnaire();
-        when(questionnaireInviteRepository.markAnsweredIfLive(patient, questionnaire)).thenReturn(0);
+        when(questionnaireInviteRepository.markAnsweredIfLive(
+                any(), any(), any(LocalDateTime.class), any(LocalDate.class))).thenReturn(0);
         when(questionnaireInviteRepository.findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire))
                 .thenReturn(Optional.of(answered));
 
@@ -124,7 +128,8 @@ class AnswerQuestionnaireServiceTest {
                 .patient(patient).questionnaire(questionnaire).status(InviteStatus.SENT).active(true).build();
 
         stubPatientAndQuestionnaire();
-        when(questionnaireInviteRepository.markAnsweredIfLive(patient, questionnaire)).thenReturn(1);
+        when(questionnaireInviteRepository.markAnsweredIfLive(
+                any(), any(), any(LocalDateTime.class), any(LocalDate.class))).thenReturn(1);
         when(questionnaireInviteRepository.findByPatientAndQuestionnaireAndActiveTrue(patient, questionnaire))
                 .thenReturn(Optional.of(invite));
         when(questionRepository.findByIdAndQuestionnaireAndActiveTrue(1L, questionnaire)).thenReturn(Optional.of(question));
