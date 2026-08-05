@@ -4,6 +4,7 @@ import type { UserType } from "@/features/auth/schemas";
 const TYPE_LABEL: Record<UserType, string> = {
   PSYCHOLOGIST: "Psicólogo(a)",
   PATIENT: "Paciente",
+  ADMIN: "Administrador(a)",
 };
 
 interface ProfileCardProps {
@@ -16,8 +17,9 @@ interface ProfileCardProps {
  * RF-20 — dados do usuário logado, mesmo componente pros dois perfis
  * (psicólogo/paciente, ver `app/(app)/{psicologo,paciente}/perfil/page.tsx`).
  * Vêm do JWT (sem `GET /me` no backend ainda, ver Spec 04 §2); troca de fonte
- * fica isolada aqui quando existir — o mesmo vale pra edição/troca de senha,
- * que dependem de endpoint ainda inexistente (PRD.md §5.11).
+ * fica isolada aqui quando existir. Troca de senha agora tem endpoint próprio
+ * (`PUT /psychologists/me/password`) — ver `change-password-form.tsx`, renderizado
+ * à parte na tela de perfil do psicólogo.
  */
 export function ProfileCard({ name, email, type }: ProfileCardProps) {
   const fields = [

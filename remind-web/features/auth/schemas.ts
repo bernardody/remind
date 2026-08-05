@@ -4,7 +4,7 @@ import { z } from "zod";
  * Contrato real de `POST /login` (Spec 04 §0). Sem refresh token, sem `/me`:
  * `type` decide o redirecionamento e o escopo de navegação do usuário.
  */
-export const UserTypeSchema = z.enum(["PSYCHOLOGIST", "PATIENT"]);
+export const UserTypeSchema = z.enum(["PSYCHOLOGIST", "PATIENT", "ADMIN"]);
 export type UserType = z.infer<typeof UserTypeSchema>;
 
 export const LoginRequestSchema = z.object({
@@ -64,3 +64,43 @@ export const CompleteProfileResponseSchema = z.object({
   profileComplete: z.boolean(),
 });
 export type CompleteProfileResponse = z.infer<typeof CompleteProfileResponseSchema>;
+
+/** `POST /auth/forgot-password` — sempre 200, exista ou não o e-mail (nunca revela contas). */
+export const ForgotPasswordRequestSchema = z.object({
+  email: z.string().email("Informe um email válido"),
+});
+export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequestSchema>;
+
+const newPasswordSchema = z
+  .string()
+  .min(8, "A senha deve ter ao menos 8 caracteres");
+
+/** `POST /auth/reset-password` — `token` vem da URL (`?token=`), não é digitado pelo usuário. */
+export const ResetPasswordRequestSchema = z
+  .object({
+    token: z.string().min(1),
+    newPassword: newPasswordSchema,
+    confirmNewPassword: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmNewPassword"],
+  });
+export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
+
+/**
+ * `PUT /psychologists/me/password` — `currentPassword` fica opcional no schema porque a conta
+ * pode ainda não ter senha (login Google, ou recém-ativada), mas o form normalmente exige o
+ * preenchimento (ver `change-password-form.tsx`).
+ */
+export const ChangePasswordRequestSchema = z
+  .object({
+    currentPassword: z.string().optional(),
+    newPassword: newPasswordSchema,
+    confirmNewPassword: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmNewPassword"],
+  });
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;

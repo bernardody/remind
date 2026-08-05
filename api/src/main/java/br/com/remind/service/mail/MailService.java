@@ -78,6 +78,43 @@ public class MailService {
                 .replace("{{EXPIRES_AT}}", expiresAt.format(EXPIRES_AT_FORMAT));
     }
 
+    /**
+     * Envia o e-mail com o link de redefinição/definição de senha. Mesmo template/link serve
+     * tanto para "esqueci minha senha" quanto para a ativação de uma conta recém-criada por um
+     * admin (REQ novo de redefinição de senha) — o texto genérico cobre os dois casos sem
+     * precisar de uma variante de copy por cenário.
+     *
+     * @param to        e-mail cadastrado do usuário (psicólogo ou admin)
+     * @param name      nome exibido na saudação; escapado antes de ir ao HTML
+     * @param resetLink URL completa de redefinição (já contém o token — nunca logar este valor)
+     * @param expiresAt validade do link, exibida ao usuário
+     */
+    public void sendPasswordResetEmail(String to, String name, String resetLink, LocalDateTime expiresAt) {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(fromAddress, fromName);
+            helper.setTo(to);
+            helper.setSubject("Redefinir sua senha — ReMind");
+            helper.setText(buildPasswordResetHtml(name, resetLink, expiresAt), true);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            throw new ResponseStatusException(INTERNAL_SERVER_ERROR, "Falha ao montar e-mail de redefinição de senha", e);
+        }
+
+        try {
+            javaMailSender.send(message);
+        } catch (MailException e) {
+            throw new ResponseStatusException(INTERNAL_SERVER_ERROR, "Falha ao enviar e-mail de redefinição de senha", e);
+        }
+    }
+
+    private String buildPasswordResetHtml(String name, String resetLink, LocalDateTime expiresAt) {
+        return PASSWORD_RESET_TEMPLATE
+                .replace("{{NAME}}", HtmlUtils.htmlEscape(name))
+                .replace("{{RESET_LINK}}", resetLink)
+                .replace("{{EXPIRES_AT}}", expiresAt.format(EXPIRES_AT_FORMAT));
+    }
+
     // Paleta e fonte seguem documentacao/idVisual/id.md (obrigatório para qualquer material com a marca ReMind).
     private static final String INVITE_TEMPLATE = """
             <!DOCTYPE html>
@@ -127,6 +164,67 @@ public class MailService {
                         <td style="padding:16px 32px; background-color:#A8C5C0;">
                           <p style="margin:0; font-size:12px; color:#1C2B2B;">
                             Você recebeu este e-mail porque seu psicólogo(a) te cadastrou na plataforma ReMind.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """;
+
+    // Paleta e fonte seguem documentacao/idVisual/id.md (obrigatório para qualquer material com a marca ReMind).
+    private static final String PASSWORD_RESET_TEMPLATE = """
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Redefinir senha ReMind</title>
+            </head>
+            <body style="margin:0; padding:0; background-color:#F5F6F4; font-family:'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F6F4; padding:32px 16px;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+                      <tr>
+                        <td style="background-color:#1C2B2B; padding:24px 32px;">
+                          <span style="font-size:24px; font-weight:900; color:#1A7A6E; letter-spacing:0.5px;">ReMind</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:32px;">
+                          <p style="margin:0 0 16px; font-size:16px; color:#1C2B2B;">Olá, {{NAME}},</p>
+                          <p style="margin:0 0 24px; font-size:16px; line-height:1.5; color:#1C2B2B;">
+                            Recebemos um pedido para definir uma nova senha da sua conta ReMind.
+                            Clique no botão abaixo para continuar.
+                          </p>
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="border-radius:8px; background-color:#1A7A6E;">
+                                <a href="{{RESET_LINK}}"
+                                   style="display:inline-block; padding:14px 28px; font-size:16px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:8px;">
+                                  Definir senha
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                          <p style="margin:24px 0 0; font-size:13px; color:#1C2B2B;">
+                            Este link é pessoal e expira em <strong>{{EXPIRES_AT}}</strong>.
+                          </p>
+                          <p style="margin:8px 0 0; font-size:13px; color:#1C2B2B;">
+                            Se o botão não funcionar, copie e cole este endereço no navegador:<br>
+                            <span style="color:#1A7A6E; word-break:break-all;">{{RESET_LINK}}</span>
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:16px 32px; background-color:#A8C5C0;">
+                          <p style="margin:0; font-size:12px; color:#1C2B2B;">
+                            Você recebeu este e-mail porque solicitou a redefinição da sua senha ReMind, ou
+                            porque uma conta foi criada para você na plataforma. Se não foi você, ignore este e-mail.
                           </p>
                         </td>
                       </tr>

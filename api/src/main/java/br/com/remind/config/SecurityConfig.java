@@ -52,6 +52,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/login/google").permitAll()
                         // Paciente ainda não tem sessão ao clicar o link de convite (PRD §14).
                         .requestMatchers(HttpMethod.POST, "/convites/consumir").permitAll()
+                        // Idem para quem pede/consome um link de redefinição de senha — ainda
+                        // não tem sessão nesse momento (fluxo "esqueci minha senha").
+                        .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -65,6 +69,10 @@ public class SecurityConfig {
                 // convite (INV-012, docs/specs/002-convite-questionario/PRD.md §16).
                 .addFilterAfter(
                         new InviteScopedAuthorizationFilter(),
+                        BearerTokenAuthenticationFilter.class)
+                // Restringe /admin/** a UserType.ADMIN (cadastro de psicólogo pelo admin).
+                .addFilterAfter(
+                        new AdminAuthorizationFilter(userRepository),
                         BearerTokenAuthenticationFilter.class)
                 .build();
     }

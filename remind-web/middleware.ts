@@ -9,7 +9,8 @@ export default auth((req) => {
 
   const isPsicologo = nextUrl.pathname.startsWith("/psicologo");
   const isPaciente = nextUrl.pathname.startsWith("/paciente");
-  const isProtected = isPsicologo || isPaciente;
+  const isAdmin = nextUrl.pathname.startsWith("/admin");
+  const isProtected = isPsicologo || isPaciente || isAdmin;
   const isLogin = nextUrl.pathname === ROUTES.login;
 
   if (isProtected && !isAuthed) {
@@ -21,7 +22,8 @@ export default auth((req) => {
   if (isAuthed && isProtected) {
     const wrongProfile =
       (isPsicologo && session.user.type !== "PSYCHOLOGIST") ||
-      (isPaciente && session.user.type !== "PATIENT");
+      (isPaciente && session.user.type !== "PATIENT") ||
+      (isAdmin && session.user.type !== "ADMIN");
     if (wrongProfile) {
       return NextResponse.redirect(
         new URL(HOME_BY_USER_TYPE[session.user.type], nextUrl),
@@ -73,5 +75,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/psicologo/:path*", "/paciente/:path*", "/login"],
+  matcher: ["/psicologo/:path*", "/paciente/:path*", "/admin/:path*", "/login"],
 };

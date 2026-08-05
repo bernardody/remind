@@ -160,7 +160,15 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Senha</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Senha</FormLabel>
+                  <Link
+                    href={ROUTES.esqueciSenha}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Esqueci minha senha
+                  </Link>
+                </div>
                 <div className="relative">
                   <FormControl>
                     <Input

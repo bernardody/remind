@@ -47,6 +47,8 @@ export const NAV_ITEMS = [
 export const ROUTES = {
   home: "/",
   login: "/login",
+  esqueciSenha: "/esqueci-senha",
+  redefinirSenha: "/redefinir-senha",
   sobre: "/sobre",
   contato: "/contato",
   privacidade: "/privacidade",
@@ -65,12 +67,16 @@ export const ROUTES = {
     perfil: "/paciente/perfil",
     responder: (questionnaireId: number) => `/paciente/questionarios/${questionnaireId}/responder`,
   },
+  admin: {
+    psicologos: "/admin/psicologos",
+  },
 } as const;
 
 /** Home por perfil pós-login (RF-11) — usado no login e no middleware. */
 export const HOME_BY_USER_TYPE = {
   PSYCHOLOGIST: ROUTES.psicologo.dashboard,
   PATIENT: ROUTES.paciente.inicio,
+  ADMIN: ROUTES.admin.psicologos,
 } as const;
 
 interface NavItem {
