@@ -26,7 +26,6 @@ export function Gauge({ value, max = 5, size = 320, className }: GaugeProps) {
   const percent = (clamped / max) * 100;
   const data = [{ name: "score", value: percent, fill: band.color }];
   const label = `Escore médio ${value.toFixed(1)} de ${max}, risco ${band.label.toLowerCase()}`;
-  const chartHeight = size / 2 + 16;
 
   return (
     <div
@@ -34,14 +33,23 @@ export function Gauge({ value, max = 5, size = 320, className }: GaugeProps) {
       role="img"
       aria-label={label}
     >
-      {/* `maxWidth: size` é o teto de design; `ResponsiveContainer` encolhe pra
-          caber em telas/cards mais estreitos que isso, sem estourar. */}
-      <div className="relative mx-auto w-full" style={{ maxWidth: size }}>
-        <ResponsiveContainer width="100%" aspect={size / chartHeight}>
+      {/* RadialBarChart resolve innerRadius/outerRadius em % a partir de
+          min(largura, altura) do canvas — se o canvas já nascer "meia altura"
+          (só a metade de cima do círculo), o raio real sai baseado nessa
+          altura pequena, e o arco fica bem menor do que a largura sugere
+          (o número por cima parece maior que o gráfico). Por isso o chart
+          é desenhado num canvas quadrado (aspect 1:1, altura = largura) e só
+          a metade de cima fica visível via `aspect-ratio: 2/1` + `overflow-hidden`
+          no wrapper — o raio passa a ser calculado sobre a largura real. */}
+      <div
+        className="relative mx-auto w-full overflow-hidden"
+        style={{ maxWidth: size, aspectRatio: "2 / 1" }}
+      >
+        <ResponsiveContainer width="100%" aspect={1}>
           <RadialBarChart
             cx="50%"
-            cy="100%"
-            innerRadius="68%"
+            cy="50%"
+            innerRadius="70%"
             outerRadius="100%"
             startAngle={180}
             endAngle={0}
