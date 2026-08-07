@@ -20,7 +20,7 @@ interface GaugeProps {
  * A régua de faixas abaixo do badge é decorativa (posição do marcador replica o
  * `percent` já descrito no `aria-label`), por isso fica `aria-hidden`.
  */
-export function Gauge({ value, max = 5, size = 320, className }: GaugeProps) {
+export function Gauge({ value, max = 5, size = 360, className }: GaugeProps) {
   const band = getRiskBand(value);
   const clamped = Math.min(Math.max(value, 0), max);
   const percent = (clamped / max) * 100;
@@ -63,7 +63,10 @@ export function Gauge({ value, max = 5, size = 320, className }: GaugeProps) {
             />
           </RadialBarChart>
         </ResponsiveContainer>
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-0.5 pb-2">
+        {/* Centralizado na área visível (não na base) — a base fica na mesma
+            altura das duas pontas do arco, então ancorar embaixo deixava o
+            número "abaixo" do anel em vez de dentro dele. */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
           <span className="flex items-baseline gap-1">
             <span className="text-5xl font-black tracking-tight text-foreground tabular-nums">
               {value.toFixed(1)}
