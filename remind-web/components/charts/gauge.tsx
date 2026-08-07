@@ -1,6 +1,6 @@
 "use client";
 
-import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
+import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { getRiskBand, RISK_BANDS } from "@/lib/constants";
@@ -20,13 +20,13 @@ interface GaugeProps {
  * A régua de faixas abaixo do badge é decorativa (posição do marcador replica o
  * `percent` já descrito no `aria-label`), por isso fica `aria-hidden`.
  */
-export function Gauge({ value, max = 5, size = 240, className }: GaugeProps) {
+export function Gauge({ value, max = 5, size = 320, className }: GaugeProps) {
   const band = getRiskBand(value);
   const clamped = Math.min(Math.max(value, 0), max);
   const percent = (clamped / max) * 100;
   const data = [{ name: "score", value: percent, fill: band.color }];
   const label = `Escore médio ${value.toFixed(1)} de ${max}, risco ${band.label.toLowerCase()}`;
-  const chartHeight = size / 2 + 12;
+  const chartHeight = size / 2 + 16;
 
   return (
     <div
@@ -34,27 +34,28 @@ export function Gauge({ value, max = 5, size = 240, className }: GaugeProps) {
       role="img"
       aria-label={label}
     >
-      <div className="relative" style={{ width: size, height: chartHeight }}>
-        <RadialBarChart
-          width={size}
-          height={chartHeight}
-          cx="50%"
-          cy="100%"
-          innerRadius="74%"
-          outerRadius="100%"
-          barSize={20}
-          startAngle={180}
-          endAngle={0}
-          data={data}
-        >
-          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-          <RadialBar
-            dataKey="value"
-            cornerRadius={10}
-            background={{ fill: "var(--color-muted)" }}
-          />
-        </RadialBarChart>
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-0.5 pb-1">
+      {/* `maxWidth: size` é o teto de design; `ResponsiveContainer` encolhe pra
+          caber em telas/cards mais estreitos que isso, sem estourar. */}
+      <div className="relative mx-auto w-full" style={{ maxWidth: size }}>
+        <ResponsiveContainer width="100%" aspect={size / chartHeight}>
+          <RadialBarChart
+            cx="50%"
+            cy="100%"
+            innerRadius="68%"
+            outerRadius="100%"
+            startAngle={180}
+            endAngle={0}
+            data={data}
+          >
+            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+            <RadialBar
+              dataKey="value"
+              cornerRadius={10}
+              background={{ fill: "var(--color-muted)" }}
+            />
+          </RadialBarChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-0.5 pb-2">
           <span className="flex items-baseline gap-1">
             <span className="text-5xl font-black tracking-tight text-foreground tabular-nums">
               {value.toFixed(1)}
