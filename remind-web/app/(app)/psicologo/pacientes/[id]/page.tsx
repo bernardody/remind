@@ -101,9 +101,11 @@ export default async function PacienteDetailPage({ params }: PacienteDetailPageP
             <CardTitle className="text-base">Resumo clínico</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Avaliações respondidas</span>
-              <span className="font-semibold text-foreground">{answeredPage.totalElements}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-extrabold text-foreground">
+                {answeredPage.totalElements}
+              </span>
+              <span className="text-sm text-muted-foreground">avaliações respondidas</span>
             </div>
 
             {mostRecent ? (

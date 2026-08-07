@@ -60,7 +60,11 @@ export function DataTable<TData>({
   });
 
   if (isLoading) {
-    return <LoadingState rows={5} />;
+    return (
+      <div className="overflow-hidden rounded-2xl border border-border p-4">
+        <LoadingState rows={5} />
+      </div>
+    );
   }
 
   if (data.length === 0 && emptyState) {
@@ -69,7 +73,7 @@ export function DataTable<TData>({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-border">
+      <div className="overflow-hidden rounded-2xl border border-border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

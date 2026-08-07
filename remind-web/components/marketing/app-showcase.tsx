@@ -50,7 +50,7 @@ export function AppShowcase() {
               </aside>
 
               {/* main */}
-              <div className="bg-card p-5 sm:p-6">
+              <div className="bg-card p-6">
                 <div className="grid gap-4 sm:grid-cols-3">
                   {[
                     { k: "Pacientes ativos", v: "48" },

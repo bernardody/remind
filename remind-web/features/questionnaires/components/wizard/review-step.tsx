@@ -18,7 +18,7 @@ export function ReviewStep({ questions, answers, onEdit }: ReviewStepProps) {
       <p className="text-sm text-muted-foreground">
         Revise suas respostas antes de enviar. Você pode voltar e alterar qualquer uma delas.
       </p>
-      <div className="flex flex-col divide-y divide-border rounded-2xl border border-border">
+      <div className="flex flex-col divide-y divide-border overflow-hidden rounded-2xl border border-border">
         {questions.map((question, index) => {
           const optionId = answers[question.id];
           const option = question.options.find((o) => o.id === optionId);
