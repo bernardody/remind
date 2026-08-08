@@ -20,9 +20,8 @@ import java.util.regex.Pattern;
 /**
  * Um Token de Acesso emitido a partir de um <b>convite de questionário</b> (claim
  * {@code scope=invite} — ver {@link br.com.remind.service.login.AccessTokenService#generateInviteScoped})
- * só autoriza ler/responder o questionário do convite e definir a senha do próprio
- * paciente (INV-012, docs/specs/002-convite-questionario/PRD.md §16); qualquer outra
- * operação retorna 403.
+ * só autoriza ler/responder o questionário do convite (INV-012,
+ * docs/specs/002-convite-questionario/PRD.md §16); qualquer outra operação retorna 403.
  *
  * <p>Mesmo padrão de {@link IncompleteProfileAuthorizationFilter}: executa após a
  * autenticação JWT e só age quando o token autenticado carrega o escopo restrito.
@@ -36,7 +35,6 @@ public class InviteScopedAuthorizationFilter extends OncePerRequestFilter {
     // app/(app)/paciente/questionarios/[id]/responder/page.tsx no frontend). Sem essa
     // rota liberada, essa checagem recebe 403 em vez do 404 esperado e a página quebra.
     private static final Pattern MY_RESULT = Pattern.compile("^/questionarios/(\\d+)/resultado$");
-    private static final String SET_OWN_PASSWORD_PATH = "/pacientes/me/senha";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -69,10 +67,6 @@ public class InviteScopedAuthorizationFilter extends OncePerRequestFilter {
     private boolean isAllowedForInviteScope(HttpServletRequest request, String questionnaireId) {
         String method = request.getMethod();
         String path = request.getRequestURI();
-
-        if ("PUT".equals(method) && SET_OWN_PASSWORD_PATH.equals(path)) {
-            return true;
-        }
 
         if ("GET".equals(method) && matchesQuestionnaireId(GET_QUESTIONNAIRE, path, questionnaireId)) {
             return true;
