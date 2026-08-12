@@ -16,6 +16,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,15 +114,26 @@ class QuestionnaireInviteRepositoryTest {
     }
 
     @Test
-    void consumeByTokenHash_returnsZero_secondTimeOnSameToken_provingSingleUse() {
-        persistInvite("hash-reuso", InviteStatus.SENT, LocalDateTime.now().plusDays(1), null, true);
+    void consumeByTokenHash_allowsReconsumption_whenOpenedButNotYetAnswered() {
+        persistInvite("hash-reabertura", InviteStatus.SENT, LocalDateTime.now().plusDays(1), null, true);
 
-        LocalDateTime now = LocalDateTime.now();
-        int first = questionnaireInviteRepository.consumeByTokenHash("hash-reuso", now, now.toLocalDate());
-        int second = questionnaireInviteRepository.consumeByTokenHash("hash-reuso", now, now.toLocalDate());
+        LocalDateTime firstNow = LocalDateTime.now();
+        int first = questionnaireInviteRepository.consumeByTokenHash("hash-reabertura", firstNow, firstNow.toLocalDate());
+
+        // Simula o paciente reabrindo o mesmo link depois que a sessão de 30min do convite
+        // caiu, sem ter respondido — precisa continuar funcionando (ver ConsumeInviteService).
+        LocalDateTime secondNow = firstNow.plusMinutes(35);
+        int second = questionnaireInviteRepository.consumeByTokenHash("hash-reabertura", secondNow, secondNow.toLocalDate());
 
         assertThat(first).isEqualTo(1);
-        assertThat(second).isEqualTo(0); // já consumido (consumed_at != null) — não consome de novo
+        assertThat(second).isEqualTo(1);
+
+        QuestionnaireInvite reloaded = questionnaireInviteRepository.findByTokenHash("hash-reabertura").orElseThrow();
+        // truncado a milissegundos: H2 arredonda nanossegundos de forma diferente do Java
+        assertThat(reloaded.getOpened_at().truncatedTo(ChronoUnit.MILLIS))
+                .isEqualTo(firstNow.truncatedTo(ChronoUnit.MILLIS)); // preserva a 1ª abertura
+        assertThat(reloaded.getConsumed_at().truncatedTo(ChronoUnit.MILLIS))
+                .isEqualTo(secondNow.truncatedTo(ChronoUnit.MILLIS)); // reflete a tentativa mais recente
     }
 
     @Test
@@ -145,13 +157,13 @@ class QuestionnaireInviteRepositoryTest {
     }
 
     @Test
-    void consumeByTokenHash_returnsZero_whenAlreadyConsumedPreviously() {
-        persistInvite("hash-ja-consumido", InviteStatus.ANSWERED, LocalDateTime.now().plusDays(1), LocalDateTime.now().minusHours(1), true);
+    void consumeByTokenHash_returnsZero_whenAlreadyAnswered() {
+        persistInvite("hash-ja-respondido", InviteStatus.ANSWERED, LocalDateTime.now().plusDays(1), LocalDateTime.now().minusHours(1), true);
 
         LocalDateTime now = LocalDateTime.now();
-        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-ja-consumido", now, now.toLocalDate());
+        int rows = questionnaireInviteRepository.consumeByTokenHash("hash-ja-respondido", now, now.toLocalDate());
 
-        assertThat(rows).isEqualTo(0);
+        assertThat(rows).isEqualTo(0); // uso único de fato: bloqueia só depois de respondido
     }
 
     @Test

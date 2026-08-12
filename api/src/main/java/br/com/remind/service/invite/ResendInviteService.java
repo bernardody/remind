@@ -62,8 +62,9 @@ public class ResendInviteService {
         invite.setToken_hash(inviteTokenGenerator.hash(rawToken));
         invite.setStatus(InviteStatus.PENDING);
         invite.setExpires_at(LocalDateTime.now().plusDays(expirationDays));
-        // Reseta os marcadores de consumo do token anterior — senão o token novo nunca
-        // conseguiria ser consumido (o UPDATE atômico exige consumed_at IS NULL).
+        // Reseta os marcadores de abertura/consumo do token anterior — token novo, então
+        // opened_at/consumed_at devem refletir a abertura deste link, não do anterior (ver
+        // QuestionnaireInviteRepository#consumeByTokenHash).
         invite.setOpened_at(null);
         invite.setConsumed_at(null);
         invite.setUpdated_at(LocalDate.now());

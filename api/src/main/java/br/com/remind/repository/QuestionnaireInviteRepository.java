@@ -27,10 +27,20 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
     Page<QuestionnaireInvite> findByPatientAndActiveTrue(Patient patient, Pageable pageable);
 
     /**
-     * Consumo atômico do token (INV-008, PRD §16): só marca {@code OPENED}/{@code consumed_at}
-     * se ainda não tiver sido consumido, não estiver expirado e estiver ativo — evita corrida
-     * entre duas requisições com o mesmo token. Retorna quantas linhas foram afetadas (0 = não
-     * consumiu; o chamador precisa então descobrir o motivo consultando o registro).
+     * Consumo atômico do token (INV-008, PRD §16): marca {@code OPENED}/{@code consumed_at}
+     * sempre que o convite ainda não tiver sido respondido, não estiver expirado e estiver
+     * ativo — evita corrida entre duas requisições com o mesmo token. Retorna quantas linhas
+     * foram afetadas (0 = não consumiu; o chamador precisa então descobrir o motivo
+     * consultando o registro).
+     *
+     * <p>Reabrir o mesmo link várias vezes é permitido enquanto o questionário não tiver sido
+     * enviado (sessão de convite dura só 30min/{@code INVITE_EXPIRES_IN} — um paciente que
+     * fecha a aba no meio do questionário precisa conseguir voltar pelo mesmo link, sem
+     * depender de reenvio do psicólogo). O bloqueio definitivo de uso único acontece só quando
+     * o convite já foi de fato respondido ({@code status = ANSWERED}, transição atômica
+     * separada em {@link #markAnsweredIfLive}) — não mais quando {@code consumed_at} já
+     * estava preenchido. {@code opened_at} preserva a 1ª abertura ({@code coalesce});
+     * {@code consumed_at} sempre reflete a tentativa mais recente.
      *
      * {@code now}/{@code today} vêm da JVM (fixada em America/Sao_Paulo, ver
      * docker-entrypoint.sh) em vez de {@code CURRENT_TIMESTAMP}/{@code CURRENT_DATE} do
@@ -42,11 +52,11 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
     @Query("""
             update QuestionnaireInvite qi
             set qi.status = br.com.remind.enums.InviteStatus.OPENED,
-                qi.opened_at = :now,
+                qi.opened_at = coalesce(qi.opened_at, :now),
                 qi.consumed_at = :now,
                 qi.updated_at = :today
             where qi.token_hash = :tokenHash
-              and qi.consumed_at is null
+              and qi.status <> br.com.remind.enums.InviteStatus.ANSWERED
               and qi.expires_at > :now
               and qi.active = true
             """)

@@ -18,8 +18,11 @@ import static org.springframework.http.HttpStatus.GONE;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
- * Consome um token de convite (uso único) e emite um JWT de escopo restrito ao
- * questionário do convite (INV-008, INV-012 — docs/specs/002-convite-questionario/PRD.md §16).
+ * Consome um token de convite e emite um JWT de escopo restrito ao questionário do convite
+ * (INV-008, INV-012 — docs/specs/002-convite-questionario/PRD.md §16). Reabrir o mesmo link
+ * várias vezes é permitido enquanto o questionário não tiver sido respondido — o uso único de
+ * fato acontece na resposta, não no consumo do link (ver
+ * {@link br.com.remind.repository.QuestionnaireInviteRepository#consumeByTokenHash}).
  */
 @RequiredArgsConstructor
 @Service
@@ -49,11 +52,6 @@ public class ConsumeInviteService {
             }
             if (invite.getStatus() == InviteStatus.REVOKED || !Boolean.TRUE.equals(invite.getActive())) {
                 throw new ResponseStatusException(GONE, "Este convite não está mais disponível.");
-            }
-            if (invite.getConsumed_at() != null) {
-                // Mesmo token clicado de novo (ex.: e-mail antigo reaberto) sem ter havido
-                // reenvio — distinto de expiração real (checada abaixo).
-                throw new ResponseStatusException(GONE, "Este link já foi utilizado.");
             }
             throw new ResponseStatusException(GONE, "Este link expirou. Peça um novo convite ao seu psicólogo.");
         }
