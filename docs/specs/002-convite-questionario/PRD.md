@@ -662,12 +662,13 @@ produção (mesma diretriz de migração incremental já usada no redesign de UI
    (`2026-07-13--convite-questionario.md`). O psicólogo continua podendo, se quiser,
    cadastrar uma senha manualmente para o paciente no formulário de cadastro (fluxo
    atual, inalterado) — isso não muda.
-4. **`/paciente/inicio` deve migrar para "só questionários atribuídos"?** Este PRD manteve
-   o comportamento atual (lista global) por segurança de escopo, mas isso deixa uma
-   inconsistência: um paciente logado normalmente ainda vê e pode responder
-   questionários não convidados. Se o objetivo de produto é realmente restringir
-   (não só notificar), essa migração precisa entrar em algum momento — recomenda-se
-   tratar como Fase 2 explícita, não implícita neste documento.
+4. ~~**`/paciente/inicio` deve migrar para "só questionários atribuídos"?**~~ —
+   **resolvido**: migração feita (não neste PRD, mas no
+   `docs/specs/003-relatorios-evolucao-longitudinal/PRD.md`, §4.5/§5.1). A tela
+   `available-questionnaires.tsx` usa `useMyInvites` (não mais o catálogo global de
+   `/questionarios`), e o backend expõe `GET /questionarios/convites` via
+   `ListMyInvitesService`, substituindo `ListQuestionnaireService` como base da tela.
+   Convite passou a ser obrigatório pra responder, inclusive na 1ª vez.
 5. ~~**Prazo de expiração de 7 dias é aceitável clinicamente?**~~ — **resolvido
    (2026-07-12): sim, mantido em 7 dias.** Confirmado pelo usuário depois de testar em
    produção e ver o texto real do e-mail ("expira em 19/07/2026", 7 dias após o envio em
