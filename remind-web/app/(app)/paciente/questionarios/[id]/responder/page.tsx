@@ -49,10 +49,16 @@ export default async function ResponderPage({ params }: ResponderPageProps) {
   // `/resultado` pra decidir "já respondido": esse endpoint continua 200 pra sempre depois da
   // 1ª resposta, mesmo quando o psicólogo reaplica (mesmo `Questionnaire.id`, convite novo) —
   // quem decide se dá pra responder agora é o estado do convite, não o histórico de respostas.
-  const invites = await apiFetch<Page<PatientInvite>>("/questionarios/convites", {
-    token: session.accessToken,
-    params: { size: 200 },
-  });
+  let invites: Page<PatientInvite>;
+  try {
+    invites = await apiFetch<Page<PatientInvite>>("/questionarios/convites", {
+      token: session.accessToken,
+      params: { size: 200 },
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) notFound();
+    throw err;
+  }
   const invite = invites.content.find((i) => i.questionnaireId === questionnaireId);
 
   if (!invite) notFound();
@@ -60,10 +66,10 @@ export default async function ResponderPage({ params }: ResponderPageProps) {
   const alreadyAnswered = invite.status === "ANSWERED";
   const canAnswer = isLive(invite);
   // Sessão nascida de um convite (escopo restrito a este questionário, PRD
-  // docs/specs/002-convite-questionario §16/§20) — o backend bloqueia (403)
-  // qualquer rota fora do escopo, incluindo `/questionarios/convites` (usada
-  // por `/paciente/inicio`). Link "Voltar ao início" pra essa sessão quebra
-  // sempre; ver mesmo tratamento em `wizard/confirmation.tsx`.
+  // docs/specs/002-convite-questionario §16/§20) — `middleware.ts` redireciona
+  // de volta pra cá qualquer tentativa dessa sessão de navegar pra outra rota
+  // `/paciente/*`, então o link "Voltar ao início" nunca leva a lugar nenhum
+  // pra essa sessão; ver mesmo tratamento em `wizard/confirmation.tsx`.
   const isInviteScoped = !!session.user.questionnaireId;
 
   return (

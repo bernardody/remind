@@ -35,6 +35,12 @@ public class InviteScopedAuthorizationFilter extends OncePerRequestFilter {
     // app/(app)/paciente/questionarios/[id]/responder/page.tsx no frontend). Sem essa
     // rota liberada, essa checagem recebe 403 em vez do 404 esperado e a página quebra.
     private static final Pattern MY_RESULT = Pattern.compile("^/questionarios/(\\d+)/resultado$");
+    // Idem: a página do wizard trocou a checagem de "já respondido?" de MY_RESULT pra este
+    // endpoint (commit 7200f730, 2026-07-17) sem essa rota jamais ter sido liberada aqui —
+    // toda sessão de convite (o fluxo padrão de resposta) recebia 403 não tratado no
+    // carregamento da página. `ListMyInvitesService` filtra o resultado pra só o convite
+    // do próprio escopo, então liberar aqui não vaza os outros convites do paciente.
+    private static final Pattern LIST_MY_INVITES = Pattern.compile("^/questionarios/convites$");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -73,6 +79,10 @@ public class InviteScopedAuthorizationFilter extends OncePerRequestFilter {
         }
 
         if ("GET".equals(method) && matchesQuestionnaireId(MY_RESULT, path, questionnaireId)) {
+            return true;
+        }
+
+        if ("GET".equals(method) && LIST_MY_INVITES.matcher(path).matches()) {
             return true;
         }
 

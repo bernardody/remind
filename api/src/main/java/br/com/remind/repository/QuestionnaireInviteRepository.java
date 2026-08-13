@@ -26,6 +26,11 @@ public interface QuestionnaireInviteRepository extends JpaRepository<Questionnai
 
     Page<QuestionnaireInvite> findByPatientAndActiveTrue(Patient patient, Pageable pageable);
 
+    /** Usado quando o chamador é uma sessão de convite (escopo restrito a 1 questionário) —
+     * ver {@link br.com.remind.service.invite.ListMyInvitesService}. */
+    Page<QuestionnaireInvite> findByPatientAndQuestionnaire_IdAndActiveTrue(
+            Patient patient, Long questionnaireId, Pageable pageable);
+
     /**
      * Consumo atômico do token (INV-008, PRD §16): marca {@code OPENED}/{@code consumed_at}
      * sempre que o convite ainda não tiver sido respondido, não estiver expirado e estiver
